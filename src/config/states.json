@@ -1,0 +1,95 @@
+{
+	"login": {
+		"name": "login",
+		"url": "/login",
+		"templateUrl": "views/session/guest/login.html",
+		"controller": "LoginController",
+		"guestOnly": true
+	},
+
+	"register": {
+		"name": "register",
+		"url": "/register",
+		"templateUrl": "views/session/guest/register.html",
+		"controller": "RegisterController",
+		"guestOnly": true
+	},
+
+	"me": {
+		"abstract": true,
+		"name": "me",
+		"template": "<div ui-view></div>",
+		"loginRequired": true
+	},
+
+	"me.home": {
+		"name": "me.home",
+		"url": "/me",
+		"templateUrl": "views/session/user/home/me.html",
+		"controller": "MeController",
+		"loginRequired": true
+	},
+
+	"me.about": {
+		"name": "me.about",
+		"url": "/about",
+		"templateUrl": "views/session/user/home/about.html",
+		"controller": "AboutController",
+		"loginRequired": true
+	},
+
+
+	"me.settings": {
+		"name": "me.settings",
+		"url": "/settings",
+		"templateUrl": "views/session/user/home/settings.html",
+		"controller": "SettingsController",
+		"loginRequired": true
+	},
+
+
+	"community": {
+		"abstract": true,
+		"name": "community",
+		"url": "/community",
+		"template": "<div ui-view></div>"
+	},
+
+	"community.home": {
+		"name": "community.home",
+		"url": "/home",
+		"template": "welcome to the community homepage"
+	},
+
+	"community.photos": {
+		"name": "community.photos",
+		"url": "/community/photos",
+		"template": "welcome to the community homepage"
+	},
+
+	"community.online": {
+		"name": "community.online",
+		"url": "/community/online",
+		"template": "welcome to the community homepage"
+	},
+
+	"community.categories": {
+		"name": "community.categories",
+		"url": "/community/categories",
+		"template": "welcome to the community homepage"
+	},
+
+	"community.leaderboards": {
+		"name": "community.leaderboards",
+		"url": "/community/leaderboards",
+		"template": "welcome to the community homepage"
+	},
+
+	"community.staff": {
+		"name": "community.staff",
+		"url": "/community/staff",
+		"template": "welcome to the community homepage"
+	}
+
+
+}

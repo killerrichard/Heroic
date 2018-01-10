@@ -1,0 +1,59 @@
+<% include ../../header %>
+
+<div class="wrapper">
+    <habbo-profile-header>
+        <div class="profile-header__avatar">
+            <div class="profile-header__link">
+                <habbo-imager class="profile-header__image">
+                  <img class="imager" src="<%= website.figure_imager %>?figure=<%= profile.look %>">
+                </habbo-imager>
+            </div>
+        </div>
+        <div class="profile-header__details">
+          <div>
+            <h1><%= profile.username %></h1>
+          </div>
+        </div>
+    </habbo-profile-header>
+</div>
+
+<div class="wrapper wrapper--content">
+    <div class="profile__section">
+        <div class="profile__card__wrapper--friends" style="width:100%;">
+            <section class="profile__card__aligner">
+                <div class="profile__card">
+                    <h2 class="profile__card__title">
+                      <span>Friends</span> <span class="profile__friends__count">(<%= profile.friends.length %> out of <%= profile.friends.length %>)</span>
+                    </h2>
+                    <% if (profile.friends.length > 0) { %>
+                      <habbo-friend-list class="item-list--grid">
+                        <ul>
+                          <% profile.friends.forEach(f => { %>
+                            <li class="item item--friend">
+                                <a class="item__content" href="/profile/<%= f.user.username %>">
+                                    <div class="item__icon">
+                                      <habbo-imager class="item__icon__friend">
+                                        <img class="imager" src="<%= website.figure_imager %>?figure=<%= f.user.look %>">
+                                      </habbo-imager>
+                                    </div>
+                                    <div class="item__text">
+                                        <h6 class="item__title item__title--single-line"><%= f.user.username %></h6>
+                                    </div>
+                                </a>
+                            </li>
+                          <% }) %>
+                        </ul>
+                          </habbo-friend-list>
+                        <% } else { %>
+                          <p>I don't have any friends!</p>
+                        <% } %>
+                </div>
+            </section>
+        </div>
+
+    </div>
+</div>
+
+
+
+<% include ../../footer %>

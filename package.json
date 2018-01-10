@@ -1,0 +1,69 @@
+{
+  "name": "habboapi",
+  "version": "0.1.2",
+  "description": "HabboAPI",
+  "main": "main.js",
+  "scripts": {
+    "start": "babel-node main.js --presets es2015,stage-2"
+  },
+  "author": "Billsonnn",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/billsonnn/habboapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/billsonnn/habboapi/issues"
+  },
+  "homepage": "https://github.com/billsonnn/habboapi",
+  "dependencies": {
+    "angular": "1.6.5",
+    "angular-animate": "1.6.5",
+    "angular-aria": "1.6.5",
+    "angular-css": "^1.0.8",
+    "angular-material": "1.1.4",
+    "angular-messages": "1.6.5",
+    "angular-sanitize": "^1.6.5",
+    "angular-ui-router": "^0.4.2",
+    "bcrypt": "^1.0.2",
+    "bcryptjs": "^2.4.3",
+    "bluebird": "^3.5.0",
+    "body-parser": "^1.17.1",
+    "bookshelf": "^0.10.3",
+    "ejs": "^2.5.6",
+    "express": "^4.15.2",
+    "express-session": "1.15.2",
+    "glob": "^7.1.1",
+    "jsonfile": "^3.0.1",
+    "knex": "^0.12.7",
+    "mysql": "^2.13.0",
+    "ngstorage": "^0.3.11",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0",
+    "regex": "^0.1.1",
+    "request": "^2.83.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.0",
+    "babel-preset-es2015": "^6.24.0",
+    "babel-preset-stage-2": "^6.22.0",
+    "babel-watch": "^2.0.7",
+    "babelify": "^7.3.0",
+    "browser-sync": "^2.18.8",
+    "browserify": "^14.1.0",
+    "browserify-ngannotate": "^2.0.0",
+    "gulp": "^3.9.1",
+    "gulp-angular-templatecache": "^2.0.0",
+    "gulp-clean-css": "^3.6.0",
+    "gulp-css-prefix": "^0.1.0",
+    "gulp-notify": "^3.0.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^3.1.0",
+    "gulp-sourcemaps": "^2.4.1",
+    "gulp-uglify": "^2.1.0",
+    "gulp-util": "^3.0.8",
+    "marked": "^0.3.6",
+    "merge-stream": "^1.0.1",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}

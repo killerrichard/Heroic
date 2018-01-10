@@ -1,0 +1,54 @@
+<% include ../../../header %>
+
+<section class="wrapper wrapper--content">
+    <div class="room__thumbnail"></div>
+    <div class="room__content">
+        <h1 class="room__content__title"><%= room.name %></h1>
+        <div class="room__content__left">
+            <div>
+                <habbo-avatar ng-switch-when="false" class="room__owner--user">
+                    <a class="avatar" href="/profile/<%= room.creator.username %>">
+                        <habbo-imager class="avatar__image">
+                          <img class="imager" src="<%= website.figure_imager %>?figure=<%= room.creator.look %>&amp;headonly=1&amp;size=b&amp;gesture=sml&amp;direction=2&amp;head_direction=2&amp;action=std">
+                        </habbo-imager>
+                        <h6 class="avatar__title"><%= room.creator.username %></h6>
+                    </a>
+                </habbo-avatar>
+            </div>
+            <habbo-room-info>
+                <ul class="room-info">
+                  <li class="room-info__row">
+                    <h3 class="room-info__header">Description</h3><span class="room-info__value room-info--description"><%= room.description %></span>
+                  </li>
+                  <li class="room-info__row">
+                    <h3 class="room-info__header">Tags</h3>
+                    <% if (room.tags.indexOf(';') > -1) { %>
+                        <li class="news-category__item">
+                          <a href="/tags/<%= room.tags.split(';')[0] %>" class="news-category__link"><%= room.tags.split(';')[0] %></a>
+                        </li>
+                        <li class="news-category__item">
+                          <a href="/tags/<%= room.tags.split(';')[1] %>" class="news-category__link"><%= room.tags.split(';')[1] %></a>
+                        </li>
+                    <% } else { %>
+                      <li class="news-category__item">
+                        <a href="/tags/<%= room.tags %>" class="news-category__link"><%= room.tags %></a>
+                      </li>
+                    <% } %>
+                    <span class="room-info__value"></span>
+                  </li>
+                </ul>
+            </habbo-room-info>
+        </div>
+        <div class="room__content__right">
+            <div class="room__details">
+                <h3 translate="ROOM_DETAILS">Room details</h3>
+                <dl>
+                  <dt>Max users</dt>
+                    <dd><%= room.users_max %></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</section>
+
+<% include ../../../footer %>

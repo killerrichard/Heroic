@@ -1,0 +1,78 @@
+<% include ../../header %>
+
+<div id="tabs">
+    <section class="wrapper wrapper--content">
+        <habbo-compile data="CategoryController.category" class="div div--fixed">
+            <section>
+                <header class="news-category__header">
+                    <span>Show me news about:</span>
+                    <nav class="news-category__navigation">
+                        <ul class="news-category__list">
+                          <li class="news-category__item">
+                            <a href="#tab-0" class="news-category__link">Everything</a>
+                          </li>
+                          <% categories.forEach(c => { %>
+                            <li class="news-category__item">
+                              <a href="#tab-<%= c.id %>" class="news-category__link"><%= c.title %></a>
+                            </li>
+                          <% }) %>
+                        </ul>
+                    </nav>
+                </header>
+
+                <div id="tab-0">
+                  <% website.news.forEach(n => { %>
+                    <article class="news-header">
+                        <a href="/community/article/<%= n.id %>/<%= n.title%>" class="news-header__link news-header__banner">
+                            <figure class="news-header__viewport">
+                              <img src="<%= website.news_images %>/<%= n.image %>_thumb.png" class="news-header__image news-header__image--thumbnail">
+                            </figure>
+                        </a>
+                        <a href="/community/article/<%= n.id %>/<%= n.title%>" class="news-header__link news-header__wrapper">
+                            <h2 class="news-header__title"><%= n.title %></h2>
+                        </a>
+                        <aside class="news-header__wrapper news-header__info">
+                            <time class="news-header__date"><%= n.created_at %></time>
+                            <ul class="news-header__categories">
+                                <li class="news-header__category">
+                                    <a href="/community/category" class="news-header__category__link"><%= n.category.title %></a>
+                                </li>
+                            </ul>
+                        </aside>
+                        <p class="news-header__wrapper news-header__summary"><%= n.content.substr(0, 255) %></p>
+                    </article>
+                  <% }) %>
+                </div>
+
+                <% categories.forEach(c => { %>
+                  <div id="tab-<%= c.id %>">
+                    <% c.articles.forEach(n => { %>
+                      <article class="news-header">
+                          <a href="/community/article/<%= n.id %>/<%= n.title%>" class="news-header__link news-header__banner">
+                              <figure class="news-header__viewport">
+                                <img src="<%= website.news_images %>/<%= n.image %>_thumb.png" class="news-header__image news-header__image--thumbnail">
+                              </figure>
+                          </a>
+                          <a href="/community/article/<%= n.id %>/<%= n.title%>" class="news-header__link news-header__wrapper">
+                              <h2 class="news-header__title"><%= n.title %></h2>
+                          </a>
+                          <aside class="news-header__wrapper news-header__info">
+                              <time class="news-header__date"><%= n.created_at %></time>
+                              <ul class="news-header__categories">
+                                  <li class="news-header__category">
+                                      <a href="/community/category/<%= c.title %>/<%= c.id %>" class="news-header__category__link"><%= c.title %></a>
+                                  </li>
+                              </ul>
+                          </aside>
+                          <p class="news-header__wrapper news-header__summary"><%= n.content.substr(0, 255) %></p>
+                      </article>
+                    <% }) %>
+                  </div>
+                <% }) %>
+
+            </section>
+        </habbo-compile>
+    </section>
+</div>
+
+<% include ../../footer %>

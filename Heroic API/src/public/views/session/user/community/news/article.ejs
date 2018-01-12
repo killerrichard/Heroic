@@ -1,0 +1,52 @@
+<% include ../../header %>
+
+<div>
+  <section class="wrapper wrapper--content">
+    <habbo-compile class="div div--fixed">
+        <article>
+          <habbo-user-menu class="header__aside header__aside--user-menu">
+              <div class="user-menu">
+                  <div class="user-menu__header">
+                    <a class="user-menu__toggle" id="toggle-author">
+                        <div class="user-menu__name__wrapper">
+                            <div class="user-menu__name"> <%= article.author.username %></div>
+                        </div>
+                        <habbo-imager class="user-menu__avatar">
+                          <img  width="54" height="62" class="imager" src="<%= website.figure_imager %>?figure=<%= article.author.look %>&headonly=1" style="min-width: 54px;">
+                        </habbo-imager>
+                    </a>
+                  </div>
+                  <ul class="user-menu__list ng-hide" id="toggle-author1">
+                    <li class="user-menu__item">
+                      <a href="/profile/<%= article.author.username %>" class="user-menu__link user-menu__link--profile">My Profile</a>
+                    </li>
+
+                  </ul>
+              </div>
+          </habbo-user-menu>
+            <header class="news-header news-header--single" style="margin-top:9.5%;">
+                <div class="news-header__banner">
+                    <figure class="news-header__viewport">
+                        <img src="<%= website.news_images %>/<%= article.image %>.png" class="news-header__image news-header__image--featured">
+                    </figure>
+                </div>
+                <h1 class="news-header__wrapper news-header__title"><%= article.title %></h1>
+                <aside class="news-header__wrapper news-header__info">
+                    <time class="news-header__date"><%= article.created_at %></time>
+                    <ul class="news-header__categories">
+                        <li class="news-header__category">
+                            <a href="/community/category" class="news-header__category__link"><%= article.category.name %></a>
+                        </li>
+                    </ul>
+                </aside>
+                <p class="news-header__wrapper news-header__summary"><%= article.summary %></p>
+            </header>
+            <div class="news-article">
+              <%- article.content %>
+            </div>
+        </article>
+    </habbo-compile>
+  </section>
+</div>
+
+<% include ../../footer %>

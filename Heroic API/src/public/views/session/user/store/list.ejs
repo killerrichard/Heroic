@@ -1,0 +1,97 @@
+<% include ../header %>
+
+<main class="wrapper wrapper--content" ui-view="">
+  <header class="shop__header">
+    <h1 class="shop__header__title">Exclusive Deals</h1>
+  </header>
+  <section>
+    <div class="main">
+      <habbo-inventory>
+        <habbo-products>
+          <section>
+            <h3 class="inventory__section__title">Memberships and bundles</h3>
+            <% if (deals.length > 0) { %>
+              <% deals.forEach(deal => { %>
+                <habbo-accordion-item>
+                  <habbo-accordion-item-preview>
+                      <div>
+                          <habbo-product-thumbnail item="item">
+                              <div class="inventory-thumbnail">
+                                  <div class="inventory-thumbnail__body">
+                                      <habbo-product-icon class="inventory-thumbnail__icon">
+                                          <div class="product-icon product-icon--<%= deal.icon %>"></div>
+                                      </habbo-product-icon>
+                                      <div class="inventory-thumbnail__text">
+                                          <h3 class="inventory-thumbnail__title"><%= deal.title %></h3>
+                                      </div>
+                                      <div class="inventory-thumbnail__banner"><span class="inventory-thumbnail__price">US $<%= deal.price %>.00</span></div>
+                                  </div>
+                              </div>
+                          </habbo-product-thumbnail>
+                      </div>
+                  </habbo-accordion-item-preview>
+                  <habbo-accordion-item-content class="ng-hide">
+                      <div class="accordion-item-content">
+                          <habbo-product-payment-details>
+                              <habbo-product-icon class="payment-details__icon">
+                                  <div class="product-icon product-icon--4"></div>
+                              </habbo-product-icon>
+                              <div class="payment-details">
+                                  <header class="payment-details__header">
+                                      <h3 class="payment-details__title"><%= deal.title %></h3>
+                                      <div class="payment-details__price">US $<%= deal.price %>.00</div>
+                                  </header>
+                                  <p><%- deal.content %></p>
+                                  <habbo-payment-steps>
+                                      <div class="payment-steps">
+                                          <habbo-payment-methods class="payment-steps__step">
+                                              <ul>
+                                                <li class="payment-methods__method">
+                                                  <img class="payment-methods__icon" src="//images.habbo.com/c_images/cbs2_partner_logos/partner_logo_paypal_001.png">
+                                                  <habbo-payment-button class="payment-methods__button">
+                                                    <button class="payment-button">Pay</button>
+                                                  </habbo-payment-button>
+                                                </li>
+                                              </ul>
+                                          </habbo-payment-methods>
+                                      </div>
+                                  </habbo-payment-steps>
+                              </div>
+                          </habbo-product-payment-details>
+                      </div>
+                  </habbo-accordion-item-content>
+                </habbo-accordion-item>
+              <% }) %>
+            <% } else { %>
+              <p>There are currently no deals available!  Check back later</p>
+            <% } %>
+          </section>
+        </habbo-products>
+      </habbo-inventory>
+    </div>
+    <habbo-purse class="aside aside--box">
+      <aside>
+          <h3>My Purse</h3>
+          <div class="purse">
+              <div class="purse__columns">
+                  <div class="purse__column">
+                      <div class="purse__item purse__item--credits"><%= user.credits %> credits</div>
+                      <div class="purse__item purse__item--diamonds"><%= user.points %> diamonds</div>
+                  </div>
+                  <div class="purse__column">
+                      <div class="purse__item purse__item--habbo-club">
+                        <% if (user.rank.vip == '1') { %>
+                          <span><%= user.rank.rank_name %> Member</span>
+                        <% } else { %>
+                          <span>No VIP</span>
+                        <% } %>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </aside>
+    </habbo-purse>
+  </section>
+</main>
+
+<% include ../footer %>

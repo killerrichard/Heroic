@@ -1,0 +1,54 @@
+<% include ../../header %>
+
+<div class="wrapper">
+    <habbo-profile-header>
+        <div class="profile-header__avatar">
+            <div class="profile-header__link">
+                <habbo-imager class="profile-header__image">
+                  <img class="imager" src="<%= website.figure_imager %>?figure=<%= profile.look %>">
+                </habbo-imager>
+            </div>
+        </div>
+        <div class="profile-header__details">
+          <div>
+            <h1><%= profile.username %></h1>
+          </div>
+        </div>
+    </habbo-profile-header>
+</div>
+
+<div class="wrapper wrapper--content">
+    <div class="profile__section">
+        <div class="profile__card__wrapper--rooms" style="width:100%;">
+          <section class="profile__card__aligner">
+              <div class="profile__card">
+                  <h2 class="profile__card__title">Rooms</h2>
+                  <% if (profile.rooms.length > 0) { %>
+                  <habbo-room-list class="item-list--grid">
+                    <ul>
+                      <% profile.rooms.slice(0, 4).forEach(r => { %>
+                        <li class="item item--room">
+                            <a href="/room/<%= r.id %>" class="item__content">
+                                <habbo-room-icon class="item__icon" url="https://habbo-stories-content.s3.amazonaws.com/navigator-thumbnail/hhus/64061002.png">
+                                    <div class="room-icon"></div>
+                                </habbo-room-icon>
+                                <div class="item__text">
+                                    <h6 class="item__title item__title--single-line"><%= r.name %></h6>
+                                </div>
+                            </a>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  </habbo-room-list>
+                  <% } else { %>
+                    <p>I don't own any rooms!</p>
+                  <% } %>
+              </div>
+          </section>
+        </div>
+    </div>
+</div>
+
+
+
+<% include ../../footer %>

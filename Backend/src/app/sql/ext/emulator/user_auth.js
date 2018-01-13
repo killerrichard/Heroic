@@ -1,6 +1,6 @@
 import CRUD from './user_crud'
 import Hash from 'bcrypt-nodejs'
-import Users from '../../../model/emulator/users'
+import Users from '../../model/emulator/users'
 export default class Auth {
 
   // Login Functions

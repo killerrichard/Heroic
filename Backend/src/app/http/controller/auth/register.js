@@ -1,7 +1,7 @@
 import Async from 'async'
 import Validator from 'validator'
-import Auth from '../../../sql/ext/emulator/users/user_auth'
-import User from '../../../sql/ext/emulator/users/user_crud'
+import Auth from '../../../sql/ext/emulator/user_auth'
+import User from '../../../sql/ext/emulator/user_crud'
 export default class Login {
 
   static try (req, res) {

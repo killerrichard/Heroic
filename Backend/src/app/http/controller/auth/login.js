@@ -1,4 +1,4 @@
-import User from '../../../sql/ext/emulator/users/user_auth'
+import User from '../../../sql/ext/emulator/user_auth'
 export default class Login {
 
   static try (req, res) {
@@ -14,6 +14,10 @@ export default class Login {
           res.status(400).json(error).end()
         }
       })
+  }
+
+  static sso (req, res) {
+    res.status(200).json({ sso : 'LOL' }).end()
   }
 
 }

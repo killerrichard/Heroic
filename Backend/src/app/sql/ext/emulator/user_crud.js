@@ -1,4 +1,4 @@
-import User from '../../../model/emulator/users'
+import User from '../../model/emulator/users'
 export default class CRUD {
 
   static create (data, callback) {
@@ -77,6 +77,37 @@ export default class CRUD {
         .catch (error => {
           reject({ errors : error })
         })
+    })
+  }
+
+  // Additional Query Types
+  static retrieve (column, value, type) {
+    return new Promise ((resolve, reject) => {
+      if (!type) {
+        User.where(column, value).query('columns', ['username', 'look', 'rank']).fetchAll({ withRelated : ['rank'] })
+          .then (users => {
+            if (users) {
+              resolve(users.toJSON())
+            } else {
+              resolve(null)
+            }
+          })
+          .catch (error => {
+            reject({ errors : error })
+          })
+      } else {
+        User.where(column, value).query('columns', ['id', 'username', 'look', 'rank']).fetch({ withRelated : ['rank', 'friends', 'friends.user', 'rooms'] })
+          .then (user => {
+            if (user) {
+              resolve(user.toJSON())
+            } else {
+              resolve(null)
+            }
+          })
+          .catch (error => {
+            reject({ errors : error })
+          })
+      }
     })
   }
 

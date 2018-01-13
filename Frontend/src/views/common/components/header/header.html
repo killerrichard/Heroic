@@ -22,9 +22,9 @@
                         </habbo-imager>
                     </a>
                 </div>
-                <ul class="user-menu__list"  ng-class="{ 'ng-hide': !toggle }" >
+                <ul class="user-menu__list"  ng-class="{ 'ng-hide': !toggle }" ng-mouseleave="toggle = !toggle;">
                     <li class="user-menu__item">
-                        <a sref="me.profile" class="user-menu__link user-menu__link--profile">My Profile</a>
+                        <a href="/profile/{{ $root.currentUser.username }}" class="user-menu__link user-menu__link--profile">My Profile</a>
                     </li>
 
                     <li class="user-menu__item">

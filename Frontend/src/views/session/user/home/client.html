@@ -1,0 +1,45 @@
+<div id="client">
+  <habbo-client-error>
+    <div class="client-error">
+        <h1 class="client-error__title">YOU NEED TO USE FLASH TO PLAY HABBO!</h1>
+        <p translate="CLIENT_ERROR_FLASH">If you're using a computer, you need to <a href="http://www.adobe.com/go/getflashplayer" target="_blank">allow, install or update Flash</a> to play Habbo. Please <a href="http://www.adobe.com/go/getflashplayer" target="_blank">CLICK HERE</a> to
+            use Flash! NOTE: if you block Flash, you will need to go to your browser's settings to unblock it in order to play Habbo.</p>
+        <div class="client-error__downloads"><a ng-href="http://www.adobe.com/go/getflashplayer" target="_blank" rel="noopener noreferrer" class="client-error__flash" href="http://www.adobe.com/go/getflashplayer"></a></div>
+    </div>
+  </habbo-client-error>
+</div>
+<script type="text/javascript">
+    var flashvars =
+    {
+      "connection.info.host"                    : "{{ website.emu_ip }}",
+      "connection.info.port"                    : "{{ website.emu_port }}",
+      "url.prefix"                              : "{{ website.link }}",
+      "site.url"                                : "{{ website.link }}",
+      "client.reload.url"                       : "{{ website.link }}/me",
+      "client.fatal.error.url"                  : "{{ website.link }}/client",
+      "client.connection.failed.url"            : "{{ website.link }}/me",
+      "external.variables.txt"                  : "{{ website.swf_base }}/gamedata/variables.txt",
+      "external.texts.txt"                      : "{{ website.swf_base }}/gamedata/texts.txt",
+      "productdata.load.url"                    : "{{ website.swf_base }}/gamedata/productdata.txt",
+      "furnidata.load.url"                      : "{{ website.swf_base }}/gamedata/furnidata.xml",
+      "external.figurepartlist.txt"             : "{{ website.swf_base }}/gamedata/figuredata.xml",
+      "external.override.texts.txt"             : "{{ website.swf_base }}/gamedata/override/texts.txt",
+      "external.override.variables.txt"         : "{{ website.swf_base }}/gamedata/override/variables.txt",
+      "external.figurepartlist.txt"             : "{{ website.swf_base }}/gamedata/figuredata.xml",
+      "client.starting.revolving"               : "Happy New Years",
+      "use.sso.ticket"                          : "1",
+      "sso.ticket"                              : "{{ sso }}",
+      "processlog.enabled"                      : "0",
+      "flash.client.url"                        : "{{ website.swf_base }}/other/game/",
+      "flash.client.origin"                     : "popup",
+      "client.allow.cross.domain"               : "1",
+      "client.notify.cross.domain"              : "0",
+    };
+    var params =
+    {
+      "base" : "{{ website.swf_base }}/other/game/",
+      "allowScriptAccess" : "always",
+      "menu" : "false"
+    };
+    swfobject.embedSWF("{{ website.swf_base }}/gamedata/habbo.swf", "client", "100%", "100%", "10.0.0", "", flashvars, params, null);
+</script>

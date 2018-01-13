@@ -1,4 +1,4 @@
-export default class LoginController
+export default class Login
 {
     constructor(AppConstants, UtilityService, AuthenticationService, $state, $scope)
     {

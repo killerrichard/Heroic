@@ -1,0 +1,95 @@
+<div ng-if="user !== undefined">
+  <div class="wrapper">
+      <habbo-profile-header style="position:relative;">
+          <div class="profile-header__avatar">
+              <div class="profile-header__link">
+                  <habbo-imager class="profile-header__image">
+                    <img class="imager" src="{{ website.figure_imager }}?figure={{ user.look }}">
+                  </habbo-imager>
+              </div>
+          </div>
+          <div class="profile-header__details">
+            <div>
+              <h1>{{ user.username }}</h1>
+            </div>
+          </div>
+          <img src="{{ website.swfs_base }}/other/images/album1584/{{ user.rank.badge_code }}.gif" style="position:absolute;top:65px;right:475px;" ng-if="user.rank.badge-code != ''">
+      </habbo-profile-header>
+  </div>
+
+  <div class="wrapper wrapper--content">
+      <div class="profile__section">
+          <div class="profile__card__wrapper--friends">
+              <section class="profile__card__aligner">
+                  <div class="profile__card">
+                      <h2 class="profile__card__title">
+                        <span>Friends</span>
+                      </h2>
+                        <habbo-friend-list class="item-list--grid" ng-if="user.friends !== undefined">
+                          <ul>
+                            <li class="item item--friend" ng-repeat="friend in user.friends" ng-limit="10">
+                                <a class="item__content" href="/profile/{{ friend.user.username }}">
+                                    <div class="item__icon">
+                                      <habbo-imager class="item__icon__friend">
+                                        <div ng-init="show=0" ng-mouseover="show = 1" ng-mouseleave="show = 0">
+                                          <img class="imager" src="{{ website.figure_imager }}?figure={{ friend.user.look }}" ng-if="show==0">
+                                          <img class="imager" src="{{ website.figure_imager }}?figure={{ friend.user.look }}&action=wav" ng-if="show==1">
+                                        </div>
+                                      </habbo-imager>
+                                    </div>
+                                    <div class="item__text">
+                                        <h6 class="item__title item__title--single-line">{{ friend.user.username }}</h6>
+                                    </div>
+                                </a>
+                            </li>
+                          </ul>
+                        </habbo-friend-list>
+                        <div class="profile__card__footer" ng-if="user.friends !== undefined && user.friends.length > 4">
+                            <habbo-profile-modal type="friends">
+                              <a href="/profile/{{ user.username }}/friends" class="profile-modal__link">See all</a>
+                            </habbo-profile-modal>
+                        </div>
+                        <p ng-if="user.friends == undefined">I don't have any friends!</p>
+                  </div>
+              </section>
+          </div>
+          <div class="profile__card__wrapper--rooms">
+            <section class="profile__card__aligner">
+                <div class="profile__card">
+                    <h2 class="profile__card__title">Rooms</h2>
+                    <habbo-room-list class="item-list--grid" ng-if="user.rooms !== undefined && user.rooms.length > 0">
+                      <ul>
+                        <li class="item item--room" ng-repeat="room in user.rooms">
+                            <a href="/room/{{ room.id }}" class="item__content">
+                                <habbo-room-icon class="item__icon" url="https://habbo-stories-content.s3.amazonaws.com/navigator-thumbnail/hhus/64061002.png">
+                                    <div class="room-icon"></div>
+                                </habbo-room-icon>
+                                <div class="item__text">
+                                    <h6 class="item__title item__title--single-line">{{ room.name }}</h6>
+                                </div>
+                            </a>
+                        </li>
+                      </ul>
+                    </habbo-room-list>
+                    <div class="profile__card__footer" ng-if="user.rooms !== undefined && user.rooms.length > 4">
+                        <habbo-profile-modal>
+                          <a href="/profile/<%= profile.username %>/rooms" class="profile-modal__link">See all</a>
+                        </habbo-profile-modal>
+                    </div>
+                    <p ng-if="user.rooms == undefined">I don't own any rooms!</p>
+                </div>
+            </section>
+          </div>
+      </div>
+  </div>
+</div>
+
+<div ng-if="user == undefined">
+  <section>
+    <div class="wrapper wrapper--content" style="text-align:center;">
+      <img src="/assets/img/mountain_house_bedroom_by_cutiezor-d9t9u82.png">
+      <h3>Rogue Profile!</h3>
+      <p>Looks like this guest checked out early or never was here...</p>
+    </div>
+  </section>
+</div>

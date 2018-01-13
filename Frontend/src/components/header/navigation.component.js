@@ -5,10 +5,8 @@ class NavigationController
     constructor($state, $scope)
     {
         'ngInject';
-
         this.$state    = $state;
         this.$scope    = $scope;
-
         this.$scope.navigationList = [];
         this.$scope.loadedStates   = $state.get();
 

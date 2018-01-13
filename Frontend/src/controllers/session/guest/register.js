@@ -1,4 +1,4 @@
-export default class RegisterController
+export default class Register
 {
     constructor(AppConstants, UtilityService, AuthenticationService, UserService, $state, $scope)
     {

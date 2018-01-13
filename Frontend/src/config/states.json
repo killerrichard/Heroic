@@ -1,21 +1,24 @@
 {
 	"login": {
+		"pretty":"Login",
 		"name": "login",
 		"url": "/login",
 		"templateUrl": "views/session/guest/login.html",
-		"controller": "LoginController",
+		"controller": "Login",
 		"guestOnly": true
 	},
 
 	"register": {
+		"pretty":"Register",
 		"name": "register",
 		"url": "/register",
 		"templateUrl": "views/session/guest/register.html",
-		"controller": "RegisterController",
+		"controller": "Register",
 		"guestOnly": true
 	},
 
 	"me": {
+		"pretty":"Home",
 		"abstract": true,
 		"name": "me",
 		"template": "<div ui-view></div>",
@@ -23,32 +26,52 @@
 	},
 
 	"me.home": {
+		"pretty":"Home",
 		"name": "me.home",
 		"url": "/me",
 		"templateUrl": "views/session/user/home/me.html",
-		"controller": "MeController",
+		"loginRequired": true
+	},
+
+	"me.client": {
+		"pretty":"Client",
+		"name": "me.client",
+		"url": "/client",
+		"template": "<habbo-client></habbo-client>",
 		"loginRequired": true
 	},
 
 	"me.about": {
+		"pretty":"About",
 		"name": "me.about",
 		"url": "/about",
 		"templateUrl": "views/session/user/home/about.html",
-		"controller": "AboutController",
+		"controller": "About",
 		"loginRequired": true
 	},
 
 
 	"me.settings": {
+		"pretty":"Settings",
 		"name": "me.settings",
 		"url": "/settings",
 		"templateUrl": "views/session/user/home/settings.html",
-		"controller": "SettingsController",
+		"controller": "Settings",
+		"loginRequired": true
+	},
+
+	"me.profile": {
+		"pretty":"Profile",
+		"name": "me.profile",
+		"url": "/profile/:username",
+		"templateUrl": "views/session/user/home/profile/view.html",
+		"controller": "Profile",
 		"loginRequired": true
 	},
 
 
 	"community": {
+		"pretty":"Community",
 		"abstract": true,
 		"name": "community",
 		"url": "/community",
@@ -56,21 +79,27 @@
 	},
 
 	"community.home": {
+		"pretty":"Community",
 		"name": "community.home",
 		"url": "/home",
-		"template": "welcome to the community homepage"
+		"template": "<div ui-view></div>"
 	},
 
 	"community.photos": {
+		"pretty":"Photos",
 		"name": "community.photos",
 		"url": "/community/photos",
-		"template": "welcome to the community homepage"
+		"controller": "Photos",
+		"templateUrl": "views/session/user/community/photos.html",
+
 	},
 
 	"community.online": {
+		"pretty":"Online Users",
 		"name": "community.online",
 		"url": "/community/online",
-		"template": "welcome to the community homepage"
+		"controller": "Online",
+		"templateUrl": "views/session/user/community/online.html",
 	},
 
 	"community.categories": {
@@ -86,9 +115,11 @@
 	},
 
 	"community.staff": {
+		"pretty": "Staff Team",
 		"name": "community.staff",
 		"url": "/community/staff",
-		"template": "welcome to the community homepage"
+		"controller": "Staff",
+		"templateUrl": "views/session/user/community/staff.html"
 	}
 
 

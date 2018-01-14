@@ -8,7 +8,6 @@ export default class Login {
       User.attempt(req.body)
         .then (user => {
           const token = Token.sign(user, 'sld&!@$ZZACHRIS', { expiresIn : 60*60*24 })
-          req.session.auth = token
           res.status(200).json(token).end()
         })
         .catch (error => {

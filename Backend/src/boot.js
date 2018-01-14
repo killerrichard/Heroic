@@ -1,3 +1,3 @@
 import Heroic from './app/heroic'
-global.home = process.cwd()
+global.home = __dirname
 new Heroic(Date.now())

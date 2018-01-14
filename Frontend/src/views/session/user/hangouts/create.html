@@ -1,0 +1,25 @@
+<div class="wrapper wrapper--content">
+  <section>
+      <h1>Share Your Story</h1>
+      <form ng-submit="post()" class="form form--left">
+        <fieldset class="form__fieldset">
+          <p>{{ data.message }}</p>
+        </fieldset>
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Title</label>
+            <input ng-model="data.title" ng-click="data.message=''" class="form__input">
+          </div>
+        </fieldset>
+        <fieldset class="form__fieldset form__fieldset--box">
+          <div class="form__field">
+            <label>Content</label>
+            <textarea ng-model="data.content" ng-click="data.message=''" class="form__input" rows="6"></textarea>
+          </div>
+        </fieldset>
+        <div class="form__footer">
+          <button type="submit" class="form__submit">Publish</button>
+        </div>
+      </form>
+  </section>
+</div>

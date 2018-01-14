@@ -1,11 +1,17 @@
 import Login from './session/guest/login'
 import Logout from './session/user/logout'
-import Register from './session/guest/register'
 import About from './session/user/home/about'
+import Register from './session/guest/register'
 import Profile from './session/user/home/profile'
 import Staff from './session/user/community/staff'
 import Photos from './session/user/community/photos'
 import Online from './session/user/community/online'
+import Article from './session/user/community/Article'
+import HangoutsHome from './session/user/hangouts/home'
+import HangoutsRadio from './session/user/hangouts/radio'
+import HangoutsCreate from './session/user/hangouts/create'
+import Categories from './session/user/community/Categories'
+import Leaderboards from './session/user/community/Leaderboards'
 let app = angular.module('heroic.controllers', [])
 
 // Guest
@@ -19,5 +25,12 @@ app.controller('Profile', Profile)
 app.controller('Staff', Staff)
 app.controller('Photos', Photos)
 app.controller('Online', Online)
+app.controller('Article', Article)
+app.controller('Categories', Categories)
+app.controller('Leaderboards', Leaderboards)
+// User Hangouts
+app.controller('HangoutsHome', HangoutsHome)
+app.controller('HangoutsCreate', HangoutsCreate)
+app.controller('HangoutsRadio', HangoutsRadio)
 
 export default app

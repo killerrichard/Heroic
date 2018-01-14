@@ -45,7 +45,7 @@
 		"pretty":"Client",
 		"name": "me.client",
 		"url": "/client",
-		"template": "<habbo-client></habbo-client>",
+		"templateUrl": "views/session/user/home/client.html",
 		"session": true
 	},
 
@@ -76,8 +76,6 @@
 		"controller": "Profile",
 		"session": true
 	},
-
-
 
 	"community": {
 		"pretty":"Community",
@@ -115,16 +113,20 @@
 	},
 
 	"community.categories": {
+		"pretty": "Hotel News",
 		"name": "community.categories",
 		"url": "/community/categories",
-		"template": "welcome to the community homepage",
+		"controller": "Categories",
+		"templateUrl": "views/session/user/community/categories.html",
 		"session": true
 	},
 
 	"community.leaderboards": {
+		"pretty": "Top Users",
 		"name": "community.leaderboards",
 		"url": "/community/leaderboards",
-		"template": "welcome to the community homepage",
+		"controller": "Leaderboards",
+		"templateUrl": "views/session/user/community/leaderboards.html",
 		"session": true
 	},
 
@@ -135,7 +137,41 @@
 		"controller": "Staff",
 		"templateUrl": "views/session/user/community/staff.html",
 		"session": true
-	}
+	},
 
+	"hangouts": {
+		"abstract": true,
+		"pretty": "Hangouts",
+		"name": "hangouts",
+		"url": "/hangouts",
+		"template": "<div ui-view></div>"
+	},
+
+	"hangouts.home": {
+		"pretty": "Hangouts",
+		"name": "hangouts.home",
+		"url": "/hangouts",
+		"controller": "HangoutsHome",
+		"templateUrl": "views/session/user/hangouts/home.html",
+		"session": true
+	},
+
+	"hangouts.create": {
+		"pretty": "Share New Story",
+		"name": "hangouts.create",
+		"url": "/hangouts/create",
+		"controller": "HangoutsCreate",
+		"templateUrl": "views/session/user/hangouts/create.html",
+		"session": true 
+	},
+
+	"hangouts.radio": {
+		"pretty": "Our Radio",
+		"name": "hangouts.radio",
+		"url": "/hangouts/radio",
+		"controller": "HangoutsRadio",
+		"templateUrl": "views/session/user/hangouts/radio.html",
+		"session": true
+	}
 
 }

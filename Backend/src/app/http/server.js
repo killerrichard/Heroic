@@ -1,6 +1,7 @@
 import Async from 'async'
 import Express from 'express'
 import Body from 'body-parser'
+import Compress from 'compression'
 import Writer from '../lib/writer'
 import Cookies from 'cookie-parser'
 import Routes from './controller/routes'
@@ -22,10 +23,12 @@ export default class Server {
 
   static start (callback) {
     const http = Express()
+    http.set('view cache', true)
     callback(null, http)
   }
 
   static configure (http, callback) {
+    http.use(Compress())
     http.use(Body.urlencoded({ extended : true }))
     http.use(Body.json())
     http.use(Cookies())

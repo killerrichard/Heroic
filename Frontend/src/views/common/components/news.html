@@ -14,7 +14,7 @@
                   <h2 class="news-header__title">{{ article.title }}</h2>
               </a>
               <aside class="news-header__wrapper news-header__info">
-                  <time class="news-header__date">{{ article.created_at }}</time>
+                  <time class="news-header__date">{{ article.created_at | date : 'mediumDate' }}</time>
                   <ul class="news-header__categories">
                       <li class="news-header__category">
                           <a href="/community/category/{{ article.category.id }}" class="news-header__category__link">{{ article.category.title }}</a>

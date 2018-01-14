@@ -1,3 +1,4 @@
+import Async from 'async'
 import CRUD from '../../../../sql/ext/emulator/user_crud'
 export default class Users {
 
@@ -10,4 +11,47 @@ export default class Users {
         res.status(400).json(error).end()
       })
   }
+
+  static leaderboard (req, res) {
+    Async.parallel([
+      // Credits
+      function (callback) {
+        CRUD.retrieveTop('credits', 10)
+          .then (users => {
+            callback(null, users)
+          })
+          .catch (error => {
+            callback(error)
+          })
+      },
+      // Pixels
+      function (callback) {
+        CRUD.retrieveTop('pixels', 10)
+          .then (users => {
+            callback(null, users)
+          })
+          .catch (error => {
+            callback(error)
+          })
+      },
+      // Diamonds
+      function (callback) {
+        CRUD.retrieveTop('points', 10, 'staff', '1')
+          .then (users => {
+            callback(null, users)
+          })
+          .catch (error => {
+            callback(error)
+          })
+      }
+    ], ((errors, results) => {
+      if (!errors) {
+        res.status(200).json({ credits : results[0], pixels : results[1], diamonds : results[2] }).end()
+      } else {
+        console.log(errors)
+        res.status(400).json({ error : errors }).end()
+      }
+    }))
+  }
+
 }

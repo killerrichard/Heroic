@@ -8,7 +8,7 @@ export default class News extends Database.Model {
     }
 
     category () {
-      return this.belongsTo(Category).query('column', ['id', 'title'])
+      return this.belongsTo(Category, 'category').query('column', ['id', 'title'])
     }
 
     author () {

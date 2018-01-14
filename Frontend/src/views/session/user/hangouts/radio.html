@@ -1,0 +1,47 @@
+<div class="wrapper wrapper--content">
+  <section style="float:left;width:40%;display:inline-block;">
+      <h1>Play A Song</h1>
+      <form ng-submit="search()" class="form">
+        <fieldset class="form__fieldset">
+          <p>{{ data.message }}</p>
+        </fieldset>
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Title</label>
+            <input ng-model="data.title" ng-click="data.message=''" class="form__input">
+          </div>
+        </fieldset>
+        <div class="form__footer">
+          <button type="submit" class="form__submit">Publish</button>
+        </div>
+      </form>
+      <div ng-repeat="video in playlist">
+        <article class="news-header">
+            <a class="news-header__link news-header__banner">
+                <figure class="news-header__viewport">
+                  <img src="{{ video.video_image }}" class="news-header__image news-header__image--thumbnail">
+                </figure>
+            </a>
+            <a class="news-header__link news-header__wrapper">
+                <h2 class="news-header__title">{{ video.video_title }}</h2>
+            </a>
+            <p class="news-header__wrapper news-header__summary">Added By <a href="/profile/{{ video.author.username }}">{{ video.author.username }}</a> </p>
+        </article>
+      </div>
+    </section>
+    <section style="float:right;width:45%;display:inline-block;">
+      <div ng-repeat="video in videos">
+        <article class="news-header">
+            <a ng-click="play(video.id.videoId, video.snippet.title, video.snippet.thumbnails.default.url)" class="news-header__link news-header__banner">
+                <figure class="news-header__viewport">
+                  <img src="{{ video.snippet.thumbnails.default.url }}" class="news-header__image news-header__image--thumbnail">
+                </figure>
+            </a>
+            <a ng-click="play(video.id.videoId, video.snippet.title, video.snippet.thumbnails.default.url)" class="news-header__link news-header__wrapper">
+                <h2 class="news-header__title">{{ video.snippet.title }}</h2>
+            </a>
+            <p class="news-header__wrapper news-header__summary">{{ video.snippet.description }}</p>
+        </article>
+      </div>
+  </section>
+</div>

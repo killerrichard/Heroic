@@ -67,6 +67,34 @@
 					"disabled": false
 				}
 			]
+		},
+		{
+			"name": "Hangouts",
+			"icon": "feed",
+			"state": "hangouts",
+			"url": "hangouts.home",
+			"sort": 2,
+			"disabled": false,
+			"subItems": [
+				{
+					"name": "Home",
+					"state": "hangouts.home",
+					"sort": 1,
+					"disabled": false
+				},
+				{
+					"name": "Share A Story",
+					"state": "hangouts.create",
+					"sort": 2,
+					"disabled": false
+				},
+				{
+					"name": "Our Radio",
+					"state": "hangouts.radio",
+					"sort": 3,
+					"disabled": false
+				}
+			]
 		}
 	]
 }

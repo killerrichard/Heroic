@@ -111,4 +111,16 @@ export default class CRUD {
     })
   }
 
+  static retrieveTop (column, limit) {
+    return new Promise ((resolve, reject) => {
+      User.where('rank', '<', 3).query('orderBy', column, 'DESC').query('limit', limit).query('columns', ['id', 'username', 'look', 'rank', column]).fetchAll()
+        .then (users => {
+          resolve(users.toJSON())
+        })
+        .catch (error => {
+          reject({ error : error })
+        })
+    })
+  }
+
 }

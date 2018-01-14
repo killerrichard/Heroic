@@ -58,7 +58,7 @@ gulp.task('build-app', ['bundle-app'], function()
 {
     return gulp.src('build/habbo-api.js')
         .pipe(uglify())
-        .pipe(gulp.dest('../Heroic API/src/public/assets/js/'));
+        .pipe(gulp.dest('../Backend/src/public/assets/js/'));
 });
 
 gulp.task('watch', function() {

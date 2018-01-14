@@ -6,7 +6,7 @@ export default class Auth {
   // Login Functions
   static attempt (data) {
     return new Promise ((resolve, reject) => {
-      Users.where('username', data.username).fetch({ columns : ['id', 'password'] })
+      Users.where('username', data.username).fetch({ columns : ['id', 'username', 'password'] })
         .then (user => {
           if (user) {
             if (Hash.compareSync(data.password, user.toJSON().password)) {

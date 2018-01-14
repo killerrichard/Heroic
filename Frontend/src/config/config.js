@@ -1,23 +1,22 @@
-import states from './states.json';
+import states from './states.json'
 
-export default function Config($locationProvider, $mdThemingProvider, $urlRouterProvider, $stateProvider, $mdAriaProvider)
+export default function Config($locationProvider, $urlRouterProvider, $stateProvider, $httpProvider)
 {
-    'ngInject';
-    
-    $locationProvider.html5Mode(true);
-    $locationProvider.hashPrefix('');
+    'ngInject'
 
-    $urlRouterProvider.otherwise('/login');
+    $locationProvider.html5Mode(true)
+    $locationProvider.hashPrefix('')
 
-    $mdThemingProvider.disableTheming();
+    $urlRouterProvider.otherwise('/login')
 
     if(states != null || states.length != 0)
-	{
-		angular.forEach(states, (value, key) =>
-		{
-			$stateProvider.state(value.name, value);
-		});
-	}
+  	{
+  		angular.forEach(states, (value, key) =>
+  		{
+  			$stateProvider.state(value.name, value)
+  		})
+  	}
 
-    $mdAriaProvider.disableWarnings();
+    $httpProvider.interceptors.push('JWTService')
+
 }

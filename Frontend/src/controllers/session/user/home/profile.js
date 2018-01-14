@@ -1,9 +1,9 @@
 export default class Profile
 {
-    constructor(AppConstants, $state, $scope, $http)
+    constructor(Configuration, $state, $scope, $http)
     {
         'ngInject'
-        this.AppConstants       = AppConstants
+        this.Configuration       = Configuration
         this.$state             = $state
         this.$scope             = $scope
         this.$http              = $http
@@ -12,7 +12,7 @@ export default class Profile
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.AppConstants.api + '/data/emulator/users/fetch/' + this.$state.params.username })
+      this.$http({ method : 'GET', url : this.Configuration.api + '/data/emulator/users/fetch/' + this.$state.params.username })
         .then (result => {
           if (result.data && result.data.username !== undefined) {
             this.$scope.user = result.data

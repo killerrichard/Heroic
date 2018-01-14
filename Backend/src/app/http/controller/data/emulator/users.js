@@ -7,7 +7,6 @@ export default class Users {
         res.status(200).json(user).end()
       })
       .catch (error => {
-        console.log(error)
         res.status(400).json(error).end()
       })
   }

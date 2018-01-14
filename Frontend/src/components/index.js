@@ -4,7 +4,7 @@ import Online from './header/online.component'
 import Header from './header/header.component'
 import Navigation from './header/navigation.component'
 
-let app = angular.module('habboapi.components', [])
+let app = angular.module('heroic.components', [])
 
 app.component('heroicHeader', Header)
 app.component('heroicNavigation', Navigation)

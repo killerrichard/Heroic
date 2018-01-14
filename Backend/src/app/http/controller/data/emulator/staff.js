@@ -7,7 +7,6 @@ export default class Online {
         res.status(200).json(users).end()
       })
       .catch (errors => {
-        console.log(errors)
         res.status(400).json(errors).end()
       })
   }

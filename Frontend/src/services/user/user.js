@@ -1,10 +1,10 @@
 export default class User
 {
-    constructor(AppConstants, $localStorage, $http, $q)
+    constructor(Configuration, $localStorage, $http, $q)
     {
         'ngInject'
 
-        this.AppConstants 	= AppConstants
+        this.Configuration 	= Configuration
         this.$localStorage  = $localStorage
         this.$http 		    = $http
         this.$q 			= $q
@@ -14,7 +14,7 @@ export default class User
     {
         if(username == '' || null || email == '' || null || password == '' || null) return this.$q.reject('invalid_paramemters')
 
-        return this.$http.post(this.AppConstants.api + '/auth/register', {username: username, password: password, email: email})
+        return this.$http.post(this.Configuration.api + '/auth/register', {username: username, password: password, email: email})
 
         .then((res) =>
         {

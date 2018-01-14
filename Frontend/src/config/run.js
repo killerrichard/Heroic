@@ -1,32 +1,29 @@
-export default function Run(AppConstants, SettingsService, SessionService, $window, $state, $rootScope, $http)
+export default function Run(Configuration, SettingsService, JWTService, SessionService, $window, $state, $rootScope, $http, $localStorage)
 {
     'ngInject'
-    $rootScope.appConfig    = AppConstants
+    $rootScope.appConfig    = Configuration
     $rootScope.state        = $state
     $rootScope.$on('$stateChangeStart', (event, next, current) =>
     {
-      $rootScope.page = next.pretty
+      $rootScope.page         = next.pretty
+      $rootScope.session      = $localStorage.session
 
-      return SessionService.validateSession()
-        .then((session) => {
-          if(next.guestOnly) {
-            event.preventDefault()
-            return $state.go('me.home')
-          } else {
+      if (next.session)
+      {
+        SessionService.validateSession()
+          .then (session => {
             return next
-          }
-        })
-
-        .catch((err) =>
-        {
-          $rootScope.currentUser = null
-          if(next.loginRequired == true) {
+          })
+          .catch (error => {
             event.preventDefault()
             return $state.go('login')
-          } else {
-            return next
-          }
-        })
+          })
+        } else if (next.guest && $rootScope.session !== undefined) {
+          event.preventDefault()
+          return $state.go('me.home')
+        } else {
+          return next
+        }
     })
 
     $rootScope.$on('$stateChangeSuccess', (event, to, toParams, prev, prevParams) =>
@@ -41,4 +38,5 @@ export default function Run(AppConstants, SettingsService, SessionService, $wind
             return $state.go($rootScope.previousState.name, $rootScope.previousParams)
         }
     })
+
 }

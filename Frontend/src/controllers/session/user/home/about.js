@@ -1,10 +1,9 @@
 export default class About
 {
-    constructor(UtilityService, $scope, $rootScope, $localStorage)
+    constructor($scope)
     {
         'ngInject'
 
-        this.UtilityService     = UtilityService
         this.$scope             = $scope
 
         $scope.tab = 1

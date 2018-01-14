@@ -1,15 +1,19 @@
 export default class Photos
 {
-    constructor(AppConstants, UtilityService, $scope, $http)
+    constructor(Configuration, $scope, $http)
     {
         'ngInject'
-        this.AppConstants       = AppConstants
-        this.UtilityService     = UtilityService
+        this.Configuration       = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$onInit            = () => { this.fetch(); }
         $scope.like             = function (id) {
-          $http({ method : 'POST', data : { photo_id : id }, url : AppConstants.api + '/data/emulator/photos/like' })
+
+          const data = {
+            photo_id : id || 1,
+          }
+
+          $http.post(Configuration.api + '/data/emulator/photos/like', data)
             .then (result => {
               if (result.data.status == 'liked') {
                 $scope.photos[$scope.photos.length - id].likes.push(1)
@@ -25,7 +29,7 @@ export default class Photos
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.AppConstants.api + '/data/emulator/photos/fetch' })
+      this.$http({ method : 'GET', url : this.Configuration.api + '/data/emulator/photos/fetch' })
         .then (result => {
           this.$scope.photos = result.data
         })

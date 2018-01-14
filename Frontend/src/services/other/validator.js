@@ -1,10 +1,10 @@
 export default class Validator
 {
-    constructor(AppConstants, $http, $q)
+    constructor(Configuration, $http, $q)
     {
         'ngInject'
 
-        this.AppConstants 	= AppConstants
+        this.Configuration 	= Configuration
         this.$http 		    = $http
         this.$q 			= $q
     }
@@ -13,7 +13,7 @@ export default class Validator
     {
         if(username == '' || null) return this.$q.reject('invalid_parameters')
 
-        return this.$http.post(this.AppConstants.api + '/hotel/validators/validateUsername', {username: username})
+        return this.$http.post(this.Configuration.api + '/hotel/validators/validateUsername', {username: username})
 
         .then((res) =>
         {
@@ -34,7 +34,7 @@ export default class Validator
 
         if(regex.test(email) == false) return this.$q.reject('invalid_email')
 
-        return this.$http.post(this.AppConstants.api + '/hotel/validators/validateEmail', {email: email})
+        return this.$http.post(this.Configuration.api + '/hotel/validators/validateEmail', {email: email})
 
         .then((res) =>
         {

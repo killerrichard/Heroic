@@ -5,7 +5,6 @@ import Run from './config/run'
 import './components'
 import './controllers'
 import './directives'
-import './filters'
 import './services'
 
 import './config/template-cache'
@@ -19,17 +18,16 @@ const requires = [
     'ui.router',
     'ngStorage',
     'app.templates',
-    'habboapi.components',
-    'habboapi.controllers',
-    'habboapi.directives',
-    'habboapi.filters',
-    'habboapi.services'
+    'heroic.components',
+    'heroic.controllers',
+    'heroic.directives',
+    'heroic.services'
 ]
 
-window.app = angular.module('habboapi', requires)
+window.app = angular.module('heroic', requires)
 
-angular.module('habboapi').constant('AppConstants', Constants)
-angular.module('habboapi').config(Config)
-angular.module('habboapi').run(Run)
+angular.module('heroic').constant('Configuration', Constants)
+angular.module('heroic').config(Config)
+angular.module('heroic').run(Run)
 
-angular.bootstrap(document, ['habboapi'], { strictDi: true })
+angular.bootstrap(document, ['heroic'], { strictDi: true })

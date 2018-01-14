@@ -13,7 +13,7 @@ export default class Photos {
   }
 
   static like (req, res) {
-    Likes.create({ user_id : req.session.auth.id, photo_id : req.body.photo_id })
+    Likes.create({ user_id : req.decoded.id, photo_id : req.body.photo_id })
       .then (likes => {
         if (likes == 'liked') {
           res.status(200).json({ status : 'liked'})

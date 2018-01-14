@@ -1,10 +1,9 @@
 export default class Staff
 {
-    constructor(AppConstants, UtilityService, $scope, $http)
+    constructor(Configuration, $scope, $http)
     {
         'ngInject'
-        this.AppConstants       = AppConstants
-        this.UtilityService     = UtilityService
+        this.Configuration       = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$onInit            = () => { this.fetch() }
@@ -19,7 +18,7 @@ export default class Staff
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.AppConstants.api + '/data/emulator/staff/fetch' })
+      this.$http({ method : 'GET', url : this.Configuration.api + '/data/emulator/staff/fetch' })
         .then (result => {
           if (result.data.length > 0) {
             this.$scope.tab = result.data[0].id

@@ -1,9 +1,9 @@
 class OnlineController
 {
-    constructor(AppConstants, $scope, $http, $interval)
+    constructor(Configuration, $scope, $http, $interval)
     {
       'ngInject'
-      this.AppConstants     = AppConstants
+      this.Configuration     = Configuration
       this.$scope           = $scope
       this.$http            = $http
       this.$interval        = $interval
@@ -13,7 +13,7 @@ class OnlineController
 
     fetch () {
       this.$interval(() => {
-        this.$http({ type : 'GET', url : this.AppConstants.api + '/data/emulator/online/fetch'})
+        this.$http({ type : 'GET', url : this.Configuration.api + '/data/emulator/online/fetch'})
           .then (online => {
             if (online.data != undefined) {
               this.$scope.online = online.data.length
@@ -24,7 +24,7 @@ class OnlineController
           .catch (error => {
             console.log('Error: ', error)
           })
-        }, 10000) 
+        }, 10000)
     }
 
 }

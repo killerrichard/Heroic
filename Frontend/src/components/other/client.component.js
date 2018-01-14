@@ -1,16 +1,16 @@
 class ClientController
 {
-    constructor(AppConstants, $scope, $http)
+    constructor(Configuration, $scope, $http)
     {
       'ngInject'
-      this.AppConstants     = AppConstants
+      this.Configuration     = Configuration
       this.$scope           = $scope
       this.$http            = $http
       this.$onInit          = () => this.fetch()
     }
 
     fetch () {
-      this.$http({ type : 'GET', url : this.AppConstants.api + '/auth/client'})
+      this.$http({ type : 'GET', url : this.Configuration.api + '/auth/client'})
         .then (Client => {
           console.log(Client.data)
           this.$scope.Client = Client.data

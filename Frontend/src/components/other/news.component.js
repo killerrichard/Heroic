@@ -1,9 +1,9 @@
 class NewsController
 {
-    constructor(AppConstants, $scope, $http)
+    constructor(Configuration, $scope, $http)
     {
       'ngInject'
-      this.AppConstants     = AppConstants
+      this.Configuration     = Configuration
       this.$scope           = $scope
       this.$http            = $http
       this.$scope.news      = []
@@ -11,9 +11,8 @@ class NewsController
     }
 
     fetch () {
-      this.$http({ type : 'GET', url : this.AppConstants.api + '/data/website/news/fetch'})
+      this.$http({ type : 'GET', url : this.Configuration.api + '/data/website/news/fetch'})
         .then (news => {
-          console.log(news.data)
           this.$scope.news = news.data
         })
         .catch (error => {

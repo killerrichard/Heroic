@@ -5,7 +5,7 @@
 		"url": "/login",
 		"templateUrl": "views/session/guest/login.html",
 		"controller": "Login",
-		"guestOnly": true
+		"guest": true
 	},
 
 	"register": {
@@ -14,7 +14,15 @@
 		"url": "/register",
 		"templateUrl": "views/session/guest/register.html",
 		"controller": "Register",
-		"guestOnly": true
+		"guest": true
+	},
+
+	"logout": {
+		"pretty":"Logout",
+		"name": "logout",
+		"url": "/logout",
+		"controller": "Logout",
+		"session": true
 	},
 
 	"me": {
@@ -22,7 +30,7 @@
 		"abstract": true,
 		"name": "me",
 		"template": "<div ui-view></div>",
-		"loginRequired": true
+		"session": true
 	},
 
 	"me.home": {
@@ -30,7 +38,7 @@
 		"name": "me.home",
 		"url": "/me",
 		"templateUrl": "views/session/user/home/me.html",
-		"loginRequired": true
+		"session": true
 	},
 
 	"me.client": {
@@ -38,7 +46,7 @@
 		"name": "me.client",
 		"url": "/client",
 		"template": "<habbo-client></habbo-client>",
-		"loginRequired": true
+		"session": true
 	},
 
 	"me.about": {
@@ -47,7 +55,7 @@
 		"url": "/about",
 		"templateUrl": "views/session/user/home/about.html",
 		"controller": "About",
-		"loginRequired": true
+		"session": true
 	},
 
 
@@ -57,7 +65,7 @@
 		"url": "/settings",
 		"templateUrl": "views/session/user/home/settings.html",
 		"controller": "Settings",
-		"loginRequired": true
+		"session": true
 	},
 
 	"me.profile": {
@@ -66,8 +74,9 @@
 		"url": "/profile/:username",
 		"templateUrl": "views/session/user/home/profile/view.html",
 		"controller": "Profile",
-		"loginRequired": true
+		"session": true
 	},
+
 
 
 	"community": {
@@ -82,7 +91,8 @@
 		"pretty":"Community",
 		"name": "community.home",
 		"url": "/home",
-		"template": "<div ui-view></div>"
+		"template": "<div ui-view></div>",
+		"session": true
 	},
 
 	"community.photos": {
@@ -91,6 +101,7 @@
 		"url": "/community/photos",
 		"controller": "Photos",
 		"templateUrl": "views/session/user/community/photos.html",
+		"session": true
 
 	},
 
@@ -100,18 +111,21 @@
 		"url": "/community/online",
 		"controller": "Online",
 		"templateUrl": "views/session/user/community/online.html",
+		"session": true
 	},
 
 	"community.categories": {
 		"name": "community.categories",
 		"url": "/community/categories",
-		"template": "welcome to the community homepage"
+		"template": "welcome to the community homepage",
+		"session": true
 	},
 
 	"community.leaderboards": {
 		"name": "community.leaderboards",
 		"url": "/community/leaderboards",
-		"template": "welcome to the community homepage"
+		"template": "welcome to the community homepage",
+		"session": true
 	},
 
 	"community.staff": {
@@ -119,7 +133,8 @@
 		"name": "community.staff",
 		"url": "/community/staff",
 		"controller": "Staff",
-		"templateUrl": "views/session/user/community/staff.html"
+		"templateUrl": "views/session/user/community/staff.html",
+		"session": true
 	}
 
 

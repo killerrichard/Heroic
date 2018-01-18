@@ -4,11 +4,12 @@ import Body from 'body-parser'
 import Compress from 'compression'
 import Writer from '../lib/writer'
 import Cookies from 'cookie-parser'
+import Socket from './sockets/server'
 import Routes from './controller/routes'
 export default class Server {
 
   constructor (time) {
-    Async.waterfall([ Server.start, Server.configure, Routes.load ], ((errors, http) => {
+    Async.waterfall([ Server.start, Server.configure, Routes.load, Socket.launch], ((errors, http) => {
       http.use(Express.static(`${home}/public`))
 
       http.get('/*', ((req, res) => {

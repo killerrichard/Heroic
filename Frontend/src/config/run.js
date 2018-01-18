@@ -1,4 +1,4 @@
-export default function Run(Configuration, SettingsService, JWTService, SessionService, $window, $state, $rootScope, $http, $localStorage)
+export default function Run(Configuration, SocketService, SettingsService, JWTService, SessionService, $window, $state, $rootScope, $http, $localStorage)
 {
     'ngInject'
     $rootScope.appConfig    = Configuration

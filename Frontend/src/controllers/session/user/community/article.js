@@ -1,9 +1,8 @@
 export default class Article
 {
-    constructor(Configuration, $scope, $http, $state)
+    constructor($scope, $http, $state)
     {
         'ngInject'
-        this.Configuration      = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$state             = $state
@@ -12,7 +11,7 @@ export default class Article
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.Configuration.api + '/data/website/news/fetch/' + this.$state.params.id })
+      this.$http({ method : 'GET', url : '/api/data/website/news/fetch/' + this.$state.params.id })
         .then (result => {
           this.$scope.article  = result.data[0]
         })

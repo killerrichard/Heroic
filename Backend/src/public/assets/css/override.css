@@ -64,11 +64,8 @@ html {
     display: none;
 }
 
-[ui-view].ng-enter {
-    animation: bounceIn .6s;
-}
 
-.app .client-container { 
+.app .client-container {
     position: absolute;
     width: 0;
     height: 0;
@@ -99,4 +96,17 @@ html {
 .app.show-client .client-container object {
     visibility: visible;
     background: transparent !important;
+}
+
+.post__thumbnail {
+  box-shadow: 0 1px 0 2px rgba(0,0,0,.3);
+  background-color: #01353c;
+  border: 2px solid #267b91;
+  border-radius: 3px;
+  float: left;
+  height: 114px;
+  margin-bottom: 12px;
+  margin-right: 12px;
+  position: relative;
+  width: 114px;
 }

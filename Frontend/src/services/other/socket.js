@@ -1,10 +1,10 @@
 export default class Socket
 {
 
-    constructor(Configuration, $rootScope)
+    constructor($rootScope)
     {
       'ngInject'
-      $rootScope.socket = io(Configuration.websocket, {transports: ['websocket']})
+      //$rootScope.socket = io(Configuration.websocket, {transports: ['websocket']})
     }
 
 }

@@ -9,6 +9,7 @@ import Photos from './session/user/community/photos'
 import Online from './session/user/community/online'
 import Article from './session/user/community/Article'
 import HangoutsHome from './session/user/hangouts/home'
+import HangoutsPost from './session/user/hangouts/post'
 import HangoutsRadio from './session/user/hangouts/radio'
 import HangoutsCreate from './session/user/hangouts/create'
 import Categories from './session/user/community/Categories'
@@ -32,6 +33,7 @@ app.controller('Categories', Categories)
 app.controller('Leaderboards', Leaderboards)
 // User Hangouts
 app.controller('HangoutsHome', HangoutsHome)
+app.controller('HangoutsPost', HangoutsPost)
 app.controller('HangoutsCreate', HangoutsCreate)
 app.controller('HangoutsRadio', HangoutsRadio)
 

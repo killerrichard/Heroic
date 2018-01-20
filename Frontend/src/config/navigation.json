@@ -72,13 +72,14 @@
 			"name": "Hangouts",
 			"icon": "feed",
 			"state": "hangouts",
-			"url": "hangouts.home",
-			"sort": 2,
+			"url": "hangouts.home.list",
+			"sort": 3,
 			"disabled": false,
 			"subItems": [
 				{
 					"name": "Home",
 					"state": "hangouts.home",
+					"url": "hangouts.home.list",
 					"sort": 1,
 					"disabled": false
 				},
@@ -92,7 +93,7 @@
 					"name": "Our Radio",
 					"state": "hangouts.radio",
 					"sort": 3,
-					"disabled": false
+					"disabled": true
 				}
 			]
 		}

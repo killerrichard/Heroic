@@ -1,9 +1,8 @@
 export default class Photos
 {
-    constructor(Configuration, $scope, $http)
+    constructor($scope, $http)
     {
         'ngInject'
-        this.Configuration       = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$onInit            = () => { this.fetch(); }
@@ -11,7 +10,7 @@ export default class Photos
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.Configuration.api + '/data/emulator/online/fetch' })
+      this.$http({ method : 'GET', url : '/api/data/emulator/online/fetch' })
         .then (result => {
           if (result.data.length > 0) {
             this.$scope.online = result.data

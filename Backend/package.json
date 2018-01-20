@@ -5,6 +5,7 @@
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.18.2",
     "bookshelf": "^0.12.0",
+    "bookshelf-cascade-delete": "^2.0.1",
     "compression": "^1.7.1",
     "connect-redis": "^3.3.2",
     "cookie-parser": "^1.4.3",
@@ -23,8 +24,9 @@
     "moment": "^2.20.0",
     "mysql": "^2.15.0",
     "nodemon": "^1.14.3",
+    "randomstring": "^1.1.5",
     "req-flash": "0.0.3",
-    "secure-random": "^1.1.1", 
+    "secure-random": "^1.1.1",
     "validator": "^9.2.0"
   },
   "devDependencies": {
@@ -48,8 +50,8 @@
     "marked": "^0.3.6"
   },
   "scripts": {
-    "start": "nodemon -L --exec babel-node ./src/boot.js --presets env",
-    "stable": "babel-node ./src/boot.js --presets env",
+    "start": "nodemon -L --exec babel-node ./src/boot.js --presets env --plugins transform-class-properties",
+    "stable": "babel-node ./src/boot.js --presets env --plugins transform-class-properties",
     "build": "babel ./src --out-dir=dist"
   }
 }

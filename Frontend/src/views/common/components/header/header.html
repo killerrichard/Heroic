@@ -1,4 +1,4 @@
-<habbo-header-small ng-if="$root.session !== undefined">
+<habbo-header-small ng-if="$root.session !== undefined" ng-cloak>
     <header class="header__wrapper wrapper">
         <a class="header__habbo__logo">
             <h1 class="header__habbo__name" id="ga-linkid-habbo">Habbo</h1>
@@ -39,5 +39,5 @@
             </div>
         </habbo-user-menu>
     </header>
-    <heroic-navigation></heroic-navigation>
+    <heroic-navigation ng-cloak></heroic-navigation>
   </habbo-header-small>

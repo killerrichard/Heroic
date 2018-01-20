@@ -1,3 +1,4 @@
+import SSO from './auth/sso'
 import Login from './auth/login'
 import JWT from '../middleware/jwt'
 import Session from './auth/session'
@@ -18,7 +19,7 @@ export default class Routes {
     // Guest
     http.post('/api/auth/login', Login.try)
     http.post('/api/auth/register', Register.try)
-    http.get('/api/auth/client', JWT.check, Login.sso)
+    http.get('/api/auth/sso', JWT.check, SSO.fetch)
 
     // Authentication
     http.get('/api/auth/session/logout', JWT.check, Session.delete)
@@ -41,7 +42,11 @@ export default class Routes {
     http.post('/api/data/emulator/photos/like', JWT.check, Photos.like)
     http.get('/api/data/emulator/online/fetch', Online.get)
     http.get('/api/data/emulator/staff/fetch', Staff.get)
+    http.get('/api/data/website/hangouts/post/delete/:id', JWT.check, Hangouts.delete)
+    http.get('/api/data/website/hangouts/comments/delete/:id', JWT.check, Hangouts.delete_comment)
+    http.post('/api/data/website/hangouts/comments/create', JWT.check, Hangouts.create_comment)
     http.get('/api/data/website/hangouts/fetch', Hangouts.list)
+    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view)
     http.post('/api/data/website/hangouts/create', JWT.check, Hangouts.create)
     http.get('/api/data/website/radio/fetch', Radio.list)
     http.post('/api/data/website/radio/add', JWT.check, Radio.create)

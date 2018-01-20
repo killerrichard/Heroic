@@ -1,9 +1,8 @@
 class OnlineController
 {
-    constructor(Configuration, $scope, $http, $interval)
+    constructor($scope, $http, $interval)
     {
       'ngInject'
-      this.Configuration     = Configuration
       this.$scope           = $scope
       this.$http            = $http
       this.$interval        = $interval
@@ -13,7 +12,7 @@ class OnlineController
 
     fetch () {
       this.$interval(() => {
-        this.$http({ type : 'GET', url : this.Configuration.api + '/data/emulator/online/fetch'})
+        this.$http({ type : 'GET', url : '/api/data/emulator/online/fetch'})
           .then (online => {
             if (online.data != undefined) {
               this.$scope.online = online.data.length

@@ -178,11 +178,27 @@
 	},
 
 	"hangouts.home": {
-		"pretty": "Hangouts",
+		"abstract": true,
 		"name": "hangouts.home",
-		"url": "/hangouts",
+		"url": "",
+		"template": "<div ui-view></div>"
+	},
+
+	"hangouts.home.list": {
+		"pretty": "Hangouts",
+		"name": "hangouts.home.list",
+		"url": "/",
 		"controller": "HangoutsHome",
 		"templateUrl": "views/session/user/hangouts/home.html",
+		"session": true
+	},
+
+	"hangouts.home.post": {
+		"pretty": "Hangouts (Viewing Post)",
+		"name": "hangouts.home.post",
+		"url": "/post/:id",
+		"controller": "HangoutsPost",
+		"templateUrl": "views/session/user/hangouts/post.html",
 		"session": true
 	},
 

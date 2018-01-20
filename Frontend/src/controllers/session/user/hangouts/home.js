@@ -1,19 +1,21 @@
 export default class Home
 {
-    constructor(Configuration, $scope, $http)
+    constructor($scope, $http)
     {
         'ngInject'
-        this.Configuration      = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$onInit            = this.fetch()
+        $scope.tab          = 1
+        $scope.setTab       = function(newTab){ $scope.tab = newTab }
+        $scope.isSet        = function(tabNum){ return $scope.tab === tabNum }
     }
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.Configuration.api + '/data/website/hangouts/fetch' })
+      this.$http({ method : 'GET', url : '/api/data/website/hangouts/fetch' })
         .then (result => {
-          this.$scope.posts  = result.data
+          this.$scope.categories  = result.data
         })
         .catch (error => {
           return

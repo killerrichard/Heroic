@@ -1,4 +1,3 @@
-import Constants from './config/constants.json'
 import Config from './config/config'
 import Run from './config/run'
 
@@ -11,8 +10,6 @@ import './config/template-cache'
 
 const requires = [
     'ngAria',
-    'ngMessages',
-    'ngMaterial',
     'ngSanitize',
     'ui.router',
     'ct.ui.router.extras',
@@ -25,8 +22,6 @@ const requires = [
 ]
 
 window.app = angular.module('heroic', requires)
-
-angular.module('heroic').constant('Configuration', Constants)
 angular.module('heroic').config(Config)
 angular.module('heroic').run(Run)
 

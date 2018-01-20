@@ -1,10 +1,9 @@
 export default class Session
 {
-    constructor(Configuration, $localStorage, $http, $q, $rootScope)
+    constructor($localStorage, $http, $q, $rootScope)
     {
         'ngInject'
 
-        this.Configuration	  = Configuration
         this.$localStorage    = $localStorage
         this.$http			      = $http
         this.$q			          = $q
@@ -13,7 +12,7 @@ export default class Session
 
     createSession()
     {
-      return this.$http.get(this.Configuration.api + '/auth/session/fetch')
+      return this.$http.get('/api/auth/session/fetch')
         .then (session => {
           this.$localStorage.session  = session.data
           this.$rootScope.session     = session.data
@@ -27,7 +26,7 @@ export default class Session
 
     validateSession()
     {
-      return this.$http.get(this.Configuration.api + '/auth/session/fetch')
+      return this.$http.get('/api/auth/session/fetch')
         .then (session => {
           return this.$q.resolve(this.$localStorage.session)
         })
@@ -39,7 +38,7 @@ export default class Session
 
     destroySession()
     {
-      return this.$http.get(this.Configuration.api + '/auth/session/logout')
+      return this.$http.get('/api/auth/session/logout')
         .then (res => {
           this.$localStorage.$reset()
           this.$rootScope.session = null

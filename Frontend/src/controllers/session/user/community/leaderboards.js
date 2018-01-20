@@ -1,9 +1,8 @@
 export default class Leaderboards
 {
-    constructor(Configuration, $scope, $http)
+    constructor($scope, $http)
     {
         'ngInject'
-        this.Configuration      = Configuration
         this.$scope             = $scope
         this.$http              = $http
         this.$onInit            = () => { this.fetch(); }
@@ -14,7 +13,7 @@ export default class Leaderboards
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.Configuration.api + '/data/emulator/users/leaderboards' })
+      this.$http({ method : 'GET', url : '/api/data/emulator/users/leaderboards' })
         .then (result => {
           this.$scope.leaderboards = result.data
         })

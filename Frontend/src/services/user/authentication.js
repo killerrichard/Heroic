@@ -1,10 +1,9 @@
 export default class Authentication
 {
-    constructor(Configuration, SessionService, $http, $q, $localStorage)
+    constructor(SessionService, $http, $q, $localStorage)
     {
         'ngInject'
 
-        this.Configuration     = Configuration
         this.SessionService   = SessionService
         this.$http 		        = $http
         this.$q 			        = $q
@@ -20,7 +19,7 @@ export default class Authentication
         password : password
       }
 
-      return this.$http.post(this.Configuration.api + '/auth/login', data)
+      return this.$http.post('/api/auth/login', data)
         .then (res => {
           this.$localStorage.token = res.data
           this.SessionService.createSession()

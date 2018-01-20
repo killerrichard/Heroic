@@ -1,12 +1,10 @@
 export default class Register
 {
-    constructor(Configuration, AuthenticationService, UserService, $http, $scope, $state)
+    constructor(AuthenticationService, $http, $scope, $state)
     {
         'ngInject'
 
-        this.Configuration          = Configuration
         this.AuthenticationService  = AuthenticationService
-        this.UserService            = UserService
         this.$http                  = $http
         this.$scope                 = $scope
         this.$state                 = $state
@@ -16,7 +14,7 @@ export default class Register
         this.$scope.check           = function (field)
         {
           if (field == 'username') {
-            $http.get(Configuration.api + '/data/emulator/users/match/username/' + $scope.user.username)
+            $http.get('/api/data/emulator/users/match/username/' + $scope.user.username)
               .then (success => {
                 $scope.messages.username = undefined
               })
@@ -24,7 +22,7 @@ export default class Register
                 $scope.messages.username = 'This username is not available'
               })
             } else if (field == 'email') {
-              $http.get(Configuration.api + '/data/emulator/users/match/email/' + $scope.user.email)
+              $http.get('/api/data/emulator/users/match/email/' + $scope.user.email)
                 .then (success => {
                   $scope.messages.email = undefined
                 })
@@ -42,8 +40,8 @@ export default class Register
         }
 
         this.$scope.register        = function ()
-        { 
-          $http.post(Configuration.api + '/auth/register', $scope.user)
+        {
+          $http.post('/api/auth/register', $scope.user)
             .then (result => {
               return AuthenticationService.login($scope.user.username, $scope.user.password)
                 .then (session => {

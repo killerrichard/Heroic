@@ -41,7 +41,7 @@ export default class CRUD {
 
   static read (id) {
     return new Promise ((resolve, reject) => {
-      User.where('id', id).fetch({ columns : ['id', 'username', 'rank', 'look'] })
+      User.where('id', id).fetch({ columns : ['id', 'username', 'rank', 'look'], withRelated : ['rank'] })
         .then (user => {
           if (user) {
             resolve(user.toJSON())

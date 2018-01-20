@@ -1,10 +1,9 @@
 export default class Create
 {
-    constructor (Configuration, $scope, $http, $localStorage, $rootScope)
+    constructor ($scope, $http, $localStorage, $rootScope)
     {
       'ngInject'
       // Variables
-      this.Configuration      = Configuration
       this.$scope             = $scope
       this.$http              = $http
       this.$localStorage      = $localStorage

@@ -1,31 +1,34 @@
 export default class Client
 {
-    constructor($localStorage, $window, $state, $rootScope, $scope)
+    constructor($localStorage, $window, $state, $rootScope, $scope, $http)
     {
         'ngInject'
         this.$localStorage     = $localStorage
         this.$window           = $window
         this.$state            = $state
-        this.$rootScope        = $rootScope
         this.$scope            = $scope
+        this.$http             = $http
+        this.$onInit           = () => { this.fetch() }
 
         this.$scope.flashvarsString = ''
 
         this.$scope.flashVars = {
-            "connection.info.host": "127.0.0.1",
-            "connection.info.port": "3000",
-            "external.texts.txt": "http://vanitygaming.ca/swfs/gamedata/texts.txt",
-            "external.variables.txt": "http://vanitygaming.ca/swfs/gamedata/variables.txt",
-            "external.figurepartlist.txt": "http://vanitygaming.ca/swfs/gamedata/figuredata.xml",
-            "furnidata.load.url": "http://vanitygaming.ca/swfs/gamedata/furnidata.xml",
-            "productdata.load.url": "http://vanitygaming.ca/swfs/gamedata/productdata.txt",
+            "connection.info.host": $localStorage.website.emu_ip,
+            "connection.info.port": $localStorage.website.emu_port,
+            "external.texts.txt": $localStorage.website.swf_base + "/gamedata/texts.txt",
+            "external.variables.txt": $localStorage.website.swf_base + "/gamedata/variables.txt",
+            "external.figurepartlist.txt": $localStorage.website.swf_base + "/gamedata/figuredata.xml",
+            "furnidata.load.url": $localStorage.website.swf_base + "/gamedata/furnidata.xml",
+            "productdata.load.url": $localStorage.website.swf_base + "/gamedata/productdata.txt",
             "client.allow.cross.domain": 1,
             "client.notify.cross.domain": 0,
             "client.starting": "Heroic Framework 1.0",
-            "flash.client.url": "http://vanitygaming.ca/swfs/other/game/", 
+            "flash.client.url": $localStorage.website.swf_base + "/other/game/",
             "flash.client.origin": "popup",
-            "sso.ticket": "xhabbo_203,152,118,240",
+            "sso.ticket": $localStorage.session.auth_ticket
         }
+
+
 
         angular.forEach(this.$scope.flashVars, (value, key) =>
         {
@@ -57,35 +60,19 @@ export default class Client
 
         this.$window.FlashExternalInterface = {}
 
-        this.$window.FlashExternalInterface.logout = () =>
-        {
-            // triggered on logout button in client
-        }
-
-        this.$window.FlashExternalInterface.disconnect = () =>
-        {
-            // triggered when client disconnects
-        }
-
-        this.$window.FlashExternalInterface.openAvatars = () =>
-        {
-            // trigged on settings button in client
-        }
-
-        this.$window.FlashExternalInterface.openMinimail = () =>
-        {
-            // havent tested
-        }
-
-        this.$window.FlashExternalInterface.openNews = () =>
-        {
-            // havent tested
-        }
-
         this.$window.FlashExternalInterface.track = (action, label, value) =>
         {
             // logs client activity in console
             console.log('action = [' + action + '], label = [' + label + '], value = [' + value + ']')
         }
+    }
+
+    fetch ()
+    {
+      this.$http.get('/api/auth/sso')
+        .then (sso => {
+          console.log(this.$localStorage.website)
+          this.$localStorage.session.auth_ticket  = sso.data.auth_ticket
+        })
     }
 }

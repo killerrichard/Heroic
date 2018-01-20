@@ -1,6 +1,8 @@
+import Database from  '../../server'
 import Likes from './hangouts_likes'
 import Users from '../emulator/users'
-import Database from  '../../server'
+import Comments from './hangouts_comments'
+import Category from './hangouts_categories'
 export default class Hangouts extends Database.Model {
 
     get tableName () {
@@ -12,7 +14,17 @@ export default class Hangouts extends Database.Model {
     }
 
     likes () {
-      return this.hasMany(Likes, 'post').query('columns', ['id'])
+      return this.hasMany(Likes, 'post').query('columns', ['id', 'post'])
     }
+
+    comments () {
+      return this.hasMany(Comments, 'post').query('columns', ['id', 'post', 'user', 'content'])
+    }
+
+    category () {
+      return this.belongsTo(Category, 'category').query('columns', ['id', 'title', 'staff'])
+    }
+
+    static dependents = ['likes', 'comments']
 
 }

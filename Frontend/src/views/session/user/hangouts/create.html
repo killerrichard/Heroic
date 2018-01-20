@@ -1,9 +1,33 @@
 <div class="wrapper wrapper--content">
-  <section>
+  <section style="float:left;width:30%;">
       <h1>Share Your Story</h1>
-      <form ng-submit="post()" class="form form--left">
+      <form ng-submit="post()" class="form">
         <fieldset class="form__fieldset">
           <p>{{ data.message }}</p>
+        </fieldset>
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Image</label>
+            <select ng-model="data.thumb" class="form__input" ng-init="data.thumb='lpromo_baweventjan18'">
+              <option>lpromo_baweventjan18</option>
+              <option>lpromo_habboloungebundlejan2018</option>
+              <option>lpromo_fhjanevent18</option>
+              <option>lpromo_habburgersjan2018</option>
+              <option>lpromo_Kreditsgame17012018</option>
+              <option>lpromo_comptjanevent</option>
+              <option>lpromo_12janeventcom</option>
+              <option>lpromo_classiclibrarybundle2018jan</option>
+              <option>lpromo_habboxevent0918</option>
+            </select>
+          </div>
+        </fieldset>
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Category</label>
+            <select ng-model="data.category" class="form__input">
+              <option ng-repeat="category in categories" value="{{ category.id }}" ng-if="category.staff_post==1 && session.rank.staff==1 || category.staff_post==0">{{ category.title }}</option>
+            </select>
+          </div>
         </fieldset>
         <fieldset class="form__fieldset">
           <div class="form__field">
@@ -22,4 +46,17 @@
         </div>
       </form>
   </section>
+  <section style="float:right;width:50%;">
+    <div>
+      <article class="news-header">
+          <a class="news-header__link news-header__banner">
+              <figure class="news-header__viewport">
+                <img src="https://images.habbo.com/web_images/habbo-web-articles/{{data.thumb }}_thumb.png" class="news-header__image news-header__image--thumbnail">
+              </figure>
+          </a>
+          <a class="news-header__link news-header__wrapper">
+              <h2 class="news-header__title">{{ data.title.substr(0, 10) }}</h2>
+          </a>
+      </article>
+    </section>
 </div>

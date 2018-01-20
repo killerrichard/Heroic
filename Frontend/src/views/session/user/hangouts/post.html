@@ -1,0 +1,63 @@
+<section class="wrapper wrapper--content" ng-init="form=false">
+  <div style="float:left;width:75%;">
+    <habbo-avatar class="room__owner--user">
+        <a href="/profile/{{ post.author.username}}" class="avatar">
+            <habbo-imager class="avatar__image">
+              <img src="{{ website.figure_imager }}?figure={{ post.author.look }}&headonly=1">
+            </habbo-imager>
+            <h6 class="avatar__title">Posted By <b>{{ post.author.username }}</b></h6>
+        </a>
+    </habbo-avatar>
+    <div class="post__thumbnail" style="background:url('https://images.habbo.com/web_images/habbo-web-articles/{{ post.thumb }}_thumb.png')"></div>
+    <div class="room__content">
+      <h1 class="room__content__title">{{ post.title }}</h1>
+      <div class="room__content__left" ng-bind-html="post.content"></div>
+    </div>
+  </div>
+  <div style="float:right;width:25%;">
+    <br> Posted <a>{{ post.timestamp | date : 'longDate' }}</a> <br> <br>
+    <habbo-web-pages key="common/box_parents_guide" class="aside aside--box" style="width:100%;"  ng-if="post.author.id==session.id || session.rank.staff=='1'">
+        <aside class="static-content">
+          <h3>Actions</h3>
+          <div>
+            <a ng-click="delete(post.id, 'post')"><i class="fa fa-trash"></i></a>
+          </div>
+        </aside>
+    </habbo-web-pages>
+    <habbo-web-pages key="common/box_parents_guide" class="aside aside--box" style="width:100%;">
+        <aside class="static-content">
+          <h3>Comments</h3>
+          <div ng-repeat="comment in post.comments track by comment.id">
+            <div>
+              <img src="{{ website.figure_imager }}?figure={{ comment.author.look }}&headonly=1" style="display:inline-block;">
+              <div style="display:inline-block;">
+                <div style="display:block;">
+                  <small><a ng-if="comment.author.id==session.id || session.rank.staff=='1'" ng-click="delete(comment, 'comment')"><i class="fa fa-trash"></i></a></small>
+                  <a href="/profile/{{ comment.author.username }}"> {{ comment.author.username }} said </a>
+                </div>
+                <div>{{ comment.content }}</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            Would you like to <a ng-click="form=true">comment</a>?
+          </div>
+        </aside>
+    </habbo-web-pages>
+    <habbo-web-pages key="common/box_parents_guide" class="aside aside--box" style="width:100%;" ng-if="form">
+        <aside class="static-content">
+          <h3>New Comment</h3>
+          <form ng-submit="comment()" class="form">
+            <fieldset class="form__fieldset">
+              <div class="form__field">
+                <input ng-model="data.content" class="form__input" maxlength="20"></textarea>
+              </div>
+            </fieldset>
+            <div class="form__footer">
+              <button type="submit" class="form__submit">Post</button>
+            </div>
+          </form>
+        </aside>
+    </habbo-web-pages>
+  </div>
+</section>

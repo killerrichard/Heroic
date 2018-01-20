@@ -19,7 +19,7 @@
     <ul class="tabs__menu" ng-repeat="item in navigationList | orderBy: 'sort'" ng-if="$root.state.includes(item.state.name)">
       <habbo-tab class="sub-list no-padding" ng-repeat="child in item.children">
         <li class="tab">
-          <a class="tab__link" ng-class="{'tab__link--active': $root.state.includes(child.state.name)}" ng-class="{'tab__link--active': $root.state.includes(child.index)}" ng-click="(child.url == null) ? $root.state.go(child.state.name) : $root.state.go(child.url)">
+          <a class="tab__link" ng-class="{'tab__link--active': $root.state.includes(child.state.name) || $root.state.includes(child.index)}" ng-click="(child.url == null) ? $root.state.go(child.state.name) : $root.state.go(child.url)">
             {{ child.name }}
           </a>
         </li>

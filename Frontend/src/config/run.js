@@ -1,12 +1,11 @@
-export default function Run(Configuration, SocketService, SettingsService, JWTService, SessionService, $window, $state, $rootScope, $http, $localStorage)
+export default function Run(SocketService, SettingsService, JWTService, SessionService, $window, $state, $rootScope, $http, $localStorage)
 {
     'ngInject'
-    $rootScope.appConfig    = Configuration
     $rootScope.state        = $state
     $rootScope.$on('$stateChangeStart', (event, next, current) =>
     {
       $rootScope.page         = next.pretty
-      $rootScope.session      = $localStorage.session
+      $rootScope.session      = $localStorage.session 
 
       if (next.session)
       {

@@ -1,11 +1,12 @@
 export default class Settings
 {
-    constructor(Configuration, $http, $rootScope)
+    constructor($http, $rootScope, $localStorage)
     {
         'ngInject'
-        $http({ type : 'GET', url : Configuration.api + '/data/website/settings'})
+        $http({ type : 'GET', url : '/api/data/website/settings'})
           .then (website => {
-            $rootScope.website = website.data
+            $rootScope.website    = website.data
+            $localStorage.website = website.data
           })
           .catch (error => {
             return null

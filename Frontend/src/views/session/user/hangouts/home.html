@@ -1,15 +1,37 @@
-<div class="wrapper wrapper--content">
-  <section>
-      <h1>Latest Posts</h1>
-      <habbo-web-pages class="aside aside--box" ng-repeat="post in posts" style="float:left;width:45%;margin-right:5%;">
-          <aside class="static-content">
-              <h3>
-                {{ post.title }}
-                <small style="float:right;margin-top:1.5%;">{{ post.timestamp | date : 'mediumDate' }}</small>
-              </h3>
-              <p>{{ post.content }}</p>
-              <p style="float:right;">Posted by <a href="/profile/{{ post.author.username }}">{{ post.author.username }}</a></p>
-          </aside>
-      </habbo-web-pages>
-  </section>
+<div id="tabs">
+    <section class="wrapper wrapper--content">
+        <habbo-compile data="CategoryController.category" class="div div--fixed">
+            <section>
+                <header class="news-category__header">
+                    <span>Show me posts about:</span>
+                    <nav class="news-category__navigation">
+                        <ul class="news-category__list">
+                          <li class="news-category__item" ng-repeat="category in categories">
+                            <a ng-if="category.staff==1 && session.rank.staff==1 || category.staff==0" ng-click="setTab(category.id)" ng-class="{ 'news-category__link--active': isSet(category.id) }" class="news-category__link">{{ category.title }}</a>
+                          </li>
+                        </ul>
+                    </nav>
+                </header>
+
+              <div ng-repeat="category in categories" ng-if="isSet(category.id)">
+                <article class="news-header" ng-repeat="post in category.posts" style="display:inline-block;width:25%;margin-left:2.5%;">
+                    <a href="/hangouts/post/{{ post.id }}" class="news-header__link news-header__banner">
+                        <figure class="news-header__viewport">
+                          <img src="https://images.habbo.com/web_images/habbo-web-articles/{{ post.thumb }}_thumb.png" class="news-header__image news-header__image--thumbnail">
+                        </figure>
+                    </a>
+                    <a href="/hangouts/post/{{ post.id }}" class="news-header__link news-header__wrapper">
+                        <h2 class="news-header__title">{{ post.title.substr(0, 10) }}</h2>
+                    </a>
+                    <aside class="news-header__wrapper news-header__info">
+                        <time class="news-header__date" style="border:none;">{{ post.timestamp | date : 'mediumDate' }}</time>
+                        <br>
+                        -<a>{{ post.author.username }}</a>
+                    </aside>
+                </article>
+              </div>
+
+            </section>
+        </habbo-compile>
+    </section>
 </div>

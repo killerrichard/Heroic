@@ -1,0 +1,10 @@
+{
+	"build": {
+		"version": "1.00",
+		"status": "development"
+	},
+	"changelog": [{
+		"date": "January 19, 2018",
+		"content": "Added official changelog to Github"
+	}]
+}

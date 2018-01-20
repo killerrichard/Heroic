@@ -2,6 +2,7 @@ import Login from './session/guest/login'
 import Logout from './session/user/logout'
 import About from './session/user/home/about'
 import Register from './session/guest/register'
+import Client from './session/user/home/client'
 import Profile from './session/user/home/profile'
 import Staff from './session/user/community/staff'
 import Photos from './session/user/community/photos'
@@ -19,6 +20,7 @@ app.controller('Login', Login)
 app.controller('Register', Register)
 app.controller('Logout', Logout)
 // User Home
+app.controller('Client', Client)
 app.controller('About', About)
 app.controller('Profile', Profile)
 // User Community

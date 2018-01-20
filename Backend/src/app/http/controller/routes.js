@@ -24,7 +24,12 @@ export default class Routes {
     http.get('/api/auth/session/logout', JWT.check, Session.delete)
     http.get('/api/auth/session/fetch', JWT.check, Session.get)
 
+    // Check Data
+    http.get('/api/data/emulator/users/match/username/:username', Register.matchUsername)
+    http.get('/api/data/emulator/users/match/email/:email', Register.matchEmail)
+
     // Data Routes
+    http.get('/api/data/build', Website.build)
     http.get('/api/data/website/settings', Website.get)
     http.get('/api/data/website/news/fetch', News.get)
     http.get('/api/data/website/news/fetch/:id', News.get)

@@ -10,12 +10,12 @@ import './services'
 import './config/template-cache'
 
 const requires = [
-    'ngAnimate',
     'ngAria',
     'ngMessages',
     'ngMaterial',
     'ngSanitize',
     'ui.router',
+    'ct.ui.router.extras',
     'ngStorage',
     'app.templates',
     'heroic.components',

@@ -32,7 +32,7 @@ export default class Auth {
 
   // Registration Functions
   static hasDuplicates (data, callback) {
-    Users.where('username', data.username).orWhere('mail', data.mail).fetch({ columns : ['id'] })
+    Users.query((qb) => { qb.where('username', data.username); qb.orWhere('mail', data.mail); }).fetch({ columns : ['id'] })
       .then (users => {
         if (users) {
           callback({ errors : 'Username or email is being used!'})
@@ -43,7 +43,7 @@ export default class Auth {
   }
 
   static hasAccounts (data, callback) {
-    Users.where('ip_;ast', data.ip).fetch({ columns : ['id'] })
+    Users.where('ip_current', data.ip).fetch({ columns : ['id'] })
       .then (users => {
         if (users && users.length > 3) {
           callback({ errors : 'You already registered the maximum number of accounts!' })

@@ -61,12 +61,27 @@
         </article>
       </div>
       <div ng-show="isSet(2)">
-        <habbo-web-pages key="common/box_parents_guide" class="aside aside--box aside--fixed">
-            <aside class="static-content">
-              <h3>Version <small>0.01</smalL> </h3>
-              <p>Heroic Framework is built upon Angular with a backend server written in Node.  This allows us to provide the best user experience possible to rush ahead of our competitors.</p>
-            </aside>
-        </habbo-web-pages>
+        <div style="float:left;width:40%;">
+          <habbo-web-pages key="common/box_parents_guide" class="aside aside--box" style="width:100%;">
+              <aside class="static-content">
+                <h3>Version <small>{{ info.build.version }}</small> <small ng-if="info.build.status=='production'" style="color:green;">PRODUCTION</small>  <small ng-if="info.build.status=='development'" style="color:red;">DEVELOPMENT</small> </h3>
+                <p>Heroic Framework is built upon Angular with a backend server written in Node.  This allows us to provide the best user experience possible to rush ahead of our competitors.</p>
+              </aside>
+          </habbo-web-pages>
+        </div>
+        <div style="float:right;width:40%;">
+          <habbo-web-pages key="common/box_parents_guide" class="aside aside--box" style="width:100%;">
+              <aside class="static-content">
+                <h3>Changelog</h3>
+                <div ng-repeat="log in info.changelog">
+                  <p>{{ log.date }}</p>
+                  <ul>
+                    <li ng-repeat="child in log.logs">{{ child }}</li>
+                  </ul>
+                </div>
+              </aside>
+          </habbo-web-pages>
+        </div>
       </div>
     </section>
   </div>

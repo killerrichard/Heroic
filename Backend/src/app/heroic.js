@@ -4,6 +4,6 @@ export default class Heroic {
 
   constructor (time) {
     new Website(time)
-  }
+  } 
 
 }

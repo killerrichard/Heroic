@@ -32,10 +32,8 @@
                     <p>This is how you will be recognized in game.</p>
                 </div>
                 <div class="form__field">
-                  <input name="username" type="text" autocomplete="off" class="form__input" ng-click="messages.username=undefined">
-                  <div ng-if="messages.username !== undefined" class="form__popover form__popover--error ng-active">
-                    <div>{{ messages.username }}</div>
-                  </div>
+                  <input ng-model="user.username" ng-change="check('username')" pattern="^[A-Za-z.\s_-]{3,15}$" class="form__input">
+                  <div ng-hide="!messages.username" class="form__popover form__popover--error ng-active" ng-bind="messages.username"></div>
                 </div>
             </fieldset>
         </habbo-email-address>
@@ -47,10 +45,8 @@
                     <p>You'll need to use this email address to reset your password in the future.</p>
                 </div>
                 <div class="form__field">
-                  <input name="mail" type="email" autocomplete="off" class="form__input" ng-click="messages.email=undefined">
-                  <div ng-if="messages.email !== undefined" class="form__popover form__popover--error ng-active">
-                    <div>{{ messages.email }}</div>
-                  </div>
+                  <input ng-model="user.email" ng-change="check('email')" pattern="[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{1,63}$" class="form__input">
+                  <div ng-hide="!messages.email" class="form__popover form__popover--error ng-active" ng-bind="messages.email"></div>
                 </div>
             </fieldset>
         </habbo-email-address>
@@ -58,25 +54,23 @@
         <habbo-password-new>
             <fieldset class="form__fieldset form__fieldset--box form__fieldset--box-top">
               <label class="form__label">Password</label>
-                <p>Use at least 6 characters. Include at least one letter and at least one number or special character.</p>
+                <p>This will be used to login in the future.</p>
                 <div class="form__field">
-                  <input name="password" type="password" autocomplete="off" class="form__input">
-                    <i class="password-toggle-mask__icon"></i>
+                  <input ng-model="user.password" ng-change="check()" class="form__input" type="password">
+                  <i class="password-toggle-mask__icon"></i>
                 </div>
             </fieldset>
             <fieldset class="form__fieldset form__fieldset--box form__fieldset--box-top">
               <label class="form__label">Repeat Password</label>
-                <div class="form__field">
-                  <input name="passwordConfirm" type="password" autocomplete="off" class="form__input" ng-click="messages.password=undefined">
-                    <i class="password-toggle-mask__icon"></i>
-                    <div ng-if="messages.password !== undefined" class="form__popover form__popover--error ng-active">
-                      <div>{{ messages.password }}</div>
-                    </div>
-                </div>
+              <div class="form__field">
+                <input ng-model="user.password_rep" ng-change="check()" class="form__input" type="password">
+                <i class="password-toggle-mask__icon"></i>
+                <div ng-hide="user.password==user.password_rep||!user.password_rep" class="form__popover form__popover--error ng-active">Passwords must match</div>
+              </div>
             </fieldset>
         </habbo-password-new>
         <div class="form__footer">
-          <button type="submit" class="form__submit registration-form__button" ng-disabled="!data.enabled">Done! Let's start playing!</button>
+          <button type="submit" class="form__submit registration-form__button" ng-disabled="!user.enabled">Done! Let's start playing!</button>
         </div>
       </form>
   </habbo-registration-form>

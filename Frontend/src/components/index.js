@@ -1,14 +1,15 @@
-import News from './other/news.component'
-import Client from './other/client.component'
-import Online from './header/online.component'
-import Header from './header/header.component'
-import Navigation from './header/navigation.component'
+import News from './other/news'
+import Footer from './other/footer'
+import Online from './header/online'
+import Header from './header/header'
+import Navigation from './header/navigation'
 
 let app = angular.module('heroic.components', [])
 
 app.component('heroicHeader', Header)
+app.component('heroicFooter', Footer)
 app.component('heroicNavigation', Navigation)
-app.component('habboHotelButton', Online)
+app.component('habboOnline', Online)
 app.component('habboNews', News)
-app.component('habboClient', Client)
+
 export default app

@@ -18,5 +18,6 @@ export default function Config($locationProvider, $urlRouterProvider, $stateProv
   	}
 
     $httpProvider.interceptors.push('JWTService')
+    $httpProvider.interceptors.push('PromiseService')
 
 }

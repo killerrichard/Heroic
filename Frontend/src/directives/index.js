@@ -1,11 +1,7 @@
-import LogoutDirective from './logout.directive';
-import ValidateUsernameDirective from './validate.username.directive';
-import ValidateEmailDirective from './validate.email.directive';
+import Client from './game/client'
 
-let directivesModule = angular.module('heroic.directives', []);
+let app = angular.module('heroic.directives', [])
 
-directivesModule.directive('appLogout', () => new LogoutDirective);
-directivesModule.directive('validateUsername', () => new ValidateUsernameDirective);
-directivesModule.directive('validateEmail', () => new ValidateEmailDirective);
+app.directive('habboClient', new Client)
 
-export default directivesModule;
+export default app

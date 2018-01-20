@@ -12,9 +12,9 @@ export default class Article
 
     fetch ()
     {
-      this.$http({ method : 'GET', url : this.Configuration.api + '/data/website/news/fetch/' + this.$state.params.article})
+      this.$http({ method : 'GET', url : this.Configuration.api + '/data/website/news/fetch/' + this.$state.params.id })
         .then (result => {
-          this.$scope.article  = result.data
+          this.$scope.article  = result.data[0]
         })
         .catch (error => {
           this.$scope.article  = undefined

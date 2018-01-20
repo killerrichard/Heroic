@@ -1,6 +1,6 @@
 {
 	"login": {
-		"pretty":"Login",
+		"pretty": "Login",
 		"name": "login",
 		"url": "/login",
 		"templateUrl": "views/session/guest/login.html",
@@ -9,7 +9,7 @@
 	},
 
 	"register": {
-		"pretty":"Register",
+		"pretty": "Register",
 		"name": "register",
 		"url": "/register",
 		"templateUrl": "views/session/guest/register.html",
@@ -18,15 +18,29 @@
 	},
 
 	"logout": {
-		"pretty":"Logout",
+		"pretty": "Logout",
 		"name": "logout",
 		"url": "/logout",
 		"controller": "Logout",
 		"session": true
 	},
 
+	"client": {
+		"pretty": "Client",
+		"name": "client",
+		"url": "/client",
+		"sticky": true,
+		"session": true,
+		"views": {
+			"client": {
+				"controller": "Client",
+				"templateUrl": "views/session/user/home/client.html"
+			}
+		}
+	},
+
 	"me": {
-		"pretty":"Home",
+		"pretty": "Home",
 		"abstract": true,
 		"name": "me",
 		"template": "<div ui-view></div>",
@@ -34,23 +48,15 @@
 	},
 
 	"me.home": {
-		"pretty":"Home",
+		"pretty": "Home",
 		"name": "me.home",
 		"url": "/me",
 		"templateUrl": "views/session/user/home/me.html",
 		"session": true
 	},
 
-	"me.client": {
-		"pretty":"Client",
-		"name": "me.client",
-		"url": "/client",
-		"templateUrl": "views/session/user/home/client.html",
-		"session": true
-	},
-
 	"me.about": {
-		"pretty":"About",
+		"pretty": "About",
 		"name": "me.about",
 		"url": "/about",
 		"templateUrl": "views/session/user/home/about.html",
@@ -60,7 +66,7 @@
 
 
 	"me.settings": {
-		"pretty":"Settings",
+		"pretty": "Settings",
 		"name": "me.settings",
 		"url": "/settings",
 		"templateUrl": "views/session/user/home/settings.html",
@@ -69,7 +75,7 @@
 	},
 
 	"me.profile": {
-		"pretty":"Profile",
+		"pretty": "Profile",
 		"name": "me.profile",
 		"url": "/profile/:username",
 		"templateUrl": "views/session/user/home/profile/view.html",
@@ -78,25 +84,17 @@
 	},
 
 	"community": {
-		"pretty":"Community",
+		"pretty": "Community",
 		"abstract": true,
 		"name": "community",
 		"url": "/community",
 		"template": "<div ui-view></div>"
 	},
 
-	"community.home": {
-		"pretty":"Community",
-		"name": "community.home",
-		"url": "/home",
-		"template": "<div ui-view></div>",
-		"session": true
-	},
-
 	"community.photos": {
-		"pretty":"Photos",
+		"pretty": "Photos",
 		"name": "community.photos",
-		"url": "/community/photos",
+		"url": "/photos",
 		"controller": "Photos",
 		"templateUrl": "views/session/user/community/photos.html",
 		"session": true
@@ -104,27 +102,59 @@
 	},
 
 	"community.online": {
-		"pretty":"Online Users",
+		"pretty": "Online Users",
 		"name": "community.online",
-		"url": "/community/online",
+		"url": "/online",
 		"controller": "Online",
 		"templateUrl": "views/session/user/community/online.html",
 		"session": true
 	},
 
-	"community.categories": {
+	"community.news": {
+		"abstract": true,
+		"name": "community.news",
+		"url": "/news",
+		"template": "<div ui-view></div>"
+	},
+
+	"community.news.category": {
+		"abstract": true,
+		"name": "community.news.category",
+		"url": "/category",
+		"template": "<div ui-view></div>"
+	},
+
+	"community.news.category.all": {
 		"pretty": "Hotel News",
-		"name": "community.categories",
-		"url": "/community/categories",
+		"name": "community.news.category.all",
+		"url": "/all",
 		"controller": "Categories",
 		"templateUrl": "views/session/user/community/categories.html",
+		"session": true
+	},
+
+	"community.news.category.view": {
+		"pretty": "Hotel News",
+		"name": "community.news.category.view",
+		"url": "/view/:id",
+		"controller": "Categories",
+		"templateUrl": "views/session/user/community/categories.html",
+		"session": true
+	},
+
+	"community.news.article": {
+		"pretty": "Reading News Article",
+		"name": "community.news.article",
+		"url": "/article/:id",
+		"controller": "Article",
+		"templateUrl": "views/session/user/community/article.html",
 		"session": true
 	},
 
 	"community.leaderboards": {
 		"pretty": "Top Users",
 		"name": "community.leaderboards",
-		"url": "/community/leaderboards",
+		"url": "/leaderboards",
 		"controller": "Leaderboards",
 		"templateUrl": "views/session/user/community/leaderboards.html",
 		"session": true
@@ -133,7 +163,7 @@
 	"community.staff": {
 		"pretty": "Staff Team",
 		"name": "community.staff",
-		"url": "/community/staff",
+		"url": "/staff",
 		"controller": "Staff",
 		"templateUrl": "views/session/user/community/staff.html",
 		"session": true
@@ -159,16 +189,16 @@
 	"hangouts.create": {
 		"pretty": "Share New Story",
 		"name": "hangouts.create",
-		"url": "/hangouts/create",
+		"url": "/create",
 		"controller": "HangoutsCreate",
 		"templateUrl": "views/session/user/hangouts/create.html",
-		"session": true 
+		"session": true
 	},
 
 	"hangouts.radio": {
 		"pretty": "Our Radio",
 		"name": "hangouts.radio",
-		"url": "/hangouts/radio",
+		"url": "/radio",
 		"controller": "HangoutsRadio",
 		"templateUrl": "views/session/user/hangouts/radio.html",
 		"session": true

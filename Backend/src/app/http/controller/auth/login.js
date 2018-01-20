@@ -27,4 +27,15 @@ export default class Login {
     res.status(200).json({ sso : 'LOL' }).end()
   }
 
+  static push (data, callback) {
+    User.attempt({ username : data.username, password : data.password })
+    .then (user => {
+      const token = Token.sign(user, 'sld&!@$ZZACHRIS', { expiresIn : 60*60*24 })
+      callback(null, token)
+    })
+    .catch (error => {
+      callback(error)
+    })
+  }
+
 }

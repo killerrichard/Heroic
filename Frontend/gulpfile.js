@@ -13,28 +13,19 @@ var merge                   = require('merge-stream');
 var cleanCSS                = require('gulp-clean-css');
 var cssPrefix               = require('gulp-css-prefix');
 var sass                    = require('gulp-sass');
-
-gulp.task('build-css', [], function()
-{
-    return gulp.src(['./assets/stylesheets/theme.scss'])
-        .pipe(sass().on('error', sass.logError))
-        .pipe(cleanCSS())
-        .pipe(gulp.dest('./dist/'));
-});
-
 gulp.task('bundle-vendor', function()
 {
     return browserify('./src/vendor.js')
         .bundle()
         .pipe(source('vendor.js'))
-        .pipe(gulp.dest('./build/'));
+        .pipe(gulp.dest('../Backend/src/public/assets/js/'));
 });
 
 gulp.task('build-vendor', ['bundle-vendor'], function()
 {
     return gulp.src('build/vendor.js')
         .pipe(uglify())
-        .pipe(gulp.dest('./dist/'));
+        .pipe(gulp.dest('../Backend/src/public/assets/js/'));
 });
 
 gulp.task('views', function()
@@ -65,4 +56,4 @@ gulp.task('watch', function() {
     gulp.watch('./src/**/*.*', ['build-app'])
 });
 
-gulp.task('build-complete', ['build-css', 'build-vendor', 'build-app']);
+gulp.task('build-complete', ['build-vendor', 'build-app']);

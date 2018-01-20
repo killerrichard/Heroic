@@ -7,7 +7,7 @@
             </a>
           </li>
           <li class="navigation__item navigation__item--aside navigation__item--hotel">
-              <habbo-hotel-button></habbo-hotel-button>
+            <a ui-sref="client" class="hotel-button" id="ga-linkid-hotel"><span class="hotel-button__text" style="overflow:auto;">Enter Hotel <small style="font-size:10px;overflow:auto;"> <habbo-online></habbo-online> users online</small></span> </a>
           </li>
         </ul>
     </nav>
@@ -19,7 +19,7 @@
     <ul class="tabs__menu" ng-repeat="item in navigationList | orderBy: 'sort'" ng-if="$root.state.includes(item.state.name)">
       <habbo-tab class="sub-list no-padding" ng-repeat="child in item.children">
         <li class="tab">
-          <a class="tab__link" ng-class="{'tab__link--active': $root.state.includes(child.state.name)}" ng-click="(child.url == null) ? $root.state.go(child.state.name) : $root.state.go(child.url)">
+          <a class="tab__link" ng-class="{'tab__link--active': $root.state.includes(child.state.name)}" ng-class="{'tab__link--active': $root.state.includes(child.index)}" ng-click="(child.url == null) ? $root.state.go(child.state.name) : $root.state.go(child.url)">
             {{ child.name }}
           </a>
         </li>

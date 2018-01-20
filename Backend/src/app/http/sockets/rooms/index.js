@@ -3,6 +3,7 @@ export default class Routes {
 
   static load (io, callback)  {
     io.on('connection', (socket => {
+      console.log('i am here')
       Routes.default(io, socket)
       Radio.prepare(io, socket)
 

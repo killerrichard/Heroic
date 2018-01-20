@@ -1,4 +1,4 @@
 {
-	"api": "http://localhost/api",
-	"websocket": "http://localhost:81" 
-}
+	"api": "http://xhabbo.fun/api",
+	"websocket": "http://xhabbo.fun:81"
+} 

@@ -1,17 +1,21 @@
+import Hash from 'bcrypt-nodejs'
+import Moment from 'moment'
 import User from '../../model/emulator/users'
 export default class CRUD {
 
   static create (data, callback) {
     if (callback) {
-      new User(data).save()
+      const user = {
+        username          : data.username,
+        password          : Hash.hashSync(data.password),
+        mail              : data.mail,
+        account_created   : Moment(Date.now()).unix(),
+        ip_register       : data.ip,
+        ip_current        : data.ip
+      }
+      new User(user).save()
         .then (user => {
-          user.fetch({ columns : ['id', 'username', 'rank', 'look']})
-            .then (user => {
-              callback(null, user.toJSON())
-            })
-            .catch (error => {
-              callback({ errors : error })
-            })
+          callback(null, data)
         })
         .catch (error => {
           callback({ errors : error })

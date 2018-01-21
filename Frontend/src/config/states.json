@@ -209,15 +209,6 @@
 		"controller": "HangoutsCreate",
 		"templateUrl": "views/session/user/hangouts/create.html",
 		"session": true
-	},
-
-	"hangouts.radio": {
-		"pretty": "Our Radio",
-		"name": "hangouts.radio",
-		"url": "/radio",
-		"controller": "HangoutsRadio",
-		"templateUrl": "views/session/user/hangouts/radio.html",
-		"session": true
 	}
 
 }

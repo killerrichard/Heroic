@@ -88,12 +88,6 @@
 					"state": "hangouts.create",
 					"sort": 2,
 					"disabled": false
-				},
-				{
-					"name": "Our Radio",
-					"state": "hangouts.radio",
-					"sort": 3,
-					"disabled": true
 				}
 			]
 		}

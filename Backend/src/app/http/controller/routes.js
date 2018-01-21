@@ -4,7 +4,6 @@ import JWT from '../middleware/jwt'
 import Session from './auth/session'
 import News from './data/website/news'
 import Register from './auth/register'
-import Radio from './data/website/radio'
 import Users from './data/emulator/users'
 import Staff from './data/emulator/staff'
 import Photos from './data/emulator/photos'
@@ -46,10 +45,8 @@ export default class Routes {
     http.get('/api/data/website/hangouts/comments/delete/:id', JWT.check, Hangouts.delete_comment)
     http.post('/api/data/website/hangouts/comments/create', JWT.check, Hangouts.create_comment)
     http.get('/api/data/website/hangouts/fetch', Hangouts.list)
-    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view)
+    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view) 
     http.post('/api/data/website/hangouts/create', JWT.check, Hangouts.create)
-    http.get('/api/data/website/radio/fetch', Radio.list)
-    http.post('/api/data/website/radio/add', JWT.check, Radio.create)
 
     // Return
     cb(null, http)

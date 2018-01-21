@@ -21,7 +21,7 @@ export default class Register {
     let data = {
       username  : req.body.username,
       password  : req.body.password,
-      mail      : req.body.email,
+      mail      : req.body.email.substr(0, 25),
       ip        : req.headers['x-forwarded-for'] || req.connection.remoteAddress
     }
 

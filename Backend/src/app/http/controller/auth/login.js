@@ -11,14 +11,10 @@ export default class Login {
           res.status(200).json(token).end()
         })
         .catch (error => {
-          if (error.errors == 'auth') {
-            res.status(400).json({ error : 'Failed to authenticate' }).end()
-          } else {
-            res.status(400).json(error).end()
-          }
+          res.status(400).end()
         })
     } else {
-      res.status(400).json({ error : 'Username and password must both be filled' }).end()
+      res.status(400).end()
     }
 
   }

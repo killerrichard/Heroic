@@ -1,11 +1,22 @@
-<div style="width:100%;height:100%;background:black;position:absolute;top:0%;left:0%;">
+<div style="width:100%;height:100%;position:absolute;top:0;left:0;overflow:none;">
   <div class="client__buttons">
-    <button ng-click="go_back()" class="client__close">
+    <button ng-click="fly_home()" class="client__close">
       <i class="client__close__icon icon icon--habbo"></i>
-      <div class="client__close__expand" style="width: 0px;">
+      <div class="client__close__expand">
       <div class="client__close__text">Web</div></div>
     </button>
-
+    <button class="client__fullscreen">
+      Heroic 1.01
+    </button>
   </div>
-  <habbo-client flashvars="flashvarsString" ng-cloak></habbo-client>
+  <div id="client">
+    <habbo-client-error>
+      <div class="client-error">
+        <h1 class="client-error__title">YOU NEED TO USE FLASH TO PLAY HABBO!</h1>
+          <p>If you're using a computer, you need to <a href="http://www.adobe.com/go/getflashplayer" target="_blank">allow, install or update Flash</a> to play Habbo. Please <a href="http://www.adobe.com/go/getflashplayer" target="_blank">CLICK HERE</a> touse Flash! NOTE: if you block Flash, you will need to go to your browser's settings to unblock it in order to play Habbo.</p>
+          <div class="client-error__downloads"><a ng-href="http://www.adobe.com/go/getflashplayer" target="_blank" rel="noopener noreferrer" class="client-error__flash" href="http://www.adobe.com/go/getflashplayer"></a></div>
+        </div>
+     </habbo-client-error>
+  </div>
 </div>
+<style>html, body {margin: 0; height: 100%; overflow: hidden}</style>

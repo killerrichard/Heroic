@@ -9,7 +9,6 @@ export default class SSO {
         res.status(200).json({ auth_ticket : token }).end()
       })
       .catch (error => {
-        console.log(error)
         res.status(400).end()
       })
   }

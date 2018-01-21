@@ -10,7 +10,6 @@ import Online from './session/user/community/online'
 import Article from './session/user/community/Article'
 import HangoutsHome from './session/user/hangouts/home'
 import HangoutsPost from './session/user/hangouts/post'
-import HangoutsRadio from './session/user/hangouts/radio'
 import HangoutsCreate from './session/user/hangouts/create'
 import Categories from './session/user/community/Categories'
 import Leaderboards from './session/user/community/Leaderboards'
@@ -35,6 +34,5 @@ app.controller('Leaderboards', Leaderboards)
 app.controller('HangoutsHome', HangoutsHome)
 app.controller('HangoutsPost', HangoutsPost)
 app.controller('HangoutsCreate', HangoutsCreate)
-app.controller('HangoutsRadio', HangoutsRadio)
 
 export default app

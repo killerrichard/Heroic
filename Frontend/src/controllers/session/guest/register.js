@@ -22,13 +22,17 @@ export default class Register
                 $scope.messages.username = 'This username is not available'
               })
             } else if (field == 'email') {
-              $http.get('/api/data/emulator/users/match/email/' + $scope.user.email)
-                .then (success => {
-                  $scope.messages.email = undefined
-                })
-                .catch (error => {
-                  $scope.messages.email = 'This email address is already being used'
-                })
+              if ($scope.user.email.length < 25) {
+                $http.get('/api/data/emulator/users/match/email/' + $scope.user.email)
+                  .then (success => {
+                    $scope.messages.email = undefined
+                  })
+                  .catch (error => {
+                    $scope.messages.email = 'This email address is already being used'
+                  })
+                } else {
+                  $scope.messages.email = 'Email address is too long'
+                }
             }
 
             if ($scope.user.username != undefined && $scope.user.email != undefined && $scope.user.password != undefined && $scope.user.password_rep != undefined && $scope.messages.username == undefined && $scope.messages.email == undefined && $scope.user.password == $scope.user.password_rep) {

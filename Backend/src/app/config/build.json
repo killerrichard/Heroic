@@ -1,9 +1,19 @@
 {
 	"build": {
-		"version": "1.00",
+		"version": "1.01",
 		"status": "development"
 	},
 	"changelog": [{
+		"date": "January 20, 2018",
+		"logs": [
+			"Rewrote client and fixed hotel problems",
+			"Hangouts has been rewrote to include more features",
+			"Radio is disabled until web sockets is finished",
+			"Added user ranks to the default $localStorage",
+			"Enabled SSO authentication over a JWT secured GET request",
+			"Fixed ng-animate flash bug on navigation"
+		]},
+		{
 		"date": "January 19, 2018",
 		"logs": [
 			"Start of changelog",

@@ -1,28 +1,8 @@
 {
-  "name": "habboapi",
-  "version": "0.1.2",
-  "description": "HabboAPI",
-  "main": "main.js",
-  "scripts": {
-    "start": "babel-node main.js --presets es2015,stage-2 --ignore './public/'"
-  },
-  "author": "Billsonnn",
-  "license": "UNLICENSED",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/billsonnn/habboapi.git"
-  },
-  "bugs": {
-    "url": "https://github.com/billsonnn/habboapi/issues"
-  },
-  "homepage": "https://github.com/billsonnn/habboapi",
   "dependencies": {
     "angular": "1.6.5",
-    "angular-animate": "1.6.5",
     "angular-aria": "1.6.5",
     "angular-css": "^1.0.8",
-    "angular-material": "1.1.4",
-    "angular-messages": "1.6.5",
     "angular-sanitize": "^1.6.5",
     "angular-ui-router": "^0.4.2",
     "bcrypt": "^1.0.2",
@@ -38,8 +18,6 @@
     "knex": "^0.12.7",
     "mysql": "^2.13.0",
     "ngstorage": "^0.3.11",
-    "passport": "^0.3.2",
-    "passport-local": "^1.0.0",
     "regex": "^0.1.1",
     "request": "^2.83.0",
     "ui-router-extras": "^0.1.3",

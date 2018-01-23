@@ -5,9 +5,11 @@ import Register from './session/guest/register'
 import Client from './session/user/home/client'
 import Profile from './session/user/home/profile'
 import Staff from './session/user/community/staff'
-import Photos from './session/user/community/photos'
 import Online from './session/user/community/online'
 import Article from './session/user/community/Article'
+import BusinessList from './session/user/business/list'
+import BusinessView from './session/user/business/view'
+import BusinessEdit from './session/user/business/edit'
 import HangoutsHome from './session/user/hangouts/home'
 import HangoutsPost from './session/user/hangouts/post'
 import HangoutsCreate from './session/user/hangouts/create'
@@ -25,11 +27,14 @@ app.controller('About', About)
 app.controller('Profile', Profile)
 // User Community
 app.controller('Staff', Staff)
-app.controller('Photos', Photos)
 app.controller('Online', Online)
 app.controller('Article', Article)
 app.controller('Categories', Categories)
 app.controller('Leaderboards', Leaderboards)
+// User Roleplay
+app.controller('BusinessList', BusinessList)
+app.controller('BusinessView', BusinessView)
+app.controller('BusinessEdit', BusinessEdit)
 // User Hangouts
 app.controller('HangoutsHome', HangoutsHome)
 app.controller('HangoutsPost', HangoutsPost)

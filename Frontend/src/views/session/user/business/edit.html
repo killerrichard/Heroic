@@ -1,0 +1,63 @@
+<div class="wrapper wrapper--content">
+  <section>
+      <h1> <img src="/assets/img/corp/{{ job.badge }}.gif" style="width:40px;height:40px;"> {{ job.name }}</h1>
+      <form ng-submit="save()" class="form form--left">
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Image</label>
+            <select ng-model="job.badge" class="form__input">
+              <option>government</option>
+              <option>gym</option>
+              <option>hospital</option>
+              <option>icecream</option>
+              <option>jesus</option>
+              <option>kfc</option>
+              <option>leone</option>
+              <option>mall</option>
+              <option>news</option>
+              <option>nightclub</option>
+              <option>none</option>
+              <option>npa</option>
+              <option>peartech</option>
+              <option>pharmacy</option>
+              <option>planestore</option>
+              <option>radio</option>
+              <option>restarant</option>
+              <option>royal</option>
+              <option>royalty</option>
+              <option>soccer</option>
+              <option>hospital</option>
+              <option>spaceminer</option>
+              <option>stockmarket</option>
+              <option>strip</option>
+              <option>stripclub</option>
+              <option>subway</option>
+              <option>supermarket</option>
+              <option>swat</option>
+              <option>tech</option>
+              <option>travel</option>
+              <option>university</option>
+              <option>western</option>
+              <option>farming</option>
+              <option>ammunation</option>
+            </select>
+          </div>
+        </fieldset>
+        <fieldset class="form__fieldset">
+          <div class="form__field">
+            <label>Title</label>
+            <input ng-model="job.name" class="form__input">
+          </div>
+        </fieldset>
+        <fieldset class="form__fieldset form__fieldset--box">
+          <div class="form__field">
+            <label>Description</label>
+            <textarea ng-model="job.desc" class="form__input" rows="6"></textarea>
+          </div>
+        </fieldset>
+        <div class="form__footer">
+          <button type="submit" class="form__submit">Save</button>
+        </div>
+      </form>
+  </section>
+</div>

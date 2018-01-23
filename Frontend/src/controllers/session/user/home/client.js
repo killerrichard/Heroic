@@ -18,7 +18,7 @@ class Client
         .then (sso => {
           var flashvars =
           {
-            "connection.info.host"                    : "35.226.240.137",
+            "connection.info.host"                    : "35.184.101.145",
             "connection.info.port"                    : "3000",
             "url.prefix"                              : "/me",
             "site.url"                                : "/me",
@@ -48,7 +48,7 @@ class Client
             "allowScriptAccess" : "always",
             "menu" : "false"
           };
-          swfobject.embedSWF("http://swfs.xhabbo.fun/gamedata/arcturus.swf", "client", "100%", "100%", "10.0.0", "", flashvars, params, null);
+          swfobject.embedSWF("http://swfs.xhabbo.fun/gamedata/holo.swf", "client", "100%", "100%", "10.0.0", "", flashvars, params, null);
         })
     }
 

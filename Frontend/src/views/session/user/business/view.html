@@ -1,0 +1,71 @@
+<div>
+  <div class="wrapper">
+      <habbo-profile-header style="position:relative;">
+          <div class="profile-header__avatar">
+              <div class="profile-header__link">
+                  <habbo-imager class="profile-header__image">
+                    <img src="/assets/img/corp/{{ job.badge }}.gif" style="margin-top: 40px; margin-left: 8px;">
+                  </habbo-imager>
+              </div>
+          </div>
+          <div class="profile-header__details">
+            <div>
+              <h1>{{ job.name }}</h1>
+            </div>
+          </div>
+      </habbo-profile-header>
+  </div>
+
+  <div class="wrapper wrapper--content">
+      <div class="profile__section">
+          <div class="profile__card__wrapper--friends">
+              <section class="profile__card__aligner">
+                  <div class="profile__card">
+                      <h2 class="profile__card__title">
+                        <span>Employees</span>
+                      </h2>
+                        <habbo-friend-list class="item-list--grid" ng-if="job.employees !== undefined">
+                          <ul ng-if="job.employees.length > 0">
+                            <li class="item item--friend" ng-repeat="employee in job.employees" ng-limit="4"  ng-if="employee.id!=job.owner.id">
+                                <a class="item__content" href="/profile/{{ employee.user.username }}">
+                                    <div class="item__icon">
+                                      <habbo-imager class="item__icon__friend">
+                                        <div ng-init="show=0" ng-mouseover="show = 1" ng-mouseleave="show = 0">
+                                          <img class="imager" src="{{ website.figure_imager }}?figure={{ employee.user.look }}" ng-if="show==0">
+                                          <img class="imager" src="{{ website.figure_imager }}?figure={{ employee.user.look }}&action=wav" ng-if="show==1">
+                                        </div>
+                                      </habbo-imager>
+                                    </div>
+                                    <div class="item__text">
+                                        <h6 class="item__title item__title--single-line">{{ employee.user.username }}</h6>
+                                    </div>
+                                </a>
+                            </li>
+                          </ul>
+                          <p ng-if="job.employees.length==0">We currently have no employees!</p>
+                  </div>
+              </section>
+          </div>
+          <div class="profile__card__wrapper--rooms">
+            <section class="profile__card__aligner">
+                <div class="profile__card">
+                    <h2 class="profile__card__title">About Our Company</h2>
+                    <habbo-avatar class="room__owner--user">
+                        <a href="/profile/{{ job.owner.username}}" class="avatar">
+                            <habbo-imager class="avatar__image">
+                              <img src="{{ website.figure_imager }}?figure={{ job.owner.look }}&headonly=1">
+                            </habbo-imager>
+                            <h6 class="avatar__title">Owned By <b>{{ job.owner.username }}</b></h6>
+                        </a>
+                    </habbo-avatar>
+                    <p>We were founded <b>{{ job.created | date:'longDate' }}</p>
+                    <p>{{ job.desc }}</p>
+                    <div ng-if="job.owner.id==session.id">
+                      <a href="/business/edit/{{ job.id }}" class="form__submit">Edit</a>
+                    </div>
+                </div>
+            </section>
+          </div>
+      </div>
+  </div>
+</div>

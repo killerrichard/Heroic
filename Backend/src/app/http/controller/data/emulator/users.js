@@ -1,5 +1,6 @@
 import Async from 'async'
 import CRUD from '../../../../sql/ext/emulator/user_crud'
+import Stats from '../../../../sql/ext/roleplay/stats_crud'
 export default class Users {
 
   static get (req, res) {
@@ -24,19 +25,9 @@ export default class Users {
             callback(error)
           })
       },
-      // Pixels
+      // Kills
       function (callback) {
-        CRUD.retrieveTop('pixels', 10)
-          .then (users => {
-            callback(null, users)
-          })
-          .catch (error => {
-            callback(error)
-          })
-      },
-      // Diamonds
-      function (callback) {
-        CRUD.retrieveTop('points', 10, 'staff', '1')
+        Stats.retrieveTop('hit_kills', 10)
           .then (users => {
             callback(null, users)
           })
@@ -46,7 +37,7 @@ export default class Users {
       }
     ], ((errors, results) => {
       if (!errors) {
-        res.status(200).json({ credits : results[0], pixels : results[1], diamonds : results[2] }).end()
+        res.status(200).json({ credits : results[0], pixels : results[1] }).end()
       } else {
         console.log(errors)
         res.status(400).json({ error : errors }).end()

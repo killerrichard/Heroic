@@ -4,9 +4,9 @@ import JWT from '../middleware/jwt'
 import Session from './auth/session'
 import News from './data/website/news'
 import Register from './auth/register'
+import Jobs from './data/roleplay/jobs'
 import Users from './data/emulator/users'
 import Staff from './data/emulator/staff'
-import Photos from './data/emulator/photos'
 import Online from './data/emulator/online'
 import Website from './data/website/settings'
 import Hangouts from './data/website/hangouts'
@@ -31,21 +31,30 @@ export default class Routes {
     // Data Routes
     http.get('/api/data/build', Website.build)
     http.get('/api/data/website/settings', Website.get)
+
+    // Community
     http.get('/api/data/website/news/fetch', News.get)
     http.get('/api/data/website/news/fetch/:id', News.get)
     http.get('/api/data/website/category/fetch', Category.list)
     http.get('/api/data/website/category/fetch/:id', Category.get)
     http.get('/api/data/emulator/users/fetch/:username', Users.get)
     http.get('/api/data/emulator/users/leaderboards', Users.leaderboard)
-    http.get('/api/data/emulator/photos/fetch', Photos.get)
-    http.post('/api/data/emulator/photos/like', JWT.check, Photos.like)
     http.get('/api/data/emulator/online/fetch', Online.get)
     http.get('/api/data/emulator/staff/fetch', Staff.get)
+
+    // Roleplay
+    http.get('/api/data/roleplay/jobs/fetch', Jobs.list)
+    http.get('/api/data/roleplay/jobs/fetch/:id', Jobs.view)
+    http.post('/api/data/roleplay/jobs/create', JWT.check, Jobs.create)
+    http.post('/api/data/roleplay/jobs/update', JWT.check, Jobs.update)
+    http.get('/api/data/roleplay/jobs/delete/:id', JWT.check, Jobs.delete)
+
+    // Hangouts
     http.get('/api/data/website/hangouts/post/delete/:id', JWT.check, Hangouts.delete)
     http.get('/api/data/website/hangouts/comments/delete/:id', JWT.check, Hangouts.delete_comment)
     http.post('/api/data/website/hangouts/comments/create', JWT.check, Hangouts.create_comment)
     http.get('/api/data/website/hangouts/fetch', Hangouts.list)
-    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view) 
+    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view)
     http.post('/api/data/website/hangouts/create', JWT.check, Hangouts.create)
 
     // Return

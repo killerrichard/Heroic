@@ -52,6 +52,6 @@
   "scripts": {
     "start": "nodemon -L --exec babel-node ./src/boot.js --presets env --plugins transform-class-properties",
     "stable": "babel-node ./src/boot.js --presets env --plugins transform-class-properties",
-    "build": "babel ./src --out-dir=dist"
+    "build": "babel ./src --out-dir=dist --presets env --plugins transform-class-properties"
   }
 }

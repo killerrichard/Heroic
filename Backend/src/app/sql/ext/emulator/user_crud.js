@@ -1,42 +1,51 @@
+import Async from 'async'
 import Hash from 'bcrypt-nodejs'
 import Moment from 'moment'
 import User from '../../model/emulator/users'
+import Stats from '../../model/roleplay/stats'
 export default class CRUD {
 
   static create (data, callback) {
-    if (callback) {
-      const user = {
-        username          : data.username,
-        password          : Hash.hashSync(data.password),
-        mail              : data.mail,
-        account_created   : Moment(Date.now()).unix(),
-        ip_register       : data.ip,
-        ip_current        : data.ip
-      }
-      new User(user).save()
-        .then (user => {
-          callback(null, data)
-        })
-        .catch (error => {
-          callback({ errors : error })
-        })
-    } else {
-      return new Promise ((resolve, reject) => {
-        new User(data).save()
+    Async.waterfall([
+      // Add User
+      function (handle) {
+        const user = {
+          username          : data.username,
+          password          : Hash.hashSync(data.password),
+          mail              : data.mail,
+          account_created   : Moment(Date.now()).unix(),
+          ip_reg            : data.ip,
+          ip_last           : data.ip,
+          look              : 'hd-3103-1.ca-3466-110-110.lg-3057-110.hr-802-1407.sh-3089-110.ch-215-1408'
+        }
+        new User(user).save()
           .then (user => {
-            user.fetch({ columns : ['id', 'username', 'rank', 'look']})
+            user.fetch()
               .then (user => {
-                resolve(user.toJSON())
+                handle(null, data, user.toJSON())
               })
               .catch (error => {
-                reject({ errors : error })
+                handle(error)
               })
           })
           .catch (error => {
-            reject({ errors : error })
+            handle(error)
           })
-      })
-    }
+      },
+      // Add RP Stats
+      function (data, user, handle) {
+        new Stats().save({ id : user.id })
+        .then (user => {
+          handle(null, data)
+        })
+        .catch (error => {
+          handle(error)
+        })
+      }
+    ], ((errors, results) => {
+      console.log(errors)
+      callback(null, results)
+    }))
   }
 
   static read (id) {

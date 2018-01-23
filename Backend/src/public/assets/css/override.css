@@ -109,3 +109,12 @@ html {
   position: relative;
   width: 114px;
 }
+
+.job {
+  opacity: 0.85;
+}
+.job:hover {
+  opacity:1;
+  text-decoration: none;
+  border:none;
+}

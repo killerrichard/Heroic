@@ -8,6 +8,12 @@
 <h3>Introduction</h3>
 <p>Heroic is a replica of http://habbo.com whose job is to replicate the important features while providing a more optimized experience for retor owners out of the box.  This includes things such as 
 providing forums (hangouts), an admin panel and even a radio that uses web sockets!</p>
+
+<h3>Videos<h3>
+<ul>
+  <li>Arcturus DB https://www.youtube.com/watch?v=RT1U3H2Lnq4 </li>
+  <li>Holo DB (Roleplay) https://www.youtube.com/watch?v=AbhmPUCEyMU </li>
+ </ul>
  
  <h3>Releases</h3>
  <ul>

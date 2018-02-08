@@ -45,7 +45,7 @@ export default class Routes {
     http.get('/api/data/website/hangouts/comments/delete/:id', JWT.check, Hangouts.delete_comment)
     http.post('/api/data/website/hangouts/comments/create', JWT.check, Hangouts.create_comment)
     http.get('/api/data/website/hangouts/fetch', Hangouts.list)
-    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view) 
+    http.get('/api/data/website/hangouts/fetch/:id', Hangouts.view)
     http.post('/api/data/website/hangouts/create', JWT.check, Hangouts.create)
 
     // Return

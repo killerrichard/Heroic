@@ -1,0 +1,13 @@
+{
+  "name": "Heroic Framework (Habbo)",
+  "version": "1.01",
+  "bin": "boot.js",
+    "pkg": {
+        "assets": [
+            "public/**/*"
+        ],
+        "targets": [
+          "win"
+        ]
+    }
+}

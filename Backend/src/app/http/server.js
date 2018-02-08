@@ -1,3 +1,4 @@
+import Path from 'path'
 import Async from 'async'
 import Express from 'express'
 import Body from 'body-parser'
@@ -9,10 +10,10 @@ export default class Server {
 
   constructor (time) {
     Async.waterfall([ Server.start, Server.configure, Routes.load], ((errors, http) => {
-      http.use(Express.static(`${home}/public`))
+      http.use('/assets', Express.static(Path.join(__dirname, '..', '..', 'public', 'assets')))
 
       http.get('/*', ((req, res) => {
-        res.sendFile(`${home}/public/views/index.html`)
+        res.sendFile(Path.join(__dirname, '..', '..', 'public', 'views', 'index.html'))
       }))
 
       http.listen(80, (() => {

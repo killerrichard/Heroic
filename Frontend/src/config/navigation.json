@@ -90,6 +90,38 @@
 					"disabled": false
 				}
 			]
+		},
+		{
+			"name": "Home",
+			"icon": "home",
+			"state": "admin.home",
+			"sort": 1,
+			"disabled": false,
+			"restricted": true,
+			"subItems": [
+				{
+					"name": "Home",
+					"state": "admin.home",
+					"sort": 1,
+					"disabled": false
+				}
+			]
+		},
+		{
+			"name": "Website",
+			"icon": "gear",
+			"state": "admin.website.settings",
+			"sort": 1,
+			"disabled": false,
+			"restricted": true,
+			"subItems": [
+				{
+					"name": "Settings",
+					"state": "admin.website.settings",
+					"sort": 1,
+					"disabled": false
+				}
+			]
 		}
 	]
 }

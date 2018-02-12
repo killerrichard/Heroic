@@ -4,6 +4,14 @@
   Habbo.com - but optimized for retro development!
 </p>
 
+<h3>Status</h3>
+<img src="https://img.shields.io/travis/chrismpettyjohn/Heroic.svg">
+<img src="https://img.shields.io/github/release/chrismpettyjohn/Heroic.svg">
+<img src="https://img.shields.io/github/commits-since/chrismpettyjohn/Heroic/latest.svg">
+<img src="https://img.shields.io/codeclimate/github/chrismpettyjohn/Heroic.svg">
+<img src="https://img.shields.io/codeclimate/issues/github/chrismpettyjohn/Heroic.svg">
+
+
 
 <h3>Introduction</h3>
 <p>Heroic is a replica of http://habbo.com whose job is to replicate the important features while providing a more optimized experience for retor owners out of the box.  This includes things such as 

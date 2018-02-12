@@ -6,11 +6,8 @@ node_js:
 env:
   global:
     - NODE_ENV=development
-    before_install:
-- npm install n
-- sudo ./node_modules/.bin/n stable
-- rm -rf ~/.nvm
+before_install:
 - cd backend
 script:
   - npm install
-  - "sudo $(which npm) test"
+  - "sudo $(type -P npm) test"

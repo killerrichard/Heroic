@@ -8,8 +8,6 @@
 <img src="https://img.shields.io/travis/chrismpettyjohn/Heroic.svg">
 <img src="https://img.shields.io/github/release/chrismpettyjohn/Heroic.svg">
 <img src="https://img.shields.io/github/commits-since/chrismpettyjohn/Heroic/latest.svg">
-<img src="https://img.shields.io/codeclimate/github/chrismpettyjohn/Heroic.svg">
-<img src="https://img.shields.io/codeclimate/issues/github/chrismpettyjohn/Heroic.svg">
 
 
 

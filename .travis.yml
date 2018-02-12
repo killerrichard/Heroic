@@ -7,7 +7,7 @@ env:
   global:
     - NODE_ENV=development
 before_install:
-- cd backend
+- cd Backend
 script:
   - npm install
   - "sudo $(type -P npm) test"

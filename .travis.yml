@@ -1,5 +1,8 @@
 language: node_js
+env:
+  global:
+    - NODE_ENV=development
 before_script: cd Backend
 script:
-  -npm i
-  -npm test
+  - npm install
+  - npm run test

@@ -1,3 +1,4 @@
+import Token from 'jsonwebtoken'
 export default class Middleware {
 
   static check (req, res, next) {

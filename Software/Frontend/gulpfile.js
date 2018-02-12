@@ -38,7 +38,7 @@ gulp.task('views', function()
 gulp.task('bundle-app', ['views'], function()
 {
     return browserify('./src/app.js')
-        .transform(babelify, {presets: ['es2015']})
+        .transform(babelify, {presets: ['env']})
         .transform(ngAnnotate)
         .bundle()
         .pipe(source('habbo-api.js'))

@@ -1,4 +1,4 @@
-import Hash from 'bcrypt-nodejs'
+import Hash from 'bcrypt'
 import Moment from 'moment'
 import User from '../../model/emulator/users'
 export default class CRUD {

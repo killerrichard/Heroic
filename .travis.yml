@@ -9,4 +9,4 @@ env:
 before_script: cd Backend
 script:
   - npm install
-  - npm run test
+  - "sudo npm run test"

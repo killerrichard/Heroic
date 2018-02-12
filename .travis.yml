@@ -1,2 +1,5 @@
 language: node_js
 before_script: cd Backend
+script:
+  -npm i
+  -npm test

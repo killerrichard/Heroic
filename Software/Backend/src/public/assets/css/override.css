@@ -1,0 +1,9 @@
+
+html {
+  min-height: 100%;
+}
+body {
+  overflow:hidden;
+  margin: 0 0 100px;
+
+}

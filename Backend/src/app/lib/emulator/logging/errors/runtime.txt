@@ -1,0 +1,14 @@
+MSG: [CONFIG] Key not found: debug.show.headers
+MSG: Could not find achievement with ID 9 for talenttrack level 0 of type CITIZENSHIP
+MSG: Could not find achievement with ID 1 for talenttrack level 1 of type CITIZENSHIP
+MSG: Could not find achievement with ID 50 for talenttrack level 1 of type CITIZENSHIP
+MSG: Could not find achievement with ID 12 for talenttrack level 1 of type CITIZENSHIP
+MSG: Could not find achievement with ID 34 for talenttrack level 1 of type CITIZENSHIP
+MSG: Could not find achievement with ID 10 for talenttrack level 2 of type CITIZENSHIP
+MSG: Could not find achievement with ID 12 for talenttrack level 2 of type CITIZENSHIP
+MSG: Could not find achievement with ID 34 for talenttrack level 2 of type CITIZENSHIP
+MSG: Could not find achievement with ID 10 for talenttrack level 3 of type CITIZENSHIP
+MSG: Could not find achievement with ID 80 for talenttrack level 3 of type CITIZENSHIP
+MSG: Could not find achievement with ID 12 for talenttrack level 3 of type CITIZENSHIP
+MSG: Could not find achievement with ID 51 for talenttrack level 3 of type CITIZENSHIP
+MSG: [BadgeImager] Output folder: D:\Xampp\htdocs\game\c_images\Badgeparts does not exist!

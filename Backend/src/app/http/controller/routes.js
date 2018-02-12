@@ -2,8 +2,10 @@ import SSO from './auth/sso'
 import Login from './auth/login'
 import JWT from '../middleware/jwt'
 import Session from './auth/session'
+import Install from './parent/install'
 import News from './data/website/news'
 import Register from './auth/register'
+import Parent from '../middleware/parent'
 import Users from './data/emulator/users'
 import Staff from './data/emulator/staff'
 import Photos from './data/emulator/photos'
@@ -12,8 +14,16 @@ import Website from './data/website/settings'
 import Hangouts from './data/website/hangouts'
 import Category from './data/website/category'
 export default class Routes {
-
   static load (http, cb) {
+
+    // Parent
+
+      // Installation
+      http.get('/api/install/check', Parent.check, Install.check)
+      http.post('/api/install/save/database', Parent.check, Install.saveDatabase)
+      http.post('/api/install/save/general', Parent.check, Install.saveGeneral)
+      http.post('/api/install/save/administrator', Parent.check, Install.saveAdministrator)
+      http.post('/api/install/finish', Parent.check, Install.finish)
 
     // Guest
     http.post('/api/auth/login', Login.try)

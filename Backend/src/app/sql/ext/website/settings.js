@@ -1,6 +1,18 @@
 import Website from '../../model/website/settings'
 export default class Settings {
 
+  static update (data) {
+    return new Promise ((resolve, reject) => {
+      Website.where('id', 1).save(data, { method : 'update' })
+        .then (website => {
+          resolve()
+        })
+        .catch (error => {
+          reject(error)
+        })
+    })
+  }
+
   static read () {
     return new Promise ((resolve, reject) => {
       Website.where('id', 1).fetch()
@@ -8,11 +20,11 @@ export default class Settings {
           if (website) {
             resolve(website.toJSON())
           } else {
-            reject({ "error" : "Failed to fetch cms_settings" })
+            reject('Failed to fetch cms_settings')
           }
         })
         .catch (error => {
-          reject({ "error" : error })
+          reject(error)
         })
     })
   }

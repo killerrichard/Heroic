@@ -1,0 +1,5 @@
+exclude_patterns:
+- "Manager/"
+- "Software/"
+- "Backend/dist/"
+- "Backend/src/public/"

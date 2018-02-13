@@ -5,7 +5,6 @@
 </p>
 
 <h3>Status</h3>
-<img src="https://img.shields.io/travis/chrismpettyjohn/Heroic.svg">
 <img src="https://img.shields.io/github/release/chrismpettyjohn/Heroic.svg">
 <img src="https://img.shields.io/github/commits-since/chrismpettyjohn/Heroic/latest.svg">
 

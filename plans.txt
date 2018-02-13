@@ -1,0 +1,7 @@
+-Software API will manage
+  - Emulator Instance (JAVA)
+  - Website Instance (NODE)
+
+-Software API will do so using child_processes
+
+-Website will be able to reload config data OR restart via parent API (Software)

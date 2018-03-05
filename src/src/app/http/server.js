@@ -4,6 +4,7 @@ import Fetch from 'glob'
 import Async from 'async'
 import Fastify from 'fastify'
 import Static from 'fastify-static'
+import Helmet from 'fastify-helmet'
 import Body from 'fastify-formbody'
 import Session from './middleware/session'
 import Configuration from '../config/options'
@@ -17,7 +18,7 @@ export default class Server {
         reply.type('text/html').send(stream)
       })
 
-      http.listen(80, (() => {
+      http.listen(80, '0.0.0.0', (() => {
         console.log('   Web Server is running')
       }))
 
@@ -26,13 +27,28 @@ export default class Server {
 
   static configure (callback) {
     const http = Fastify()
+    /*const http = Fastify({
+      http2: true,
+      https: {
+        key: File.readFileSync(Path.join(__dirname, '..', 'config', 'https', 'key.pem'), 'utf8'),
+        cert: File.readFileSync(Path.join(__dirname, '..', 'config', 'https', 'cert.pem'), 'utf8')
+      }
+    })
+    */
+
+    http.register(Helmet)
 
     http.register(Static, {
       root: Path.join(__dirname, '..', '..', 'public', 'assets'),
       prefix: '/assets/',
     })
-
+ 
     http.register(Body)
+
+    http.addHook('preHandler', (request, reply, next) => {
+      request.ip = request.headers['x-forwarded-for'] || '127.0.0.1'
+      next()
+    })
 
     http.use('/api/auth', Session.check)
 

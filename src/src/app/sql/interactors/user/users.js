@@ -27,8 +27,14 @@ export default class Interactor {
     return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'] })
   }
 
-  static update (data) {
-    return new Model(data).save()
+  static async update (data) {
+    try {
+      let user = await Interactor.validate(data.mail, 'email')
+      user     = await new Model(data).save()
+    }
+    catch (error) {
+      throw new Error(error)
+    }
   }
 
   // Other
@@ -73,7 +79,6 @@ export default class Interactor {
             throw new Error('RETURN: Email is not valid')
           }
         break;
-
       }
     } else {
       throw new Error(`RETURN: ${type} is empty`)
@@ -99,5 +104,22 @@ export default class Interactor {
     }
   }
 
+  static async fetch (data, type) {
+    try {
+      return await Model.where(data, type).fetch({ columns : ['id', 'username', 'rank', 'look', 'credits', 'pixels' ]})
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  static async count (data, type) {
+    try {
+      return await Model.where(data, type).count()
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
 
 }

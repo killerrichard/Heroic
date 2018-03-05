@@ -4,11 +4,11 @@ export default class Middleware {
 
   static async check (request, reply, next) {
     try {
-      request.session = Token.validate(request.headers['x-access-token'])
+      request.session = await Token.validate(request.headers['x-access-token'])
       next()
     }
     catch (error) {
-      reply.code(400).send('Could not authorize this request')
+      reply.end('Could not authorize this request')
     }
   }
 

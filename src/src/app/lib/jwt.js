@@ -16,11 +16,15 @@ export default class Library {
   }
 
   static async validate (session) {
-    try {
-      return Token.verify(session, File.readFileSync(Path.resolve(__dirname, '..', 'config', 'https', 'key.pem')))
-    }
-    catch (error) { 
-      throw new Error(error)
+    if (session) {
+      try {
+        return Token.verify(session, File.readFileSync(Path.resolve(__dirname, '..', 'config', 'https', 'key.pem')))
+      }
+      catch (error) {
+        throw new Error(error)
+      }
+    } else {
+      throw new Error('No authentication token was provided')
     }
   }
 

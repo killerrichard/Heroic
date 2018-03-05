@@ -5,6 +5,7 @@ export default class Routes {
 
     // General Access
     http.get('/api/users/user/:username', Controller.read)
+    http.get('/api/users/online/:type', Controller.online)
 
 
     // Authenticated

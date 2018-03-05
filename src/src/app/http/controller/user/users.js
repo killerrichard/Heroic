@@ -11,7 +11,7 @@ export default class Controller {
         ip_register : request.ip,
         ip_current  : request.ip
       }
-      let user    = await Database.create(data) 
+      let user    = await Database.create(data)
       reply.code(200).send(user)
     }
     catch (error) {
@@ -36,11 +36,11 @@ export default class Controller {
   static async update (request, reply) {
     try {
       const data = {
-        id      : request.session.id,
-        motto   : 'LOL'
+        id     : request.raw.session.id,
+        mail   : request.body.email
       }
       let user = await Database.update(data)
-      reply.code(200).send('Changes saved')
+      reply.code(200).send('Your changes have been saved')
     }
     catch (error) {
       new Error(error, request, reply)
@@ -51,5 +51,20 @@ export default class Controller {
 
   }
 
+
+  static async online (request, reply) {
+    try {
+      if (request.params.type == 'count') {
+        let online = await Database.count('online', '1')
+        reply.code(200).send(online)
+      } else { 
+        let online = await Database.fetch('online', '1')
+        reply.code(200).send(online)
+      }
+    }
+    catch (error) {
+      new Error(error, request, reply)
+    }
+  }
 
 }

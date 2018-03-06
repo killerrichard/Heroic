@@ -1,0 +1,28 @@
+{
+	"navigation": [{
+			"name": "current_username",
+			"icon": "home",
+			"state": "user.home",
+			"url": "user.home.me",
+			"children": [{
+					"name": "Home",
+					"state": "user.home.me"
+				},
+				{
+					"name": "Messaging",
+					"state": "user.home.messages"
+				}
+			]
+		},
+		{
+			"name": "Community",
+			"icon": "users",
+			"state": "user.community",
+			"url": "user.community.photos",
+			"subItems": [{
+				"name": "Photos",
+				"state": "user.community.photos"
+			}]
+		}
+	]
+}

@@ -15,7 +15,6 @@ export default class Routes {
     http.put('/api/users/user/:username', Controller.create)
     http.patch('/api/auth/users/user/:username', Controller.update)
 
-
   }
 
 }

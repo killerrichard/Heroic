@@ -25,7 +25,7 @@ export default class Interactor {
 
   static read (data, type, self) {
     if (self) {
-      return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'], withRelated : ['notifications'] })
+      return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'], withRelated : ['rank', 'notifications'] })
     } else {
       return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'] })
     }

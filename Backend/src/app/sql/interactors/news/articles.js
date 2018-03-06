@@ -1,6 +1,22 @@
 import Model from '../../models/news/articles'
 export default class Interactor {
 
+  static async create (data) {
+    try {
+      let step = await new Model(data).save()
+      step     = await Model.query('orderBy', 'id', 'DESC').fetch({ columns : ['id'] })
+      step     = await Interactor.read(step.toJSON().id)
+      return step
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  static async update (data) {
+    return new Model(data).save()
+  }
+
   static async read (id) {
     try {
       if (id) {
@@ -13,4 +29,16 @@ export default class Interactor {
       throw new Error(error)
     }
   }
+
+  static async delete (id) {
+    try {
+      let step = await Interactor.read(id)
+      step     = await Model.where('id', id).destroy()
+      return true
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
 }

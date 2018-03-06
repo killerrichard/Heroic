@@ -42,7 +42,7 @@ export default class Server {
       root: Path.join(__dirname, '..', '..', 'public', 'assets'),
       prefix: '/assets/',
     })
- 
+
     http.register(Body)
 
     http.addHook('preHandler', (request, reply, next) => {
@@ -50,7 +50,9 @@ export default class Server {
       next()
     })
 
-    http.use('/api/auth', Session.check)
+    http.use('/api/auth', Session.check) 
+    http.use('/api/auth/mod', Session.checkMod)
+    http.use('/api/auth/admin', Session.checkAdmin)
 
     callback(null, http)
   }

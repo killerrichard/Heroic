@@ -5,26 +5,41 @@ export default class Controller
   {
       'ngInject'
       $scope.error  = false
-      $scope.user   = { }
+      $scope.user   = {
+        username : '',
+        password : ''
+      }
       $scope.login  = () => {
-        $http.post(`/api/users/session/${$scope.user.username}`, $scope.user)
+        if ($scope.user.username=='' && $scope.user.password=='') {
+          $scope.error = {
+            username : true,
+            password : true
+          }
+        } else if ($scope.user.username=='') {
+          $scope.error = {
+            username : true,
+          }
+        } else if ($scope.user.password=='') {
+          $scope.error = {
+            password : true
+          }
+        } else {
+          $scope.error = false
+          $scope.push()
+        }
+      }
+      $scope.push   = () => {
+        $http.post(`/api/users/session/${$scope.user}`, $scope.user)
           .then (message => {
             if (message.data.error) {
-              console.log(message.data.error)
-              switch (message.data.error) {
 
-                case "You need to fill in both username and password.":
-                  $scope.error = {
-                    username : true,
-                    password : true
-                  }
-                break;
+              switch (message.data.error) {
 
                 case "That user does not exist":
                   $scope.error = {
                     username : true
                   }
-                break;
+                break; 
 
                 case "That's not the right password":
                   $scope.error = {
@@ -35,9 +50,7 @@ export default class Controller
                 default:
                   $scope.error = false
                 break;
-
               }
-              console.log($scope.error)
             } else {
               SessionService.create(message.data, $scope.user.username)
                 .then (success => {
@@ -49,7 +62,6 @@ export default class Controller
             }
           })
           .catch (error => {
-            console.log(error)
             $state.go('errors.500')
           })
       }

@@ -23,8 +23,12 @@ export default class Interactor {
     }
   }
 
-  static read (data, type) {
-    return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'] })
+  static read (data, type, self) {
+    if (self) {
+      return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'], withRelated : ['notifications'] })
+    } else {
+      return Model.where(type, data).fetch({ columns : ['id', 'username', 'mail', 'look', 'rank'] })
+    }
   }
 
   static async update (data) {

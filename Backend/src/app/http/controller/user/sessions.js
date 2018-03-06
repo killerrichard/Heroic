@@ -17,7 +17,7 @@ export default class Controller {
 
   static async read (request, reply) {
     try {
-      let session = await Database.read(request.raw.session.id, 'id')
+      let session = await Database.read(request.raw.session.id, 'id', true)
       reply.code(200).send(session)
     }
     catch (error) {

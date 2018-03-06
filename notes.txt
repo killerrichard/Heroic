@@ -1,1 +1,4 @@
-request.raw.session
+Access session via controller: request.raw.session
+
+Plans:
+-Change JWT into SQL-backed sessions

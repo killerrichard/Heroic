@@ -7,4 +7,6 @@ exports.Header = {
 exports.Navigation = require('./navigation').default
 exports.Tabs = require('./tabs').default
 
+exports.Articles = require('./articles').default
+
 exports.Footer = require('./footer').default

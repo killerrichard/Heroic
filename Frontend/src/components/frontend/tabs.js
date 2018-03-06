@@ -1,7 +1,7 @@
 import Navigation from '../../config/navigation.json'
 class Controller
 {
-    constructor ($scope, $rootScope)
+    constructor ($scope, $rootScope, $localStorage)
     {
         'ngInject'
         $scope.children = []

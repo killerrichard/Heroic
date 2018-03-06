@@ -9,7 +9,7 @@
 					"state": "user.home.me"
 				},
 				{
-					"name": "Messaging",
+					"name": "Messages",
 					"state": "user.home.messages"
 				}
 			]

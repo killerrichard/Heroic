@@ -8,14 +8,14 @@ class Controller
         angular.forEach(Navigation.navigation, ((item, key) => {
 
           if (item.name == 'current_username') item.name = $localStorage.session.username
-          
+
           $scope.parents.push({
             name : item.name,
             icon  : item.icon,
             state : item.state,
             url   : item.url
           })
-
+ 
         }))
     }
 

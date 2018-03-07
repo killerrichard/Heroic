@@ -1,6 +1,17 @@
 import Model from '../../models/news/categories'
 export default class Interactor {
 
+  static async create (data) {
+    try {
+      let step = await new Model(data).save()
+      step     = await Model.query('orderBy', 'id', 'DESC').fetch({ columns : ['id'] })
+      return Interactor.read(step.toJSON().id)
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
   static async read (id) {
     try {
       if (id) {
@@ -12,6 +23,14 @@ export default class Interactor {
     catch (error) {
       throw new Error(error)
     }
+  }
+
+  static update (data) {
+    return new Model(data).save()
+  }
+
+  static delete (id) {
+    return Model.where('id', id).destroy()
   }
 
 }

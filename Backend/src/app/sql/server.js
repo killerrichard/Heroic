@@ -1,5 +1,6 @@
 import knex from 'knex'
 import bookshelf from 'bookshelf'
+import Delete from 'bookshelf-cascade-delete'
 import Configuration from '../config/options'
 
 const data = {
@@ -12,5 +13,7 @@ const data = {
   }
 }
 const Database = bookshelf(knex(data))
+
+Database.plugin(Delete)
 
 export default Database

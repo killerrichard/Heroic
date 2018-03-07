@@ -1,13 +1,13 @@
 export default class Session
 {
 
-  constructor (JWTService, $http, $localStorage, $rootScope, $q, $window) {
+  constructor (JWTService, $http, $localStorage, $rootScope, $q, $state) {
     'ngInject'
     Session.$http         = $http
     Session.$localStorage = $localStorage
     Session.$rootScope    = $rootScope
     Session.$q            = $q
-    Session.$window       = $window
+    Session.$state        = $state
   }
 
 
@@ -16,7 +16,7 @@ export default class Session
       Session.$localStorage.token = token
       Session.$http.get(`/api/auth/users/session/${username}`)
         .then (session => {
-          Session.$localStorage.session = session.data 
+          Session.$localStorage.session = session.data
           Session.$rootScope.session    = session.data
           resolve()
         })
@@ -31,10 +31,16 @@ export default class Session
   validate () {
     if (Session.$localStorage.session) {
       Session.$http.get(`/api/auth/users/session/${Session.$localStorage.session.username}`)
-        .then (session => {
-          Session.$localStorage.session = session.data
-          Session.$rootScope.session    = session.data
-          return true
+        .then (session => { 
+          if (!session.data.err) {
+            Session.$localStorage.session = session.data
+            Session.$rootScope.session    = session.data
+            return true
+          } else {
+            Session.$localStorage.$reset()
+            Session.$rootScope.session = undefined
+            return false
+          }
         })
         .catch (error => {
           Session.$localStorage.$reset()
@@ -47,7 +53,7 @@ export default class Session
   delete () {
     Session.$localStorage.$reset()
     Session.$rootScope.session = undefined
-    Session.$window.location.reload()
+    Session.$state.go('guest.login')
   }
 
   status () {

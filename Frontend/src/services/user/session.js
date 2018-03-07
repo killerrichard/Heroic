@@ -23,7 +23,7 @@ export default class Session
         .catch (error => {
           Session.$localStorage.$reset()
           Session.$rootScope.session = undefined
-          reject()
+          return false
         })
       })
     }
@@ -31,15 +31,14 @@ export default class Session
   validate () {
     if (Session.$localStorage.session) {
       Session.$http.get(`/api/auth/users/session/${Session.$localStorage.session.username}`)
-        .then (session => { 
-          if (!session.data.err) {
+        .then (session => {
+          if (!session.data.error) {
             Session.$localStorage.session = session.data
             Session.$rootScope.session    = session.data
             return true
           } else {
-            Session.$localStorage.$reset()
-            Session.$rootScope.session = undefined
-            return false
+            Session.delete()
+            reject()
           }
         })
         .catch (error => {

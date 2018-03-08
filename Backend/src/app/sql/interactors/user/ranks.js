@@ -1,6 +1,10 @@
 import Model from '../../models/user/ranks'
 export default class Interactor {
 
+  static read () {
+    return Model.fetchAll({ columns : ['id', 'rank_name'] })
+  }
+
   static async hasRank (id, type) {
     try {
       let rank = Model.where('id', id).fetch({ columns : ['cms_mod', 'cms_admin']})
@@ -27,4 +31,7 @@ export default class Interactor {
       throw new Error(error)
     }
   }
+
+
+
 }

@@ -9,7 +9,7 @@ export default class Middleware {
       next()
     }
     catch (error) {
-      reply.end('Could not authorize this request')
+      next({ error : 'Could not authorize this request'} )
     }
   }
 
@@ -19,7 +19,7 @@ export default class Middleware {
       next()
     }
     catch (error) {
-      reply.end('Could not authorize this request')
+      next({ error : 'Could not authorize this request'} )
     }
   }
 
@@ -29,7 +29,7 @@ export default class Middleware {
       next()
     }
     catch (error) {
-      reply.end('Could not authorize this request')
+      next({ error : 'Could not authorize this request'} )
     }
   }
 

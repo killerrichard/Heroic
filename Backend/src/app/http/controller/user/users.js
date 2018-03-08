@@ -1,11 +1,7 @@
 import Error from '../../../lib/error'
 import Database from '../../../sql/interactors/user/users'
 export default class Controller {
-
-  static test (request, reply) {
-    reply.code(200).send('YOU MADE IT!!!')
-  }
-
+  
   static async create (request, reply) {
     try {
       const data = {

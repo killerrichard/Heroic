@@ -10,7 +10,7 @@ Target Server Type    : MariaDB
 Target Server Version : 100212
 File Encoding         : 65001
 
-Date: 2018-03-06 20:26:45
+Date: 2018-03-08 06:40:09
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -204,7 +204,7 @@ CREATE TABLE `cms_settings` (
 -- ----------------------------
 -- Records of cms_settings
 -- ----------------------------
-INSERT INTO `cms_settings` VALUES ('1', 'Hell\n', 'Welcome to hell', 'http://hell.com', '127.0.0.1', '3000');
+INSERT INTO `cms_settings` VALUES ('1', 'Habbo', 'Welcome to hell', 'http://hell.com', '127.0.0.1', '3000');
 
 -- ----------------------------
 -- Table structure for permissions
@@ -422,7 +422,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `id_2` (`id`),
   UNIQUE KEY `id_3` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of users
@@ -430,3 +430,5 @@ CREATE TABLE `users` (
 INSERT INTO `users` VALUES ('1', 'Chris', '', '$2a$10$7fCzyYpMCkGAcKhQYLuw3uYT2qwvv9HCsdkZCSzIK4JrhZdSKvoQi', 'chrismpettyjohn@gmail.com', '0', '2018-03-06 06:05:43', '0', '0', '0', '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', '7', '2500', '500', '10', '1', '', '127.0.0.1', '127.0.0.1', '', '0');
 INSERT INTO `users` VALUES ('2', 'Peep', '', '$2a$10$5qZ/zz6kkS/GNFhH87VfAe084.ykO3qxnY6P2S5KejupoxBapf9Du', 'lil@peep.com', '0', '2018-03-05 21:36:30', '0', '0', '0', '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', '1', '2500', '500', '10', '0', '', '127.0.0.1', '127.0.0.1', '', '0');
 INSERT INTO `users` VALUES ('3', 'daddy', '', '$2a$10$NBN3DKY7DfIrzQw4mErRGeeyYNyonHrwVigk4xer0Ju5je5yFWZze', 'w@w.com', '0', '2018-03-06 05:37:54', '0', '0', '0', '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', '1', '2500', '500', '10', '0', '', '109.151.201.83', '109.151.201.83', '', '0');
+INSERT INTO `users` VALUES ('4', 'testflaw', '', '$2a$10$W8caCQCALixEQq6gO/mSs.T0rueeu.bc1mU3DWnSIYYIo7sE.OrbW', 'editingxbl1337@gmail.com', '0', '2018-03-07 04:46:22', '0', '0', '0', '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', '1', '2500', '500', '10', '0', '', '127.0.0.1', '127.0.0.1', '', '0');
+INSERT INTO `users` VALUES ('5', 'Dev', '', '$2a$10$N3cRaWWD9krBkmAiyLWvSew2QiV25bQ0uAjSsGRhQOU/.PKiEzzVO', 'TedBoon92@gmail.com', '0', '2018-03-07 14:38:25', '0', '0', '0', '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', '1', '2500', '500', '10', '0', '', '127.0.0.1', '127.0.0.1', '', '0');

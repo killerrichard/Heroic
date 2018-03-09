@@ -76,14 +76,53 @@
 		"abstract": true,
 		"template": "<div ui-view></div>"
 	},
-
+	
 	"user.community.photos": {
 		"name": "user.community.photos",
 		"url": "/photos",
-		"title": "Photos",
-		"templateUrl": "views/frontend/user/community/photos.html"
+		"abstract": true, 
+		"template": "<div ui-view></div>"
 	},
 
+	"user.community.photos.list": {
+		"name": "user.community.photos.list",
+		"url": "/",
+		"title": "Photos",
+		"controller": "Frontend.User.Community.Photos.List",
+		"templateUrl": "views/frontend/user/community/photos/list.html"
+	},
+
+	"user.community.photos.view": {
+		"name": "user.community.photos.view",
+		"url": "/:id",
+		"title": "Photos",
+		"controller": "Frontend.User.Community.Photos.View",
+		"templateUrl": "views/frontend/user/community/photos/view.html"
+	},
+
+	"user.community.rooms": {
+		"name": "user.community.rooms",
+		"url": "/rooms",
+		"abstract": true, 
+		"template": "<div ui-view></div>"
+	},
+
+	"user.community.rooms.list": {
+		"name": "user.community.rooms.list",
+		"url": "/", 
+		"title": "Rooms",
+		"controller": "Frontend.User.Community.Rooms.List",
+		"templateUrl": "views/frontend/user/community/rooms/list.html"
+	},
+
+	"user.community.rooms.view": { 
+		"name": "user.community.rooms.view",
+		"url": "/:id",
+		"title": "Viewing Room",
+		"controller": "Frontend.User.Community.Rooms.View",
+		"templateUrl": "views/frontend/user/community/rooms/view.html"
+	},
+	
 	"user.community.news": {
 		"name": "user.community.news",
 		"url": "/news",
@@ -127,6 +166,29 @@
 		"title": "News Article",
 		"controller": "Frontend.User.Community.News.Article.View",
 		"templateUrl": "views/frontend/user/community/news/article-view.html"
-	} 
+	}, 
+
+	"user.community.staff": {
+		"name": "user.community.staff",
+		"url": "/staff",
+		"abstract": true, 
+		"controller": "Frontend.User.Community.Staff.List", 
+		"templateUrl": "views/frontend/user/community/staff/header.html"
+	},
+ 
+	"user.community.staff.list": {
+		"name": "user.community.staff.list",
+		"url": "/", 
+		"title": "Staff Team",
+		"templateUrl": "views/frontend/user/community/staff/list.html"
+	}, 
+
+	"user.community.staff.view": {
+		"name": "user.community.staff.view",
+		"url": "/:id",  
+		"title": "Staff Team",
+		"controller": "Frontend.User.Community.Staff.View", 
+		"templateUrl": "views/frontend/user/community/staff/view.html"
+	}
 
 }

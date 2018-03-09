@@ -6,11 +6,15 @@ app.controller('Frontend.Guest.Register', Frontend.Guest.Register)
 
 app.controller('Frontend.User.Logout', Frontend.User.Logout)
 
-// News
+// Community
+app.controller('Frontend.User.Community.Photos.List', Frontend.User.Community.Photos.List)
+app.controller('Frontend.User.Community.Rooms.List', Frontend.User.Community.Rooms.List)
+app.controller('Frontend.User.Community.Rooms.View', Frontend.User.Community.Rooms.View)
 app.controller('Frontend.User.Community.News.Category.List', Frontend.User.Community.News.Category.List)
 app.controller('Frontend.User.Community.News.Category.View', Frontend.User.Community.News.Category.View)
 app.controller('Frontend.User.Community.News.Article.View', Frontend.User.Community.News.Article.View)
-
-export default app
+app.controller('Frontend.User.Community.Staff.List', Frontend.User.Community.Staff.List)
+app.controller('Frontend.User.Community.Staff.View', Frontend.User.Community.Staff.View)
+export default app  
  
  

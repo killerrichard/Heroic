@@ -20,16 +20,17 @@
 		"name":"Community",
 		"icon":"users",
 		"state":"user.community",
-		"url":"user.community.photos",
+		"url":"user.community.photos.list",
 		"children":[  
 		   {  
 			  "name":"Photos",
-			  "state":"user.community.photos"
+			  "state":"user.community.photos.list",
+			  "url": "user.community.photos.list"
 		   },
 		   {  
 			"name":"Rooms", 
-			"state":"user.community.rooms",
-			"url":"user.community.rooms.popular"
+			"state":"user.community.rooms", 
+			"url":"user.community.rooms.list"
 		   },
 		   {  
 			  "name":"News",
@@ -37,16 +38,11 @@
 			  "url":"user.community.news.category.list"
 		   },
 		   {  
-			"name":"Top Users",
-			"state":"user.community.leaderboards",
-			"url":"user.community.leaderboards.credits"
-		   }, 
-		   {  
 			"name":"Staff",
-			"state":"user.community.ranks",
-			"url":"user.community.ranks.staff"
+			"state":"user.community.staff", 
+			"url":"user.community.staff.list"
 		   }
-		]
+		] 
 	 },
 	 {  
 		"name":"Store",

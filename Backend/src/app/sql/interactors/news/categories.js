@@ -15,9 +15,14 @@ export default class Interactor {
   static async read (id) {
     try {
       if (id) {
-        return Model.where('id', id).fetch({ columns : ['id', 'title', 'content', 'timestamp'], withRelated : ['articles', 'articles.author'] })
+        let category = await Model.where('id', id).fetch({ columns : ['id', 'title', 'content', 'timestamp'], withRelated : ['articles', 'articles.author'] })
+        if (category) {
+          return category
+        } else {
+          throw new Error('RETURN: Category not found')
+        }
       } else {
-        return Model.query('orderBy', 'id', 'DESC').fetchAll({ columns : ['id', 'title', 'content', 'timestamp'] })
+        return Model.fetchAll({ columns : ['id', 'title', 'content', 'timestamp'] })
       }
     }
     catch (error) {

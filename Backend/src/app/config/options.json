@@ -3,7 +3,7 @@
 		"host": "127.0.0.1",
 		"user": "root",
 		"password": "password",
-		"database": "heroic two"
+		"database": "heroic-development"
 	},
 	"auth" : "2345fdXKZLS@!!%"
 }

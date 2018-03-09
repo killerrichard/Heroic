@@ -47,6 +47,15 @@
 			"url":"user.community.ranks.staff"
 		   }
 		]
+	 },
+	 {  
+		"name":"Store",
+		"icon":"shopping-cart",
+		"state":"user.store",
+		"url":"user.store.packages",
+		"children":[ 
+			
+		]
 	 }
 	]
  }

@@ -41,7 +41,11 @@ class View {
       this.$onInit            = (() => {
           $http.get(`/api/news/categories/${$state.params.id || 1}`)
             .then (category => {  
-              $scope.category = category.data
+              if (!category.data.error) {
+                $scope.category = category.data
+            } else {
+              $state.go('errors.400')
+            }
             })
             .catch (error => {
               $state.go('errors.500')

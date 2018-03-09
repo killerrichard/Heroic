@@ -7,7 +7,7 @@ export default class Model extends Database.Model {
   }
 
   articles () {
-    return this.hasMany(Articles, 'category_id').query('columns', ['id', 'user_id', 'category_id', 'title', 'description', 'timestamp'])
+    return this.hasMany(Articles, 'category_id').query('columns', ['id', 'user_id', 'category_id', 'title', 'description', 'image', 'timestamp'])
   }
 
   static dependents = ['articles']

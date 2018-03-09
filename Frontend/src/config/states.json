@@ -5,6 +5,12 @@
 		"templateUrl": "views/frontend/errors/index.html"
 	},
 
+	"errors.400": {
+		"name": "errors.400",
+		"title": "Not Found",
+		"templateUrl": "views/frontend/errors/400.html"
+	},
+
 	"errors.500": {
 		"name": "errors.500",
 		"title": "Server Error",

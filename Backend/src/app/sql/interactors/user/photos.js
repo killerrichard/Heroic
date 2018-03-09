@@ -1,4 +1,4 @@
-import Model from '../../models/camera/photos'
+import Model from '../../models/user/photos'
 export default class Interactor {
 
 

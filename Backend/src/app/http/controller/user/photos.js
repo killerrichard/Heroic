@@ -1,5 +1,5 @@
 import Error from '../../../lib/error'
-import Database from '../../../sql/interactors/camera/photos'
+import Database from '../../../sql/interactors/user/photos'
 export default class Controller {
 
   static async read (request, reply) {

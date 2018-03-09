@@ -1,8 +1,22 @@
 import Model from '../../models/user/ranks'
 export default class Interactor {
 
-  static read () {
-    return Model.fetchAll({ columns : ['id', 'rank_name'] })
+  static async read (id) {
+    try {
+      if (id) {
+        let rank = await Model.where('id', id).fetch({ columns : ['id',' rank_name'], withRelated : ['users'] })
+        if (rank) {
+          return rank
+        } else { 
+          throw new Error('RETURN: Rank does not exist')
+        }
+      } else {
+        return Model.fetchAll({ columns : ['id', 'rank_name', 'cms_display_staff'] })
+      }
+    }
+    catch (error) {
+      throw new Error (error)
+    }
   }
 
   static async hasRank (id, type) {

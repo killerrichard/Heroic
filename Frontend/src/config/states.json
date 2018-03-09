@@ -106,7 +106,21 @@
 		"title": "News Category",
 		"controller": "Frontend.User.Community.News.Category.View",
 		"templateUrl": "views/frontend/user/community/news/category-view.html"
-	}
+	},
 
+	"user.community.news.article": {
+		"name": "user.community.news.article", 
+		"url": "/article",
+		"abstract": true,
+		"template": "<div ui-view></div>"
+	},
+
+	"user.community.news.article.view": {
+		"name": "user.community.news.article.view",
+		"url": "/:id",
+		"title": "News Article",
+		"controller": "Frontend.User.Community.News.Article.View",
+		"templateUrl": "views/frontend/user/community/news/article-view.html"
+	} 
 
 }

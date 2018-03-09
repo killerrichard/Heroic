@@ -1,16 +1,19 @@
-<article class="news-header" ng-repeat="article in articles">
-        <a class="news-header__link news-header__banner">
+<article ng-repeat="article in articles" class="news-header">
+    <a ui-sref="user.community.news.article.view({ id : article.id })" class="news-header__link news-header__banner">
         <figure class="news-header__viewport">
-            <img class="news-header__image news-header__image--thumbnail" ng-src="https://images.habbo.com/web_images/habbo-web-articles/{{ article.image }}_thumb.png">
-        </figure></a> <a class="news-header__link news-header__wrapper">
-        <h2 class="news-header__title" ng-bind="article.title"></h2></a>
-        <aside class="news-header__wrapper news-header__info">
-            <time class="news-header__date" ng-bind="article.timestamp | date : 'longDate'"></time>
-            <ul class="news-header__categories">
-                <li class="news-header__category">
-                    <a class="news-header__category__link" ng-bind="article.category.title"></a>
-                </li>
-            </ul>
-        </aside> 
-        <p class="news-header__wrapper news-header__summary" ng-bind="article.description"></p>
-    </article> 
+            <img ng-src="https://images.habbo.com/web_images/habbo-web-articles/{{ article.image }}_thumb.png" class="news-header__image news-header__image--thumbnail">
+        </figure>
+    </a>
+    <a ui-sref="user.community.news.article.view({ id : article.id })" class="news-header__link news-header__wrapper">
+        <h2 ng-bind="article.title" class="news-header__title"></h2>
+    </a>
+    <aside class="news-header__wrapper news-header__info">
+        <time ng-bind="article.timestamp | date : 'longDate'" class="news-header__date"></time>
+        <ul class="news-header__categories">
+            <li class="news-header__category">
+                <a ui-sref="user.community.news.category.view({ id : article.category.id })" ng-bind="article.category.title" class="news-header__category__link"></a>
+            </li>
+        </ul>
+    </aside>
+    <p ng-bind="article.description" class="news-header__wrapper news-header__summary"></p>
+</article>

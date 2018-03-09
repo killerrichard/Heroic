@@ -34,6 +34,7 @@
  <h2>Youtube Demonstrations</h2>
  <ul>
   <li>1.0 Demo <a href="https://www.youtube.com/watch?v=N1Oo8d-HYyQ">https://www.youtube.com/watch?v=N1Oo8d-HYyQ</a></li>
+  <li>2.0 Demo <a href="https://youtu.be/WNJWU6TbVlg">https://youtu.be/WNJWU6TbVlg</a></li>
  </ul>
  
  <br><br>

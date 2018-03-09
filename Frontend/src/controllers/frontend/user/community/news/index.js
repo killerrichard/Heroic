@@ -1,2 +1,2 @@
 exports.Article = require('./article').default
-exports.Category = require('./category').default
+exports.Category = require('./category')

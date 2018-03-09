@@ -80,24 +80,32 @@
 
 	"user.community.news": {
 		"name": "user.community.news",
-		"url": "/community/news",
+		"url": "/news",
 		"abstract": true,
 		"template": "<div ui-view></div>"
 	},
 
 	"user.community.news.category": {
-		"name": "user.community.category",
-		"url": "/community/news/category",
+		"name": "user.community.news.category", 
+		"url": "/category",
 		"abstract": true,
-		"templateUrl": "views/frontend/user/community/news/category/header.html"
+		"controller": "Frontend.User.Community.News.Category.List",
+		"templateUrl": "views/frontend/user/community/news/category-header.html"
+	},
+
+	"user.community.news.category.list": {
+		"name": "user.community.news.category.list",
+		"url": "/all",
+		"title": "Everything",
+		"templateUrl": "views/frontend/user/community/news/category-list.html"
 	},
 
 	"user.community.news.category.view": {
-		"name": "user.community.news.category",
+		"name": "user.community.news.category.view",
 		"url": "/:id",
 		"title": "News Category",
-		"controller": "Frontend.User.Community.News.Category",
-		"templateUrl": "views/frontend/user/community/news/category/view.html"
+		"controller": "Frontend.User.Community.News.Category.View",
+		"templateUrl": "views/frontend/user/community/news/category-view.html"
 	}
 
 

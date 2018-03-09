@@ -27,9 +27,24 @@
 			  "state":"user.community.photos"
 		   },
 		   {  
+			"name":"Rooms", 
+			"state":"user.community.rooms",
+			"url":"user.community.rooms.popular"
+		   },
+		   {  
 			  "name":"News",
 			  "state":"user.community.news",
-			  "url":"user.community.news.category"
+			  "url":"user.community.news.category.list"
+		   },
+		   {  
+			"name":"Top Users",
+			"state":"user.community.leaderboards",
+			"url":"user.community.leaderboards.credits"
+		   }, 
+		   {  
+			"name":"Staff",
+			"state":"user.community.ranks",
+			"url":"user.community.ranks.staff"
 		   }
 		]
 	 }

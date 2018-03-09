@@ -2,19 +2,19 @@
 	"errors": {
 		"name": "errors",
 		"abstract": true,
-		"templateUrl": "views/frontend/errors/index.html",
+		"templateUrl": "views/frontend/errors/index.html"
 	},
 
 	"errors.500": {
 		"name": "errors.500",
 		"title": "Server Error",
-		"templateUrl": "views/frontend/errors/500.html",
+		"templateUrl": "views/frontend/errors/500.html"
 	},
 
 	"guest": {
 		"name": "guest",
 		"abstract": true,
-		"templateUrl": "views/frontend/guest/index.html",
+		"templateUrl": "views/frontend/guest/index.html"
 	},
 
 	"guest.login": {
@@ -22,7 +22,7 @@
 		"url": "/",
 		"title": "Login",
 		"controller": "Frontend.Guest.Login",
-		"templateUrl": "views/frontend/guest/login.html",
+		"templateUrl": "views/frontend/guest/login.html"
 	},
 
 	"guest.register": {
@@ -30,18 +30,18 @@
 		"url": "/register",
 		"title": "Register",
 		"controller": "Frontend.Guest.Register",
-		"templateUrl": "views/frontend/guest/register.html",
+		"templateUrl": "views/frontend/guest/register.html"
 	},
 
 	"user": {
 		"name": "user",
 		"abstract": true,
-		"templateUrl": "views/frontend/user/index.html",
+		"templateUrl": "views/frontend/user/index.html"
 	},
 
 	"user.logout": {
 		"name": "user.logout",
-		"controller": "Frontend.User.Logout",
+		"controller": "Frontend.User.Logout"
 	},
 
 	"user.home": {
@@ -54,14 +54,14 @@
 		"name": "user.home.me",
 		"url": "/me",
 		"title": "Me",
-		"templateUrl": "views/frontend/user/home/me.html",
+		"templateUrl": "views/frontend/user/home/me.html"
 	},
 
 	"user.home.messages": {
 		"name": "user.home.messages",
 		"url": "/messages",
 		"title": "My Messages",
-		"templateUrl": "views/frontend/user/home/messages.html",
+		"templateUrl": "views/frontend/user/home/messages.html"
 	},
 
 	"user.community": {
@@ -75,7 +75,30 @@
 		"name": "user.community.photos",
 		"url": "/photos",
 		"title": "Photos",
-		"templateUrl": "views/frontend/user/community/photos.html",
+		"templateUrl": "views/frontend/user/community/photos.html"
 	},
+
+	"user.community.news": {
+		"name": "user.community.news",
+		"url": "/community/news",
+		"abstract": true,
+		"template": "<div ui-view></div>"
+	},
+
+	"user.community.news.category": {
+		"name": "user.community.category",
+		"url": "/community/news/category",
+		"abstract": true,
+		"templateUrl": "views/frontend/user/community/news/category/header.html"
+	},
+
+	"user.community.news.category.view": {
+		"name": "user.community.news.category",
+		"url": "/:id",
+		"title": "News Category",
+		"controller": "Frontend.User.Community.News.Category",
+		"templateUrl": "views/frontend/user/community/news/category/view.html"
+	}
+
 
 }

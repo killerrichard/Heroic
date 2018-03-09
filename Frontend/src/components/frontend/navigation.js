@@ -16,7 +16,7 @@ class Controller
             url   : item.url
           })
  
-        }))
+        })) 
     }
 
 }

@@ -1,7 +1,7 @@
 <nav class="navigation">
   <ul class="navigation__menu">
     <li ng-repeat="item in parents" class="navigation__item">
-      <a ui-sref="item.url" class="navigation__link" style="color:#036;">
+      <a ui-sref="{{ item.url }}" class="navigation__link" style="color:#036;">
         <i class="fa fa-{{ item.icon }}"></i> {{ item.name}}
       </a>
     </li>

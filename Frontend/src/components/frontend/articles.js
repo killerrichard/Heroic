@@ -7,7 +7,6 @@ class Controller
         $http.get('/api/news/articles')
           .then (articles => {
             $scope.articles = articles.data
-            console.log(articles.data)
           })
           .catch (error => {
             //

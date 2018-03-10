@@ -189,6 +189,48 @@
 		"title": "Staff Team",
 		"controller": "Frontend.User.Community.Staff.View", 
 		"templateUrl": "views/frontend/user/community/staff/view.html"
+	},
+
+	"admin": {
+		"name": "admin", 
+		"url": "/admin",
+		"abstract": true,
+		"templateUrl": "views/backend/index.html"
+	},
+
+	"admin.home": {
+		"name": "admin.home", 
+		"url": "/dashboard",
+		"abstract": true,
+		"template": "<div ui-view></div>"
+	}, 
+
+	"admin.home.dashboard": {
+		"name": "admin.home.dashboard",
+		"url": "/",
+		"title": "Dashboard",
+		"templateUrl": "views/backend/home/dashboard.html"
+	},
+
+	"admin.website": {
+		"name": "admin.website", 
+		"url": "/website", 
+		"abstract": true, 
+		"templateUrl": "views/backend/website/index.html"
+	},
+
+	"admin.website.index": {
+		"name": "admin.website.index",
+		"url": "/",
+		"title": "Manage Website",
+		"template": "<div ui-view></div>"
+	},
+
+	"admin.website.settings": {
+		"name": "admin.website.settings",
+		"url": "/settings",
+		"title": "Manage Website",
+		"templateUrl": "views/backend/website/settings.html"
 	}
 
 }

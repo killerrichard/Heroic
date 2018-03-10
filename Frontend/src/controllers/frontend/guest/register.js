@@ -70,6 +70,12 @@ export default class Controller
               $http.post(`/api/users/session/${$scope.user.username}`, $scope.user)
                 .then (token => {
                   SessionService.create(token.data)
+                    .then (success => {
+                      $state.go('user.home.me')
+                    })
+                    .catch (error => {
+                      $state.go('errors.500')
+                    })
                 })
                 .catch (error => {
                   $state.go('errors.500')

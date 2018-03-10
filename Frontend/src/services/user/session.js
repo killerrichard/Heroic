@@ -29,24 +29,26 @@ export default class Session
     }
 
   validate () {
-    if (Session.$localStorage.session) {
-      Session.$http.get(`/api/auth/users/session/${Session.$localStorage.session.username}`)
-        .then (session => {
-          if (!session.data.error) {
+    return Session.$q ((resolve, reject) => { 
+      // Check for token 
+      if (Session.$localStorage.token && Session.$localStorage.session) {
+        Session.$http.get(`/api/auth/users/session/${Session.$localStorage.session.username}`)
+          .then (session => {
             Session.$localStorage.session = session.data
             Session.$rootScope.session    = session.data
-            return true
-          } else {
-            Session.delete()
-            reject()
-          }
-        })
-        .catch (error => {
-          Session.$localStorage.$reset()
-          Session.$rootScope.session = undefined
-          return false
-        })
+            resolve(session.data) 
+          })
+          .catch (error => {
+            Session.$localStorage.$reset()
+            Session.$rootScope.session = undefined
+            reject('Session error')
+          }) 
+      } else {
+        Session.$localStorage.$reset()
+        Session.$rootScope.session = undefined
+        reject('Session not found')
       }
+    })
   }
 
   delete () {
@@ -55,13 +57,6 @@ export default class Session
     Session.$state.go('guest.login')
   }
 
-  status () {
-    if (Session.$localStorage.session) {
-      return true
-    } else {
-      return false
-    }
-  }
 
 
 }

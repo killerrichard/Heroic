@@ -1,5 +1,5 @@
 const Component = {
-  templateUrl: 'views/components/header-large.html'
+  templateUrl: 'views/frontend/components/header-large.html'
 }
 
 export default Component

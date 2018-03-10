@@ -1,0 +1,99 @@
+<div class="row" id="navi">
+    <div class="columns small-12">
+        <ul class="Tabs u-mb-4 droplet-tabs">
+            <li><a>General</a></li>
+            <li><a>Client Settings</a></li>
+            <li><a>Findretros</a></li>
+            <li><a>Extra Features</a></li>
+        </ul>
+    </div>
+    <div class="columns small-12 networkingPage">
+        <div class="u-mb-5">
+
+            <!-- General -->
+            <div class="row" id="navi-1">
+                <div class="small-6 columns">
+                    <form method="post">
+                        <div>
+                            <div>
+                                <label>Hotel Name</label>
+                                <input name="name" value="<%= config.name %>" type="text">
+                            </div>
+                            <div>
+                                <label>Website Link</label>
+                                <input name="link" value="<%= config.link %>" type="text">
+                            </div>
+                            <div>
+                                <label>Figure Imager</label>
+                                <input name="figure_imager" value="<%= config.figure_imager %>" type="text">
+                            </div>
+                            <div>
+                                <label>News images</label>
+                                <input name="news_images" value="<%= config.news_images %>" type="text">
+                            </div>
+                            <div>
+                                <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Emulator-->
+            <div class="row" id="navi-2">
+                <div class="small-6 columns">
+                    <form method="post">
+                        <div>
+                            <label>Emulator IP</label>
+                            <input name="emu_ip" value="<%= config.emu_ip %>" type="text">
+                        </div>
+                        <div>
+                            <label>Emulator Port</label>
+                            <input name="emu_port" value="<%= config.emu_port %>" type="text">
+                        </div>
+                        <div>
+                            <label>SWF Domain</label>
+                            <input name="swf_base" value="<%= config.swf_base %>" type="text">
+                        </div>
+                        <div>
+                            <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>  
+
+            <!-- Maintenance -->
+            <div id="navi-3">
+                <div class="small-12 colums Box">
+                    <div class="u-textAlignCenter u-mb-4">
+                        <img src="https://cloud-cdn-digitalocean-com.global.ssl.fastly.net/aurora/assets/images/empty-team-c3e9262be567488dc7c9b74ec611fe71.svg"
+                            alt="" class="EmptyState-image u-mb-0">
+                        <h2>Maintenance Mode</h2>
+                        <p>Users will not be able to access the website until maintenance is disabled.</p>
+                    </div>
+                    <form method="post">
+                        <div class="row u-mt-3">
+                            <div class="small-12 columns buttons-col ">
+                                <div>
+                                    <select name="status">
+                                        <% if (config.status == 'maintenance') { %>
+                                            <option value="maintenance" selected="">Enabled</option>
+                                            <option value="open">Disabled</option>
+                                            <% } else { %>
+                                                <option value="maintenance">Enabled</option>
+                                                <option value="open" selected="">Disabled</option>
+                                                <% } %>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button class="Button Button--blue Button--large Button--fullWidth "> Continue </button>
+                                </div>
+                            </div>
+                    </form>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>

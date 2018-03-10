@@ -1,34 +1,47 @@
-export default function Run ($transitions, SettingsService, SessionService, $rootScope, $localStorage)
+export default function Run ($transitions, SettingsService, SessionService, $rootScope, $state)
 {
   'ngInject'
   // All Routes
   $transitions.onStart({}, (transition) => {
-    SessionService.validate()
     $rootScope.page = transition.to()
   })
 
   // Guests Only
   $transitions.onStart({ entering : 'guest' }, (transition) => {
-    if (SessionService.status()) {
-      return transition.router.stateService.target('user.home.me') 
-    }
+    SessionService.validate()
+      .then (validate => {
+        $state.go('user.home.me')
+      })
+      .catch (error => {
+        // Continue
+      })
   })
 
   // Users Only
   $transitions.onStart({ entering : 'user' }, (transition) => {
-    if (!SessionService.status()) {
-      return transition.router.stateService.target('guest.login')
-    }
-  })
+    SessionService.validate()
+    .then (validate => {
+      // Continue
+    })
+    .catch (error => {
+      $state.go('guest.login')
+    })
+  })   
 
   //Admin only
   $transitions.onStart({ entering : 'admin' }, (transition) => {
-    if ($localStorage.session.rank.display!='staff') {
-      return transition.router.stateService.target('user.dashboard')
-    }
+    SessionService.validate()
+    .then (session => {
+      if (session.rank.cms_admin=='0') {
+        $state.go('user.home.me')
+      }
+    })
+    .catch (error => {
+      $state.go('guest.login')
+    })
   })
 
 
 
-
+ 
 }

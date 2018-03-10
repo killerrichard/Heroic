@@ -26,7 +26,7 @@ const Component = {
     "page" : "<"
   },
   controller  : Controller,
-  templateUrl: 'views/components/tabs.html'
+  templateUrl: 'views/frontend/components/tabs.html'
 }
 
 export default Component

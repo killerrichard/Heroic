@@ -23,7 +23,7 @@ class Controller
 
 const Component = {
   controller  : Controller,
-  templateUrl: 'views/components/navigation.html'
+  templateUrl: 'views/frontend/components/navigation.html'
 }
 
 export default Component

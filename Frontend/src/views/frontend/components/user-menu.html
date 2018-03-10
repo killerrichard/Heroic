@@ -13,7 +13,9 @@
 	</div>
 	<ul class="user-menu__list" ng-show="status">
 		<li class="user-menu__item">
+				<a ui-sref="admin.home.dashboard" ng-if="$root.session.rank.cms_admin=='1'" class="user-menu__link">Housekeeping</a>
 			<a ui-sref="user.logout" class="user-menu__link">Logout</a>
 		</li>
 	</ul>
 </div>
+ 

@@ -7,7 +7,6 @@ export default class Controller {
     try {
       const data = {
         title         : request.body.title,
-        description   : request.body.description
       }
       let category = await Database.create(data)
       reply.code(200).send(category)
@@ -37,7 +36,6 @@ export default class Controller {
       const data = {
         id          : request.params.id,
         title       : request.body.title,
-        content     : request.body.content
       }
       let step = await Database.read(data.id)
       step     = await Database.update(data)

@@ -32,13 +32,13 @@ export default class Controller {
         title         : request.body.title,
         description   : request.body.description,
         content       : request.body.content,
-        image         : request.body.image
+        image         : request.body.image.replace('_thumb.png', '')
       }
       let step        = await Database.read(data.id)
       step            = await Database.update(data)
       reply.code(200).send(step)
     }
-    catch (error) {
+    catch (error) { 
       new Error(error, request, reply)
     }
   }

@@ -5,11 +5,13 @@ export default class Controller {
   static async update (request, reply) {
     try {
       const data = {
-        site_name     : request.body.site_name,
-        site_desc     : request.body.site_desc,
-        site_link     : request.body.site_link,
-        server_ip     : request.body.server_ip,
-        server_port   : request.body.server_port
+        site_name           : request.body.site_name,
+        site_desc           : request.body.site_desc,
+        site_link           : request.body.site_link,
+        server_ip           : request.body.server_ip,
+        server_port         : request.body.server_port,
+        findretros_user     : request.body.findretros_user,
+        findretros_enabled  : request.body.findretros_enabled 
       }
       let config = await Database.update(data)
       reply.code(200).send('Your changes have been saved')

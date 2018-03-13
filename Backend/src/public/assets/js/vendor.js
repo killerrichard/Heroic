@@ -1,2617 +1,4 @@
 (function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
-/**
- * @license AngularJS v1.6.9
- * (c) 2010-2018 Google, Inc. http://angularjs.org
- * License: MIT
- */
-(function(window, angular) {'use strict';
-
-/**
- * @ngdoc module
- * @name ngAria
- * @description
- *
- * The `ngAria` module provides support for common
- * [<abbr title="Accessible Rich Internet Applications">ARIA</abbr>](http://www.w3.org/TR/wai-aria/)
- * attributes that convey state or semantic information about the application for users
- * of assistive technologies, such as screen readers.
- *
- * ## Usage
- *
- * For ngAria to do its magic, simply include the module `ngAria` as a dependency. The following
- * directives are supported:
- * `ngModel`, `ngChecked`, `ngReadonly`, `ngRequired`, `ngValue`, `ngDisabled`, `ngShow`, `ngHide`, `ngClick`,
- * `ngDblClick`, and `ngMessages`.
- *
- * Below is a more detailed breakdown of the attributes handled by ngAria:
- *
- * | Directive                                   | Supported Attributes                                                                                |
- * |---------------------------------------------|-----------------------------------------------------------------------------------------------------|
- * | {@link ng.directive:ngModel ngModel}        | aria-checked, aria-valuemin, aria-valuemax, aria-valuenow, aria-invalid, aria-required, input roles |
- * | {@link ng.directive:ngDisabled ngDisabled}  | aria-disabled                                                                                       |
- * | {@link ng.directive:ngRequired ngRequired}  | aria-required                                                                                       |
- * | {@link ng.directive:ngChecked ngChecked}    | aria-checked                                                                                        |
- * | {@link ng.directive:ngReadonly ngReadonly}  | aria-readonly                                                                                       |
- * | {@link ng.directive:ngValue ngValue}        | aria-checked                                                                                        |
- * | {@link ng.directive:ngShow ngShow}          | aria-hidden                                                                                         |
- * | {@link ng.directive:ngHide ngHide}          | aria-hidden                                                                                         |
- * | {@link ng.directive:ngDblclick ngDblclick}  | tabindex                                                                                            |
- * | {@link module:ngMessages ngMessages}        | aria-live                                                                                           |
- * | {@link ng.directive:ngClick ngClick}        | tabindex, keydown event, button role                                                                |
- *
- * Find out more information about each directive by reading the
- * {@link guide/accessibility ngAria Developer Guide}.
- *
- * ## Example
- * Using ngDisabled with ngAria:
- * ```html
- * <md-checkbox ng-disabled="disabled">
- * ```
- * Becomes:
- * ```html
- * <md-checkbox ng-disabled="disabled" aria-disabled="true">
- * ```
- *
- * ## Disabling Attributes
- * It's possible to disable individual attributes added by ngAria with the
- * {@link ngAria.$ariaProvider#config config} method. For more details, see the
- * {@link guide/accessibility Developer Guide}.
- */
-var ngAriaModule = angular.module('ngAria', ['ng']).
-                        info({ angularVersion: '1.6.9' }).
-                        provider('$aria', $AriaProvider);
-
-/**
-* Internal Utilities
-*/
-var nodeBlackList = ['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'DETAILS', 'SUMMARY'];
-
-var isNodeOneOf = function(elem, nodeTypeArray) {
-  if (nodeTypeArray.indexOf(elem[0].nodeName) !== -1) {
-    return true;
-  }
-};
-/**
- * @ngdoc provider
- * @name $ariaProvider
- * @this
- *
- * @description
- *
- * Used for configuring the ARIA attributes injected and managed by ngAria.
- *
- * ```js
- * angular.module('myApp', ['ngAria'], function config($ariaProvider) {
- *   $ariaProvider.config({
- *     ariaValue: true,
- *     tabindex: false
- *   });
- * });
- *```
- *
- * ## Dependencies
- * Requires the {@link ngAria} module to be installed.
- *
- */
-function $AriaProvider() {
-  var config = {
-    ariaHidden: true,
-    ariaChecked: true,
-    ariaReadonly: true,
-    ariaDisabled: true,
-    ariaRequired: true,
-    ariaInvalid: true,
-    ariaValue: true,
-    tabindex: true,
-    bindKeydown: true,
-    bindRoleForClick: true
-  };
-
-  /**
-   * @ngdoc method
-   * @name $ariaProvider#config
-   *
-   * @param {object} config object to enable/disable specific ARIA attributes
-   *
-   *  - **ariaHidden** – `{boolean}` – Enables/disables aria-hidden tags
-   *  - **ariaChecked** – `{boolean}` – Enables/disables aria-checked tags
-   *  - **ariaReadonly** – `{boolean}` – Enables/disables aria-readonly tags
-   *  - **ariaDisabled** – `{boolean}` – Enables/disables aria-disabled tags
-   *  - **ariaRequired** – `{boolean}` – Enables/disables aria-required tags
-   *  - **ariaInvalid** – `{boolean}` – Enables/disables aria-invalid tags
-   *  - **ariaValue** – `{boolean}` – Enables/disables aria-valuemin, aria-valuemax and
-   *    aria-valuenow tags
-   *  - **tabindex** – `{boolean}` – Enables/disables tabindex tags
-   *  - **bindKeydown** – `{boolean}` – Enables/disables keyboard event binding on non-interactive
-   *    elements (such as `div` or `li`) using ng-click, making them more accessible to users of
-   *    assistive technologies
-   *  - **bindRoleForClick** – `{boolean}` – Adds role=button to non-interactive elements (such as
-   *    `div` or `li`) using ng-click, making them more accessible to users of assistive
-   *    technologies
-   *
-   * @description
-   * Enables/disables various ARIA attributes
-   */
-  this.config = function(newConfig) {
-    config = angular.extend(config, newConfig);
-  };
-
-  function watchExpr(attrName, ariaAttr, nodeBlackList, negate) {
-    return function(scope, elem, attr) {
-      var ariaCamelName = attr.$normalize(ariaAttr);
-      if (config[ariaCamelName] && !isNodeOneOf(elem, nodeBlackList) && !attr[ariaCamelName]) {
-        scope.$watch(attr[attrName], function(boolVal) {
-          // ensure boolean value
-          boolVal = negate ? !boolVal : !!boolVal;
-          elem.attr(ariaAttr, boolVal);
-        });
-      }
-    };
-  }
-  /**
-   * @ngdoc service
-   * @name $aria
-   *
-   * @description
-   * @priority 200
-   *
-   * The $aria service contains helper methods for applying common
-   * [ARIA](http://www.w3.org/TR/wai-aria/) attributes to HTML directives.
-   *
-   * ngAria injects common accessibility attributes that tell assistive technologies when HTML
-   * elements are enabled, selected, hidden, and more. To see how this is performed with ngAria,
-   * let's review a code snippet from ngAria itself:
-   *
-   *```js
-   * ngAriaModule.directive('ngDisabled', ['$aria', function($aria) {
-   *   return $aria.$$watchExpr('ngDisabled', 'aria-disabled', nodeBlackList, false);
-   * }])
-   *```
-   * Shown above, the ngAria module creates a directive with the same signature as the
-   * traditional `ng-disabled` directive. But this ngAria version is dedicated to
-   * solely managing accessibility attributes on custom elements. The internal `$aria` service is
-   * used to watch the boolean attribute `ngDisabled`. If it has not been explicitly set by the
-   * developer, `aria-disabled` is injected as an attribute with its value synchronized to the
-   * value in `ngDisabled`.
-   *
-   * Because ngAria hooks into the `ng-disabled` directive, developers do not have to do
-   * anything to enable this feature. The `aria-disabled` attribute is automatically managed
-   * simply as a silent side-effect of using `ng-disabled` with the ngAria module.
-   *
-   * The full list of directives that interface with ngAria:
-   * * **ngModel**
-   * * **ngChecked**
-   * * **ngReadonly**
-   * * **ngRequired**
-   * * **ngDisabled**
-   * * **ngValue**
-   * * **ngShow**
-   * * **ngHide**
-   * * **ngClick**
-   * * **ngDblclick**
-   * * **ngMessages**
-   *
-   * Read the {@link guide/accessibility ngAria Developer Guide} for a thorough explanation of each
-   * directive.
-   *
-   *
-   * ## Dependencies
-   * Requires the {@link ngAria} module to be installed.
-   */
-  this.$get = function() {
-    return {
-      config: function(key) {
-        return config[key];
-      },
-      $$watchExpr: watchExpr
-    };
-  };
-}
-
-
-ngAriaModule.directive('ngShow', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngShow', 'aria-hidden', [], true);
-}])
-.directive('ngHide', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngHide', 'aria-hidden', [], false);
-}])
-.directive('ngValue', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngValue', 'aria-checked', nodeBlackList, false);
-}])
-.directive('ngChecked', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngChecked', 'aria-checked', nodeBlackList, false);
-}])
-.directive('ngReadonly', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngReadonly', 'aria-readonly', nodeBlackList, false);
-}])
-.directive('ngRequired', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngRequired', 'aria-required', nodeBlackList, false);
-}])
-.directive('ngModel', ['$aria', function($aria) {
-
-  function shouldAttachAttr(attr, normalizedAttr, elem, allowBlacklistEls) {
-    return $aria.config(normalizedAttr) && !elem.attr(attr) && (allowBlacklistEls || !isNodeOneOf(elem, nodeBlackList));
-  }
-
-  function shouldAttachRole(role, elem) {
-    // if element does not have role attribute
-    // AND element type is equal to role (if custom element has a type equaling shape) <-- remove?
-    // AND element is not in nodeBlackList
-    return !elem.attr('role') && (elem.attr('type') === role) && !isNodeOneOf(elem, nodeBlackList);
-  }
-
-  function getShape(attr, elem) {
-    var type = attr.type,
-        role = attr.role;
-
-    return ((type || role) === 'checkbox' || role === 'menuitemcheckbox') ? 'checkbox' :
-           ((type || role) === 'radio'    || role === 'menuitemradio') ? 'radio' :
-           (type === 'range'              || role === 'progressbar' || role === 'slider') ? 'range' : '';
-  }
-
-  return {
-    restrict: 'A',
-    require: 'ngModel',
-    priority: 200, //Make sure watches are fired after any other directives that affect the ngModel value
-    compile: function(elem, attr) {
-      var shape = getShape(attr, elem);
-
-      return {
-        post: function(scope, elem, attr, ngModel) {
-          var needsTabIndex = shouldAttachAttr('tabindex', 'tabindex', elem, false);
-
-          function ngAriaWatchModelValue() {
-            return ngModel.$modelValue;
-          }
-
-          function getRadioReaction(newVal) {
-            // Strict comparison would cause a BC
-            // eslint-disable-next-line eqeqeq
-            var boolVal = (attr.value == ngModel.$viewValue);
-            elem.attr('aria-checked', boolVal);
-          }
-
-          function getCheckboxReaction() {
-            elem.attr('aria-checked', !ngModel.$isEmpty(ngModel.$viewValue));
-          }
-
-          switch (shape) {
-            case 'radio':
-            case 'checkbox':
-              if (shouldAttachRole(shape, elem)) {
-                elem.attr('role', shape);
-              }
-              if (shouldAttachAttr('aria-checked', 'ariaChecked', elem, false)) {
-                scope.$watch(ngAriaWatchModelValue, shape === 'radio' ?
-                    getRadioReaction : getCheckboxReaction);
-              }
-              if (needsTabIndex) {
-                elem.attr('tabindex', 0);
-              }
-              break;
-            case 'range':
-              if (shouldAttachRole(shape, elem)) {
-                elem.attr('role', 'slider');
-              }
-              if ($aria.config('ariaValue')) {
-                var needsAriaValuemin = !elem.attr('aria-valuemin') &&
-                    (attr.hasOwnProperty('min') || attr.hasOwnProperty('ngMin'));
-                var needsAriaValuemax = !elem.attr('aria-valuemax') &&
-                    (attr.hasOwnProperty('max') || attr.hasOwnProperty('ngMax'));
-                var needsAriaValuenow = !elem.attr('aria-valuenow');
-
-                if (needsAriaValuemin) {
-                  attr.$observe('min', function ngAriaValueMinReaction(newVal) {
-                    elem.attr('aria-valuemin', newVal);
-                  });
-                }
-                if (needsAriaValuemax) {
-                  attr.$observe('max', function ngAriaValueMinReaction(newVal) {
-                    elem.attr('aria-valuemax', newVal);
-                  });
-                }
-                if (needsAriaValuenow) {
-                  scope.$watch(ngAriaWatchModelValue, function ngAriaValueNowReaction(newVal) {
-                    elem.attr('aria-valuenow', newVal);
-                  });
-                }
-              }
-              if (needsTabIndex) {
-                elem.attr('tabindex', 0);
-              }
-              break;
-          }
-
-          if (!attr.hasOwnProperty('ngRequired') && ngModel.$validators.required
-            && shouldAttachAttr('aria-required', 'ariaRequired', elem, false)) {
-            // ngModel.$error.required is undefined on custom controls
-            attr.$observe('required', function() {
-              elem.attr('aria-required', !!attr['required']);
-            });
-          }
-
-          if (shouldAttachAttr('aria-invalid', 'ariaInvalid', elem, true)) {
-            scope.$watch(function ngAriaInvalidWatch() {
-              return ngModel.$invalid;
-            }, function ngAriaInvalidReaction(newVal) {
-              elem.attr('aria-invalid', !!newVal);
-            });
-          }
-        }
-      };
-    }
-  };
-}])
-.directive('ngDisabled', ['$aria', function($aria) {
-  return $aria.$$watchExpr('ngDisabled', 'aria-disabled', nodeBlackList, false);
-}])
-.directive('ngMessages', function() {
-  return {
-    restrict: 'A',
-    require: '?ngMessages',
-    link: function(scope, elem, attr, ngMessages) {
-      if (!elem.attr('aria-live')) {
-        elem.attr('aria-live', 'assertive');
-      }
-    }
-  };
-})
-.directive('ngClick',['$aria', '$parse', function($aria, $parse) {
-  return {
-    restrict: 'A',
-    compile: function(elem, attr) {
-      var fn = $parse(attr.ngClick);
-      return function(scope, elem, attr) {
-
-        if (!isNodeOneOf(elem, nodeBlackList)) {
-
-          if ($aria.config('bindRoleForClick') && !elem.attr('role')) {
-            elem.attr('role', 'button');
-          }
-
-          if ($aria.config('tabindex') && !elem.attr('tabindex')) {
-            elem.attr('tabindex', 0);
-          }
-
-          if ($aria.config('bindKeydown') && !attr.ngKeydown && !attr.ngKeypress && !attr.ngKeyup) {
-            elem.on('keydown', function(event) {
-              var keyCode = event.which || event.keyCode;
-              if (keyCode === 32 || keyCode === 13) {
-                scope.$apply(callback);
-              }
-
-              function callback() {
-                fn(scope, { $event: event });
-              }
-            });
-          }
-        }
-      };
-    }
-  };
-}])
-.directive('ngDblclick', ['$aria', function($aria) {
-  return function(scope, elem, attr) {
-    if ($aria.config('tabindex') && !elem.attr('tabindex') && !isNodeOneOf(elem, nodeBlackList)) {
-      elem.attr('tabindex', 0);
-    }
-  };
-}]);
-
-
-})(window, window.angular);
-
-},{}],2:[function(require,module,exports){
-require('./angular-aria');
-module.exports = 'ngAria';
-
-},{"./angular-aria":1}],3:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var ng_from_import = require("angular");
-var ng_from_global = angular;
-exports.ng = (ng_from_import && ng_from_import.module) ? ng_from_import : ng_from_global;
-
-},{"angular":90}],4:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * # Angular 1 Directives
- *
- * These are the directives included in UI-Router for Angular 1.
- * These directives are used in templates to create viewports and link/navigate to states.
- *
- * @ng1api
- * @preferred
- * @module directives
- */ /** for typedoc */
-var angular_1 = require("../angular");
-var core_1 = require("@uirouter/core");
-/** @hidden */
-function parseStateRef(ref) {
-    var paramsOnly = ref.match(/^\s*({[^}]*})\s*$/), parsed;
-    if (paramsOnly)
-        ref = '(' + paramsOnly[1] + ')';
-    parsed = ref.replace(/\n/g, " ").match(/^\s*([^(]*?)\s*(\((.*)\))?\s*$/);
-    if (!parsed || parsed.length !== 4)
-        throw new Error("Invalid state ref '" + ref + "'");
-    return { state: parsed[1] || null, paramExpr: parsed[3] || null };
-}
-/** @hidden */
-function stateContext(el) {
-    var $uiView = el.parent().inheritedData('$uiView');
-    var path = core_1.parse('$cfg.path')($uiView);
-    return path ? core_1.tail(path).state.name : undefined;
-}
-/** @hidden */
-function processedDef($state, $element, def) {
-    var uiState = def.uiState || $state.current.name;
-    var uiStateOpts = core_1.extend(defaultOpts($element, $state), def.uiStateOpts || {});
-    var href = $state.href(uiState, def.uiStateParams, uiStateOpts);
-    return { uiState: uiState, uiStateParams: def.uiStateParams, uiStateOpts: uiStateOpts, href: href };
-}
-/** @hidden */
-function getTypeInfo(el) {
-    // SVGAElement does not use the href attribute, but rather the 'xlinkHref' attribute.
-    var isSvg = Object.prototype.toString.call(el.prop('href')) === '[object SVGAnimatedString]';
-    var isForm = el[0].nodeName === "FORM";
-    return {
-        attr: isForm ? "action" : (isSvg ? 'xlink:href' : 'href'),
-        isAnchor: el.prop("tagName").toUpperCase() === "A",
-        clickable: !isForm
-    };
-}
-/** @hidden */
-function clickHook(el, $state, $timeout, type, getDef) {
-    return function (e) {
-        var button = e.which || e.button, target = getDef();
-        if (!(button > 1 || e.ctrlKey || e.metaKey || e.shiftKey || el.attr('target'))) {
-            // HACK: This is to allow ng-clicks to be processed before the transition is initiated:
-            var transition = $timeout(function () {
-                $state.go(target.uiState, target.uiStateParams, target.uiStateOpts);
-            });
-            e.preventDefault();
-            // if the state has no URL, ignore one preventDefault from the <a> directive.
-            var ignorePreventDefaultCount = type.isAnchor && !target.href ? 1 : 0;
-            e.preventDefault = function () {
-                if (ignorePreventDefaultCount-- <= 0)
-                    $timeout.cancel(transition);
-            };
-        }
-    };
-}
-/** @hidden */
-function defaultOpts(el, $state) {
-    return {
-        relative: stateContext(el) || $state.$current,
-        inherit: true,
-        source: "sref"
-    };
-}
-/** @hidden */
-function bindEvents(element, scope, hookFn, uiStateOpts) {
-    var events;
-    if (uiStateOpts) {
-        events = uiStateOpts.events;
-    }
-    if (!core_1.isArray(events)) {
-        events = ['click'];
-    }
-    var on = element.on ? 'on' : 'bind';
-    for (var _i = 0, events_1 = events; _i < events_1.length; _i++) {
-        var event_1 = events_1[_i];
-        element[on](event_1, hookFn);
-    }
-    scope.$on('$destroy', function () {
-        var off = element.off ? 'off' : 'unbind';
-        for (var _i = 0, events_2 = events; _i < events_2.length; _i++) {
-            var event_2 = events_2[_i];
-            element[off](event_2, hookFn);
-        }
-    });
-}
-/**
- * `ui-sref`: A directive for linking to a state
- *
- * A directive which links to a state (and optionally, parameters).
- * When clicked, this directive activates the linked state with the supplied parameter values.
- *
- * ### Linked State
- * The attribute value of the `ui-sref` is the name of the state to link to.
- *
- * #### Example:
- * This will activate the `home` state when the link is clicked.
- * ```html
- * <a ui-sref="home">Home</a>
- * ```
- *
- * ### Relative Links
- * You can also use relative state paths within `ui-sref`, just like a relative path passed to `$state.go()` ([[StateService.go]]).
- * You just need to be aware that the path is relative to the state that *created* the link.
- * This allows a state to create a relative `ui-sref` which always targets the same destination.
- *
- * #### Example:
- * Both these links are relative to the parent state, even when a child state is currently active.
- * ```html
- * <a ui-sref=".child1">child 1 state</a>
- * <a ui-sref=".child2">child 2 state</a>
- * ```
- *
- * This link activates the parent state.
- * ```html
- * <a ui-sref="^">Return</a>
- * ```
- *
- * ### hrefs
- * If the linked state has a URL, the directive will automatically generate and
- * update the `href` attribute (using the [[StateService.href]]  method).
- *
- * #### Example:
- * Assuming the `users` state has a url of `/users/`
- * ```html
- * <a ui-sref="users" href="/users/">Users</a>
- * ```
- *
- * ### Parameter Values
- * In addition to the state name, a `ui-sref` can include parameter values which are applied when activating the state.
- * Param values can be provided in the `ui-sref` value after the state name, enclosed by parentheses.
- * The content inside the parentheses is an expression, evaluated to the parameter values.
- *
- * #### Example:
- * This example renders a list of links to users.
- * The state's `userId` parameter value comes from each user's `user.id` property.
- * ```html
- * <li ng-repeat="user in users">
- *   <a ui-sref="users.detail({ userId: user.id })">{{ user.displayName }}</a>
- * </li>
- * ```
- *
- * Note:
- * The parameter values expression is `$watch`ed for updates.
- *
- * ### Transition Options
- * You can specify [[TransitionOptions]] to pass to [[StateService.go]] by using the `ui-sref-opts` attribute.
- * Options are restricted to `location`, `inherit`, and `reload`.
- *
- * #### Example:
- * ```html
- * <a ui-sref="home" ui-sref-opts="{ reload: true }">Home</a>
- * ```
- *
- * ### Other DOM Events
- *
- * You can also customize which DOM events to respond to (instead of `click`) by
- * providing an `events` array in the `ui-sref-opts` attribute.
- *
- * #### Example:
- * ```html
- * <input type="text" ui-sref="contacts" ui-sref-opts="{ events: ['change', 'blur'] }">
- * ```
- *
- * ### Highlighting the active link
- * This directive can be used in conjunction with [[uiSrefActive]] to highlight the active link.
- *
- * ### Examples
- * If you have the following template:
- *
- * ```html
- * <a ui-sref="home">Home</a>
- * <a ui-sref="about">About</a>
- * <a ui-sref="{page: 2}">Next page</a>
- *
- * <ul>
- *     <li ng-repeat="contact in contacts">
- *         <a ui-sref="contacts.detail({ id: contact.id })">{{ contact.name }}</a>
- *     </li>
- * </ul>
- * ```
- *
- * Then (assuming the current state is `contacts`) the rendered html including hrefs would be:
- *
- * ```html
- * <a href="#/home" ui-sref="home">Home</a>
- * <a href="#/about" ui-sref="about">About</a>
- * <a href="#/contacts?page=2" ui-sref="{page: 2}">Next page</a>
- *
- * <ul>
- *     <li ng-repeat="contact in contacts">
- *         <a href="#/contacts/1" ui-sref="contacts.detail({ id: contact.id })">Joe</a>
- *     </li>
- *     <li ng-repeat="contact in contacts">
- *         <a href="#/contacts/2" ui-sref="contacts.detail({ id: contact.id })">Alice</a>
- *     </li>
- *     <li ng-repeat="contact in contacts">
- *         <a href="#/contacts/3" ui-sref="contacts.detail({ id: contact.id })">Bob</a>
- *     </li>
- * </ul>
- *
- * <a href="#/home" ui-sref="home" ui-sref-opts="{reload: true}">Home</a>
- * ```
- *
- * ### Notes
- *
- * - You can use `ui-sref` to change **only the parameter values** by omitting the state name and parentheses.
- * #### Example:
- * Sets the `lang` parameter to `en` and remains on the same state.
- *
- * ```html
- * <a ui-sref="{ lang: 'en' }">English</a>
- * ```
- *
- * - A middle-click, right-click, or ctrl-click is handled (natively) by the browser to open the href in a new window, for example.
- *
- * - Unlike the parameter values expression, the state name is not `$watch`ed (for performance reasons).
- * If you need to dynamically update the state being linked to, use the fully dynamic [[uiState]] directive.
- */
-var uiSref;
-uiSref = ['$uiRouter', '$timeout',
-    function $StateRefDirective($uiRouter, $timeout) {
-        var $state = $uiRouter.stateService;
-        return {
-            restrict: 'A',
-            require: ['?^uiSrefActive', '?^uiSrefActiveEq'],
-            link: function (scope, element, attrs, uiSrefActive) {
-                var type = getTypeInfo(element);
-                var active = uiSrefActive[1] || uiSrefActive[0];
-                var unlinkInfoFn = null;
-                var hookFn;
-                var rawDef = {};
-                var getDef = function () { return processedDef($state, element, rawDef); };
-                var ref = parseStateRef(attrs.uiSref);
-                rawDef.uiState = ref.state;
-                rawDef.uiStateOpts = attrs.uiSrefOpts ? scope.$eval(attrs.uiSrefOpts) : {};
-                function update() {
-                    var def = getDef();
-                    if (unlinkInfoFn)
-                        unlinkInfoFn();
-                    if (active)
-                        unlinkInfoFn = active.$$addStateInfo(def.uiState, def.uiStateParams);
-                    if (def.href != null)
-                        attrs.$set(type.attr, def.href);
-                }
-                if (ref.paramExpr) {
-                    scope.$watch(ref.paramExpr, function (val) {
-                        rawDef.uiStateParams = core_1.extend({}, val);
-                        update();
-                    }, true);
-                    rawDef.uiStateParams = core_1.extend({}, scope.$eval(ref.paramExpr));
-                }
-                update();
-                scope.$on('$destroy', $uiRouter.stateRegistry.onStatesChanged(update));
-                scope.$on('$destroy', $uiRouter.transitionService.onSuccess({}, update));
-                if (!type.clickable)
-                    return;
-                hookFn = clickHook(element, $state, $timeout, type, getDef);
-                bindEvents(element, scope, hookFn, rawDef.uiStateOpts);
-            }
-        };
-    }];
-/**
- * `ui-state`: A fully dynamic directive for linking to a state
- *
- * A directive which links to a state (and optionally, parameters).
- * When clicked, this directive activates the linked state with the supplied parameter values.
- *
- * **This directive is very similar to [[uiSref]], but it `$observe`s and `$watch`es/evaluates all its inputs.**
- *
- * A directive which links to a state (and optionally, parameters).
- * When clicked, this directive activates the linked state with the supplied parameter values.
- *
- * ### Linked State
- * The attribute value of `ui-state` is an expression which is `$watch`ed and evaluated as the state to link to.
- * **This is in contrast with `ui-sref`, which takes a state name as a string literal.**
- *
- * #### Example:
- * Create a list of links.
- * ```html
- * <li ng-repeat="link in navlinks">
- *   <a ui-state="link.state">{{ link.displayName }}</a>
- * </li>
- * ```
- *
- * ### Relative Links
- * If the expression evaluates to a relative path, it is processed like [[uiSref]].
- * You just need to be aware that the path is relative to the state that *created* the link.
- * This allows a state to create relative `ui-state` which always targets the same destination.
- *
- * ### hrefs
- * If the linked state has a URL, the directive will automatically generate and
- * update the `href` attribute (using the [[StateService.href]]  method).
- *
- * ### Parameter Values
- * In addition to the state name expression, a `ui-state` can include parameter values which are applied when activating the state.
- * Param values should be provided using the `ui-state-params` attribute.
- * The `ui-state-params` attribute value is `$watch`ed and evaluated as an expression.
- *
- * #### Example:
- * This example renders a list of links with param values.
- * The state's `userId` parameter value comes from each user's `user.id` property.
- * ```html
- * <li ng-repeat="link in navlinks">
- *   <a ui-state="link.state" ui-state-params="link.params">{{ link.displayName }}</a>
- * </li>
- * ```
- *
- * ### Transition Options
- * You can specify [[TransitionOptions]] to pass to [[StateService.go]] by using the `ui-state-opts` attribute.
- * Options are restricted to `location`, `inherit`, and `reload`.
- * The value of the `ui-state-opts` is `$watch`ed and evaluated as an expression.
- *
- * #### Example:
- * ```html
- * <a ui-state="returnto.state" ui-state-opts="{ reload: true }">Home</a>
- * ```
- *
- * ### Other DOM Events
- *
- * You can also customize which DOM events to respond to (instead of `click`) by
- * providing an `events` array in the `ui-state-opts` attribute.
- *
- * #### Example:
- * ```html
- * <input type="text" ui-state="contacts" ui-state-opts="{ events: ['change', 'blur'] }">
- * ```
- *
- * ### Highlighting the active link
- * This directive can be used in conjunction with [[uiSrefActive]] to highlight the active link.
- *
- * ### Notes
- *
- * - You can use `ui-params` to change **only the parameter values** by omitting the state name and supplying only `ui-state-params`.
- *   However, it might be simpler to use [[uiSref]] parameter-only links.
- *
- * #### Example:
- * Sets the `lang` parameter to `en` and remains on the same state.
- *
- * ```html
- * <a ui-state="" ui-state-params="{ lang: 'en' }">English</a>
- * ```
- *
- * - A middle-click, right-click, or ctrl-click is handled (natively) by the browser to open the href in a new window, for example.
- * ```
- */
-var uiState;
-uiState = ['$uiRouter', '$timeout',
-    function $StateRefDynamicDirective($uiRouter, $timeout) {
-        var $state = $uiRouter.stateService;
-        return {
-            restrict: 'A',
-            require: ['?^uiSrefActive', '?^uiSrefActiveEq'],
-            link: function (scope, element, attrs, uiSrefActive) {
-                var type = getTypeInfo(element);
-                var active = uiSrefActive[1] || uiSrefActive[0];
-                var unlinkInfoFn = null;
-                var hookFn;
-                var rawDef = {};
-                var getDef = function () { return processedDef($state, element, rawDef); };
-                var inputAttrs = ['uiState', 'uiStateParams', 'uiStateOpts'];
-                var watchDeregFns = inputAttrs.reduce(function (acc, attr) { return (acc[attr] = core_1.noop, acc); }, {});
-                function update() {
-                    var def = getDef();
-                    if (unlinkInfoFn)
-                        unlinkInfoFn();
-                    if (active)
-                        unlinkInfoFn = active.$$addStateInfo(def.uiState, def.uiStateParams);
-                    if (def.href != null)
-                        attrs.$set(type.attr, def.href);
-                }
-                inputAttrs.forEach(function (field) {
-                    rawDef[field] = attrs[field] ? scope.$eval(attrs[field]) : null;
-                    attrs.$observe(field, function (expr) {
-                        watchDeregFns[field]();
-                        watchDeregFns[field] = scope.$watch(expr, function (newval) {
-                            rawDef[field] = newval;
-                            update();
-                        }, true);
-                    });
-                });
-                update();
-                scope.$on('$destroy', $uiRouter.stateRegistry.onStatesChanged(update));
-                scope.$on('$destroy', $uiRouter.transitionService.onSuccess({}, update));
-                if (!type.clickable)
-                    return;
-                hookFn = clickHook(element, $state, $timeout, type, getDef);
-                bindEvents(element, scope, hookFn, rawDef.uiStateOpts);
-            }
-        };
-    }];
-/**
- * `ui-sref-active` and `ui-sref-active-eq`: A directive that adds a CSS class when a `ui-sref` is active
- *
- * A directive working alongside [[uiSref]] and [[uiState]] to add classes to an element when the
- * related directive's state is active (and remove them when it is inactive).
- *
- * The primary use-case is to highlight the active link in navigation menus,
- * distinguishing it from the inactive menu items.
- *
- * ### Linking to a `ui-sref` or `ui-state`
- * `ui-sref-active` can live on the same element as `ui-sref`/`ui-state`, or it can be on a parent element.
- * If a `ui-sref-active` is a parent to more than one `ui-sref`/`ui-state`, it will apply the CSS class when **any of the links are active**.
- *
- * ### Matching
- *
- * The `ui-sref-active` directive applies the CSS class when the `ui-sref`/`ui-state`'s target state **or any child state is active**.
- * This is a "fuzzy match" which uses [[StateService.includes]].
- *
- * The `ui-sref-active-eq` directive applies the CSS class when the `ui-sref`/`ui-state`'s target state is directly active (not when child states are active).
- * This is an "exact match" which uses [[StateService.is]].
- *
- * ### Parameter values
- * If the `ui-sref`/`ui-state` includes parameter values, the current parameter values must match the link's values for the link to be highlighted.
- * This allows a list of links to the same state with different parameters to be rendered, and the correct one highlighted.
- *
- * #### Example:
- * ```html
- * <li ng-repeat="user in users" ui-sref-active="active">
- *   <a ui-sref="user.details({ userId: user.id })">{{ user.lastName }}</a>
- * </li>
- * ```
- *
- * ### Examples
- *
- * Given the following template:
- * #### Example:
- * ```html
- * <ul>
- *   <li ui-sref-active="active" class="item">
- *     <a href ui-sref="app.user({user: 'bilbobaggins'})">@bilbobaggins</a>
- *   </li>
- * </ul>
- * ```
- *
- * When the app state is `app.user` (or any child state),
- * and contains the state parameter "user" with value "bilbobaggins",
- * the resulting HTML will appear as (note the 'active' class):
- *
- * ```html
- * <ul>
- *   <li ui-sref-active="active" class="item active">
- *     <a ui-sref="app.user({user: 'bilbobaggins'})" href="/users/bilbobaggins">@bilbobaggins</a>
- *   </li>
- * </ul>
- * ```
- *
- * ### Glob mode
- *
- * It is possible to pass `ui-sref-active` an expression that evaluates to an object.
- * The objects keys represent active class names and values represent the respective state names/globs.
- * `ui-sref-active` will match if the current active state **includes** any of
- * the specified state names/globs, even the abstract ones.
- *
- * #### Example:
- * Given the following template, with "admin" being an abstract state:
- * ```html
- * <div ui-sref-active="{'active': 'admin.**'}">
- *   <a ui-sref-active="active" ui-sref="admin.roles">Roles</a>
- * </div>
- * ```
- *
- * When the current state is "admin.roles" the "active" class will be applied to both the <div> and <a> elements.
- * It is important to note that the state names/globs passed to `ui-sref-active` override any state provided by a linked `ui-sref`.
- *
- * ### Notes:
- *
- * - The class name is interpolated **once** during the directives link time (any further changes to the
- * interpolated value are ignored).
- *
- * - Multiple classes may be specified in a space-separated format: `ui-sref-active='class1 class2 class3'`
- */
-var uiSrefActive;
-uiSrefActive = ['$state', '$stateParams', '$interpolate', '$uiRouter',
-    function $StateRefActiveDirective($state, $stateParams, $interpolate, $uiRouter) {
-        return {
-            restrict: "A",
-            controller: ['$scope', '$element', '$attrs',
-                function ($scope, $element, $attrs) {
-                    var states = [], activeEqClass, uiSrefActive;
-                    // There probably isn't much point in $observing this
-                    // uiSrefActive and uiSrefActiveEq share the same directive object with some
-                    // slight difference in logic routing
-                    activeEqClass = $interpolate($attrs.uiSrefActiveEq || '', false)($scope);
-                    try {
-                        uiSrefActive = $scope.$eval($attrs.uiSrefActive);
-                    }
-                    catch (e) {
-                        // Do nothing. uiSrefActive is not a valid expression.
-                        // Fall back to using $interpolate below
-                    }
-                    uiSrefActive = uiSrefActive || $interpolate($attrs.uiSrefActive || '', false)($scope);
-                    if (core_1.isObject(uiSrefActive)) {
-                        core_1.forEach(uiSrefActive, function (stateOrName, activeClass) {
-                            if (core_1.isString(stateOrName)) {
-                                var ref = parseStateRef(stateOrName);
-                                addState(ref.state, $scope.$eval(ref.paramExpr), activeClass);
-                            }
-                        });
-                    }
-                    // Allow uiSref to communicate with uiSrefActive[Equals]
-                    this.$$addStateInfo = function (newState, newParams) {
-                        // we already got an explicit state provided by ui-sref-active, so we
-                        // shadow the one that comes from ui-sref
-                        if (core_1.isObject(uiSrefActive) && states.length > 0) {
-                            return;
-                        }
-                        var deregister = addState(newState, newParams, uiSrefActive);
-                        update();
-                        return deregister;
-                    };
-                    function updateAfterTransition(trans) {
-                        trans.promise.then(update);
-                    }
-                    $scope.$on('$stateChangeSuccess', update);
-                    $scope.$on('$destroy', $uiRouter.transitionService.onStart({}, updateAfterTransition));
-                    if ($uiRouter.globals.transition) {
-                        updateAfterTransition($uiRouter.globals.transition);
-                    }
-                    function addState(stateName, stateParams, activeClass) {
-                        var state = $state.get(stateName, stateContext($element));
-                        var stateInfo = {
-                            state: state || { name: stateName },
-                            params: stateParams,
-                            activeClass: activeClass
-                        };
-                        states.push(stateInfo);
-                        return function removeState() {
-                            core_1.removeFrom(states)(stateInfo);
-                        };
-                    }
-                    // Update route state
-                    function update() {
-                        var splitClasses = function (str) {
-                            return str.split(/\s/).filter(core_1.identity);
-                        };
-                        var getClasses = function (stateList) {
-                            return stateList.map(function (x) { return x.activeClass; }).map(splitClasses).reduce(core_1.unnestR, []);
-                        };
-                        var allClasses = getClasses(states).concat(splitClasses(activeEqClass)).reduce(core_1.uniqR, []);
-                        var fuzzyClasses = getClasses(states.filter(function (x) { return $state.includes(x.state.name, x.params); }));
-                        var exactlyMatchesAny = !!states.filter(function (x) { return $state.is(x.state.name, x.params); }).length;
-                        var exactClasses = exactlyMatchesAny ? splitClasses(activeEqClass) : [];
-                        var addClasses = fuzzyClasses.concat(exactClasses).reduce(core_1.uniqR, []);
-                        var removeClasses = allClasses.filter(function (cls) { return !core_1.inArray(addClasses, cls); });
-                        $scope.$evalAsync(function () {
-                            addClasses.forEach(function (className) { return $element.addClass(className); });
-                            removeClasses.forEach(function (className) { return $element.removeClass(className); });
-                        });
-                    }
-                    update();
-                }]
-        };
-    }];
-angular_1.ng.module('ui.router.state')
-    .directive('uiSref', uiSref)
-    .directive('uiSrefActive', uiSrefActive)
-    .directive('uiSrefActiveEq', uiSrefActive)
-    .directive('uiState', uiState);
-
-},{"../angular":3,"@uirouter/core":37}],5:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * @ng1api
- * @module directives
- */ /** for typedoc */
-var angular_1 = require("../angular");
-var angular_2 = require("angular");
-var core_1 = require("@uirouter/core");
-var views_1 = require("../statebuilders/views");
-var services_1 = require("../services");
-exports.uiView = ['$view', '$animate', '$uiViewScroll', '$interpolate', '$q',
-    function $ViewDirective($view, $animate, $uiViewScroll, $interpolate, $q) {
-        function getRenderer(attrs, scope) {
-            return {
-                enter: function (element, target, cb) {
-                    if (angular_1.ng.version.minor > 2) {
-                        $animate.enter(element, null, target).then(cb);
-                    }
-                    else {
-                        $animate.enter(element, null, target, cb);
-                    }
-                },
-                leave: function (element, cb) {
-                    if (angular_1.ng.version.minor > 2) {
-                        $animate.leave(element).then(cb);
-                    }
-                    else {
-                        $animate.leave(element, cb);
-                    }
-                }
-            };
-        }
-        function configsEqual(config1, config2) {
-            return config1 === config2;
-        }
-        var rootData = {
-            $cfg: { viewDecl: { $context: $view._pluginapi._rootViewContext() } },
-            $uiView: {}
-        };
-        var directive = {
-            count: 0,
-            restrict: 'ECA',
-            terminal: true,
-            priority: 400,
-            transclude: 'element',
-            compile: function (tElement, tAttrs, $transclude) {
-                return function (scope, $element, attrs) {
-                    var previousEl, currentEl, currentScope, unregister, onloadExp = attrs['onload'] || '', autoScrollExp = attrs['autoscroll'], renderer = getRenderer(attrs, scope), viewConfig = undefined, inherited = $element.inheritedData('$uiView') || rootData, name = $interpolate(attrs['uiView'] || attrs['name'] || '')(scope) || '$default';
-                    var activeUIView = {
-                        $type: 'ng1',
-                        id: directive.count++,
-                        name: name,
-                        fqn: inherited.$uiView.fqn ? inherited.$uiView.fqn + "." + name : name,
-                        config: null,
-                        configUpdated: configUpdatedCallback,
-                        get creationContext() {
-                            var fromParentTagConfig = core_1.parse('$cfg.viewDecl.$context')(inherited);
-                            // Allow <ui-view name="foo"><ui-view name="bar"></ui-view></ui-view>
-                            // See https://github.com/angular-ui/ui-router/issues/3355
-                            var fromParentTag = core_1.parse('$uiView.creationContext')(inherited);
-                            return fromParentTagConfig || fromParentTag;
-                        }
-                    };
-                    core_1.trace.traceUIViewEvent("Linking", activeUIView);
-                    function configUpdatedCallback(config) {
-                        if (config && !(config instanceof views_1.Ng1ViewConfig))
-                            return;
-                        if (configsEqual(viewConfig, config))
-                            return;
-                        core_1.trace.traceUIViewConfigUpdated(activeUIView, config && config.viewDecl && config.viewDecl.$context);
-                        viewConfig = config;
-                        updateView(config);
-                    }
-                    $element.data('$uiView', { $uiView: activeUIView });
-                    updateView();
-                    unregister = $view.registerUIView(activeUIView);
-                    scope.$on("$destroy", function () {
-                        core_1.trace.traceUIViewEvent("Destroying/Unregistering", activeUIView);
-                        unregister();
-                    });
-                    function cleanupLastView() {
-                        if (previousEl) {
-                            core_1.trace.traceUIViewEvent("Removing (previous) el", previousEl.data('$uiView'));
-                            previousEl.remove();
-                            previousEl = null;
-                        }
-                        if (currentScope) {
-                            core_1.trace.traceUIViewEvent("Destroying scope", activeUIView);
-                            currentScope.$destroy();
-                            currentScope = null;
-                        }
-                        if (currentEl) {
-                            var _viewData_1 = currentEl.data('$uiViewAnim');
-                            core_1.trace.traceUIViewEvent("Animate out", _viewData_1);
-                            renderer.leave(currentEl, function () {
-                                _viewData_1.$$animLeave.resolve();
-                                previousEl = null;
-                            });
-                            previousEl = currentEl;
-                            currentEl = null;
-                        }
-                    }
-                    function updateView(config) {
-                        var newScope = scope.$new();
-                        var animEnter = $q.defer(), animLeave = $q.defer();
-                        var $uiViewData = {
-                            $cfg: config,
-                            $uiView: activeUIView,
-                        };
-                        var $uiViewAnim = {
-                            $animEnter: animEnter.promise,
-                            $animLeave: animLeave.promise,
-                            $$animLeave: animLeave
-                        };
-                        /**
-                         * @ngdoc event
-                         * @name ui.router.state.directive:ui-view#$viewContentLoading
-                         * @eventOf ui.router.state.directive:ui-view
-                         * @eventType emits on ui-view directive scope
-                         * @description
-                         *
-                         * Fired once the view **begins loading**, *before* the DOM is rendered.
-                         *
-                         * @param {Object} event Event object.
-                         * @param {string} viewName Name of the view.
-                         */
-                        newScope.$emit('$viewContentLoading', name);
-                        var cloned = $transclude(newScope, function (clone) {
-                            clone.data('$uiViewAnim', $uiViewAnim);
-                            clone.data('$uiView', $uiViewData);
-                            renderer.enter(clone, $element, function onUIViewEnter() {
-                                animEnter.resolve();
-                                if (currentScope)
-                                    currentScope.$emit('$viewContentAnimationEnded');
-                                if (core_1.isDefined(autoScrollExp) && !autoScrollExp || scope.$eval(autoScrollExp)) {
-                                    $uiViewScroll(clone);
-                                }
-                            });
-                            cleanupLastView();
-                        });
-                        currentEl = cloned;
-                        currentScope = newScope;
-                        /**
-                         * @ngdoc event
-                         * @name ui.router.state.directive:ui-view#$viewContentLoaded
-                         * @eventOf ui.router.state.directive:ui-view
-                         * @eventType emits on ui-view directive scope
-                         * @description           *
-                         * Fired once the view is **loaded**, *after* the DOM is rendered.
-                         *
-                         * @param {Object} event Event object.
-                         */
-                        currentScope.$emit('$viewContentLoaded', config || viewConfig);
-                        currentScope.$eval(onloadExp);
-                    }
-                };
-            }
-        };
-        return directive;
-    }];
-$ViewDirectiveFill.$inject = ['$compile', '$controller', '$transitions', '$view', '$q', '$timeout'];
-/** @hidden */
-function $ViewDirectiveFill($compile, $controller, $transitions, $view, $q, $timeout) {
-    var getControllerAs = core_1.parse('viewDecl.controllerAs');
-    var getResolveAs = core_1.parse('viewDecl.resolveAs');
-    return {
-        restrict: 'ECA',
-        priority: -400,
-        compile: function (tElement) {
-            var initial = tElement.html();
-            tElement.empty();
-            return function (scope, $element) {
-                var data = $element.data('$uiView');
-                if (!data) {
-                    $element.html(initial);
-                    $compile($element.contents())(scope);
-                    return;
-                }
-                var cfg = data.$cfg || { viewDecl: {}, getTemplate: angular_2.noop };
-                var resolveCtx = cfg.path && new core_1.ResolveContext(cfg.path);
-                $element.html(cfg.getTemplate($element, resolveCtx) || initial);
-                core_1.trace.traceUIViewFill(data.$uiView, $element.html());
-                var link = $compile($element.contents());
-                var controller = cfg.controller;
-                var controllerAs = getControllerAs(cfg);
-                var resolveAs = getResolveAs(cfg);
-                var locals = resolveCtx && services_1.getLocals(resolveCtx);
-                scope[resolveAs] = locals;
-                if (controller) {
-                    var controllerInstance = $controller(controller, core_1.extend({}, locals, { $scope: scope, $element: $element }));
-                    if (controllerAs) {
-                        scope[controllerAs] = controllerInstance;
-                        scope[controllerAs][resolveAs] = locals;
-                    }
-                    // TODO: Use $view service as a central point for registering component-level hooks
-                    // Then, when a component is created, tell the $view service, so it can invoke hooks
-                    // $view.componentLoaded(controllerInstance, { $scope: scope, $element: $element });
-                    // scope.$on('$destroy', () => $view.componentUnloaded(controllerInstance, { $scope: scope, $element: $element }));
-                    $element.data('$ngControllerController', controllerInstance);
-                    $element.children().data('$ngControllerController', controllerInstance);
-                    registerControllerCallbacks($q, $transitions, controllerInstance, scope, cfg);
-                }
-                // Wait for the component to appear in the DOM
-                if (core_1.isString(cfg.viewDecl.component)) {
-                    var cmp_1 = cfg.viewDecl.component;
-                    var kebobName = core_1.kebobString(cmp_1);
-                    var tagRegexp_1 = new RegExp("^(x-|data-)?" + kebobName + "$", "i");
-                    var getComponentController = function () {
-                        var directiveEl = [].slice.call($element[0].children)
-                            .filter(function (el) { return el && el.tagName && tagRegexp_1.exec(el.tagName); });
-                        return directiveEl && angular_1.ng.element(directiveEl).data("$" + cmp_1 + "Controller");
-                    };
-                    var deregisterWatch_1 = scope.$watch(getComponentController, function (ctrlInstance) {
-                        if (!ctrlInstance)
-                            return;
-                        registerControllerCallbacks($q, $transitions, ctrlInstance, scope, cfg);
-                        deregisterWatch_1();
-                    });
-                }
-                link(scope);
-            };
-        }
-    };
-}
-/** @hidden */
-var hasComponentImpl = typeof angular_1.ng.module('ui.router')['component'] === 'function';
-/** @hidden incrementing id */
-var _uiCanExitId = 0;
-/** @hidden TODO: move these callbacks to $view and/or `/hooks/components.ts` or something */
-function registerControllerCallbacks($q, $transitions, controllerInstance, $scope, cfg) {
-    // Call $onInit() ASAP
-    if (core_1.isFunction(controllerInstance.$onInit) && !(cfg.viewDecl.component && hasComponentImpl)) {
-        controllerInstance.$onInit();
-    }
-    var viewState = core_1.tail(cfg.path).state.self;
-    var hookOptions = { bind: controllerInstance };
-    // Add component-level hook for onParamsChange
-    if (core_1.isFunction(controllerInstance.uiOnParamsChanged)) {
-        var resolveContext = new core_1.ResolveContext(cfg.path);
-        var viewCreationTrans_1 = resolveContext.getResolvable('$transition$').data;
-        // Fire callback on any successful transition
-        var paramsUpdated = function ($transition$) {
-            // Exit early if the $transition$ is the same as the view was created within.
-            // Exit early if the $transition$ will exit the state the view is for.
-            if ($transition$ === viewCreationTrans_1 || $transition$.exiting().indexOf(viewState) !== -1)
-                return;
-            var toParams = $transition$.params("to");
-            var fromParams = $transition$.params("from");
-            var toSchema = $transition$.treeChanges().to.map(function (node) { return node.paramSchema; }).reduce(core_1.unnestR, []);
-            var fromSchema = $transition$.treeChanges().from.map(function (node) { return node.paramSchema; }).reduce(core_1.unnestR, []);
-            // Find the to params that have different values than the from params
-            var changedToParams = toSchema.filter(function (param) {
-                var idx = fromSchema.indexOf(param);
-                return idx === -1 || !fromSchema[idx].type.equals(toParams[param.id], fromParams[param.id]);
-            });
-            // Only trigger callback if a to param has changed or is new
-            if (changedToParams.length) {
-                var changedKeys_1 = changedToParams.map(function (x) { return x.id; });
-                // Filter the params to only changed/new to params.  `$transition$.params()` may be used to get all params.
-                var newValues = core_1.filter(toParams, function (val, key) { return changedKeys_1.indexOf(key) !== -1; });
-                controllerInstance.uiOnParamsChanged(newValues, $transition$);
-            }
-        };
-        $scope.$on('$destroy', $transitions.onSuccess({}, paramsUpdated, hookOptions));
-    }
-    // Add component-level hook for uiCanExit
-    if (core_1.isFunction(controllerInstance.uiCanExit)) {
-        var id_1 = _uiCanExitId++;
-        var cacheProp_1 = '_uiCanExitIds';
-        // Returns true if a redirect transition already answered truthy
-        var prevTruthyAnswer_1 = function (trans) {
-            return !!trans && (trans[cacheProp_1] && trans[cacheProp_1][id_1] === true || prevTruthyAnswer_1(trans.redirectedFrom()));
-        };
-        // If a user answered yes, but the transition was later redirected, don't also ask for the new redirect transition
-        var wrappedHook = function (trans) {
-            var promise, ids = trans[cacheProp_1] = trans[cacheProp_1] || {};
-            if (!prevTruthyAnswer_1(trans)) {
-                promise = $q.when(controllerInstance.uiCanExit(trans));
-                promise.then(function (val) { return ids[id_1] = (val !== false); });
-            }
-            return promise;
-        };
-        var criteria = { exiting: viewState.name };
-        $scope.$on('$destroy', $transitions.onBefore(criteria, wrappedHook, hookOptions));
-    }
-}
-angular_1.ng.module('ui.router.state').directive('uiView', exports.uiView);
-angular_1.ng.module('ui.router.state').directive('uiView', $ViewDirectiveFill);
-
-},{"../angular":3,"../services":9,"../statebuilders/views":13,"@uirouter/core":37,"angular":90}],6:[function(require,module,exports){
-"use strict";
-/**
- * Main entry point for angular 1.x build
- * @module ng1
- */ /** */
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
-Object.defineProperty(exports, "__esModule", { value: true });
-var core = require("@uirouter/core");
-exports.core = core;
-__export(require("@uirouter/core"));
-__export(require("./services"));
-__export(require("./statebuilders/views"));
-__export(require("./stateProvider"));
-__export(require("./urlRouterProvider"));
-require("./injectables");
-require("./directives/stateDirectives");
-require("./stateFilters");
-require("./directives/viewDirective");
-require("./viewScroll");
-exports.default = "ui.router";
-
-},{"./directives/stateDirectives":4,"./directives/viewDirective":5,"./injectables":7,"./services":9,"./stateFilters":10,"./stateProvider":11,"./statebuilders/views":13,"./urlRouterProvider":15,"./viewScroll":16,"@uirouter/core":37}],7:[function(require,module,exports){
-"use strict";
-/**
- * # Angular 1 injectable services
- *
- * This is a list of the objects which can be injected using angular's injector.
- *
- * There are three different kind of injectable objects:
- *
- * ## **Provider** objects
- * #### injectable into a `.config()` block during configtime
- *
- * - [[$uiRouterProvider]]: The UI-Router instance
- * - [[$stateProvider]]: State registration
- * - [[$transitionsProvider]]: Transition hooks
- * - [[$urlServiceProvider]]: All URL related public APIs
- *
- * - [[$uiViewScrollProvider]]: Disable ui-router view scrolling
- * - [[$urlRouterProvider]]: (deprecated) Url matching rules
- * - [[$urlMatcherFactoryProvider]]: (deprecated) Url parsing config
- *
- * ## **Service** objects
- * #### injectable globally during runtime
- *
- * - [[$uiRouter]]: The UI-Router instance
- * - [[$trace]]: Enable transition trace/debug
- * - [[$transitions]]: Transition hooks
- * - [[$state]]: Imperative state related APIs
- * - [[$stateRegistry]]: State registration
- * - [[$urlService]]: All URL related public APIs
- * - [[$uiRouterGlobals]]: Global variables
- * - [[$uiViewScroll]]: Scroll an element into view
- *
- * - [[$stateParams]]: (deprecated) Global state param values
- * - [[$urlRouter]]: (deprecated) URL synchronization
- * - [[$urlMatcherFactory]]: (deprecated) URL parsing config
- *
- * ## **Per-Transition** objects
- *
- * - These kind of objects are injectable into:
- *   - Resolves ([[Ng1StateDeclaration.resolve]]),
- *   - Transition Hooks ([[TransitionService.onStart]], etc),
- *   - Routed Controllers ([[Ng1ViewDeclaration.controller]])
- *
- * #### Different instances are injected based on the [[Transition]]
- *
- * - [[$transition$]]: The current Transition object
- * - [[$stateParams]]: State param values for pending Transition (deprecated)
- * - Any resolve data defined using [[Ng1StateDeclaration.resolve]]
- *
- * @ng1api
- * @preferred
- * @module injectables
- */ /** */
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * The current (or pending) State Parameters
- *
- * An injectable global **Service Object** which holds the state parameters for the latest **SUCCESSFUL** transition.
- *
- * The values are not updated until *after* a `Transition` successfully completes.
- *
- * **Also:** an injectable **Per-Transition Object** object which holds the pending state parameters for the pending `Transition` currently running.
- *
- * ### Deprecation warning:
- *
- * The value injected for `$stateParams` is different depending on where it is injected.
- *
- * - When injected into an angular service, the object injected is the global **Service Object** with the parameter values for the latest successful `Transition`.
- * - When injected into transition hooks, resolves, or view controllers, the object is the **Per-Transition Object** with the parameter values for the running `Transition`.
- *
- * Because of these confusing details, this service is deprecated.
- *
- * ### Instead of using the global `$stateParams` service object,
- * inject [[$uiRouterGlobals]] and use [[UIRouterGlobals.params]]
- *
- * ```js
- * MyService.$inject = ['$uiRouterGlobals'];
- * function MyService($uiRouterGlobals) {
- *   return {
- *     paramValues: function () {
- *       return $uiRouterGlobals.params;
- *     }
- *   }
- * }
- * ```
- *
- * ### Instead of using the per-transition `$stateParams` object,
- * inject the current `Transition` (as [[$transition$]]) and use [[Transition.params]]
- *
- * ```js
- * MyController.$inject = ['$transition$'];
- * function MyController($transition$) {
- *   var username = $transition$.params().username;
- *   // .. do something with username
- * }
- * ```
- *
- * ---
- *
- * This object can be injected into other services.
- *
- * #### Deprecated Example:
- * ```js
- * SomeService.$inject = ['$http', '$stateParams'];
- * function SomeService($http, $stateParams) {
- *   return {
- *     getUser: function() {
- *       return $http.get('/api/users/' + $stateParams.username);
- *     }
- *   }
- * };
- * angular.service('SomeService', SomeService);
- * ```
- * @deprecated
- */
-var $stateParams;
-/**
- * Global UI-Router variables
- *
- * The router global state as a **Service Object** (injectable during runtime).
- *
- * This object contains globals such as the current state and current parameter values.
- */
-var $uiRouterGlobals;
-/**
- * The UI-Router instance
- *
- * The [[UIRouter]] singleton (the router instance) as a **Service Object** (injectable during runtime).
- *
- * This object is the UI-Router singleton instance, created by angular dependency injection during application bootstrap.
- * It has references to the other UI-Router services
- *
- * #### Note: This object is also exposed as [[$uiRouterProvider]] for injection during angular config time.
- */
-var $uiRouter;
-/**
- * The UI-Router instance
- *
- * The [[UIRouter]] singleton (the router instance) as a **Provider Object** (injectable during config phase).
- *
- * This object is the UI-Router singleton instance, created by angular dependency injection during application bootstrap.
- * It has references to the other UI-Router services
- *
- * #### Note: This object is also exposed as [[$uiRouter]] for injection during runtime.
- */
-var $uiRouterProvider;
-/**
- * Transition debug/tracing
- *
- * The [[Trace]] singleton as a **Service Object** (injectable during runtime).
- *
- * Enables or disables Transition tracing which can help to debug issues.
- */
-var $trace;
-/**
- * The Transition Service
- *
- * The [[TransitionService]] singleton as a **Service Object** (injectable during runtime).
- *
- * This angular service exposes the [[TransitionService]] singleton, which is primarily
- * used to register global transition hooks.
- *
- * #### Note: This object is also exposed as [[$transitionsProvider]] for injection during the config phase.
- */
-var $transitions;
-/**
- * The Transition Service
- *
- * The [[TransitionService]] singleton as a **Provider Object** (injectable during config phase)
- *
- * This angular service exposes the [[TransitionService]] singleton, which is primarily
- * used to register global transition hooks.
- *
- * #### Note: This object is also exposed as [[$transitions]] for injection during runtime.
- */
-var $transitionsProvider;
-/**
- * The current [[Transition]] object
- *
- * The current [[Transition]] object as a **Per-Transition Object** (injectable into Resolve, Hooks, Controllers)
- *
- * This object returns information about the current transition, including:
- *
- * - To/from states
- * - To/from parameters
- * - Transition options
- * - States being entered, exited, and retained
- * - Resolve data
- * - A Promise for the transition
- * - Any transition failure information
- * - An injector for both Service and Per-Transition Objects
- */
-var $transition$;
-/**
- * The State Service
- *
- * The [[StateService]] singleton as a **Service Object** (injectable during runtime).
- *
- * This service used to manage and query information on registered states.
- * It exposes state related APIs including:
- *
- * - Start a [[Transition]]
- * - Imperatively lazy load states
- * - Check if a state is currently active
- * - Look up states by name
- * - Build URLs for a state+parameters
- * - Configure the global Transition error handler
- *
- * This angular service exposes the [[StateService]] singleton.
- */
-var $state;
-/**
- * The State Registry
- *
- * The [[StateRegistry]] singleton as a **Service Object** (injectable during runtime).
- *
- * This service is used to register/deregister states.
- * It has state registration related APIs including:
- *
- * - Register/deregister states
- * - Listen for state registration/deregistration
- * - Get states by name
- * - Add state decorators (to customize the state creation process)
- *
- * #### Note: This object is also exposed as [[$stateRegistryProvider]] for injection during the config phase.
- */
-var $stateRegistry;
-/**
- * The State Registry
- *
- * The [[StateRegistry]] singleton as a **Provider Object** (injectable during config time).
- *
- * This service is used to register/deregister states.
- * It has state registration related APIs including:
- *
- * - Register/deregister states
- * - Listen for state registration/deregistration
- * - Get states by name
- * - Add state decorators (to customize the state creation process)
- *
- * #### Note: This object is also exposed as [[$stateRegistry]] for injection during runtime.
- */
-var $stateRegistryProvider;
-/**
- * The View Scroll provider
- *
- * The [[UIViewScrollProvider]] as a **Provider Object** (injectable during config time).
- *
- * This angular service exposes the [[UIViewScrollProvider]] singleton and is
- * used to disable UI-Router's scroll behavior.
- */
-var $uiViewScrollProvider;
-/**
- * The View Scroll function
- *
- * The View Scroll function as a **Service Object** (injectable during runtime).
- *
- * This is a function that scrolls an element into view.
- * The element is scrolled after a `$timeout` so the DOM has time to refresh.
- *
- * If you prefer to rely on `$anchorScroll` to scroll the view to the anchor,
- * this can be enabled by calling [[UIViewScrollProvider.useAnchorScroll]].
- *
- * Note: this function is used by the [[directives.uiView]] when the `autoscroll` expression evaluates to true.
- */
-var $uiViewScroll;
-/**
- * The StateProvider
- *
- * An angular1-only [[StateProvider]] as a **Provider Object** (injectable during config time).
- *
- * This angular service exposes the [[StateProvider]] singleton.
- *
- * The `StateProvider` is primarily used to register states or add custom state decorators.
- *
- * ##### Note: This provider is a ng1 vestige.
- * It is a passthrough to [[$stateRegistry]] and [[$state]].
- */
-var $stateProvider;
-/**
- * The URL Service Provider
- *
- * The [[UrlService]] singleton as a **Provider Object** (injectable during the angular config phase).
- *
- * A service used to configure and interact with the URL.
- * It has URL related APIs including:
- *
- * - register custom Parameter types `UrlService.config.type` ([[UrlConfigApi.type]])
- * - add URL rules: `UrlService.rules.when` ([[UrlRulesApi.when]])
- * - configure behavior when no url matches: `UrlService.rules.otherwise` ([[UrlRulesApi.otherwise]])
- * - delay initial URL synchronization [[UrlService.deferIntercept]].
- * - get or set the current url: [[UrlService.url]]
- *
- * ##### Note: This service can also be injected during runtime as [[$urlService]].
- */
-var $urlServiceProvider;
-/**
- * The URL Service
- *
- * The [[UrlService]] singleton as a **Service Object** (injectable during runtime).
- *
- * Note: This service can also be injected during the config phase as [[$urlServiceProvider]].
- *
- * Used to configure the URL.
- * It has URL related APIs including:
- *
- * - register custom Parameter types `UrlService.config.type` ([[UrlConfigApi.type]])
- * - add URL rules: `UrlService.rules.when` ([[UrlRulesApi.when]])
- * - configure behavior when no url matches: `UrlService.rules.otherwise` ([[UrlRulesApi.otherwise]])
- * - delay initial URL synchronization [[UrlService.deferIntercept]].
- * - get or set the current url: [[UrlService.url]]
- *
- * ##### Note: This service can also be injected during the config phase as [[$urlServiceProvider]].
- */
-var $urlService;
-/**
- * The URL Router Provider
- *
- * ### Deprecation warning: This object is now considered internal. Use [[$urlServiceProvider]] instead.
- *
- * The [[UrlRouter]] singleton as a **Provider Object** (injectable during config time).
- *
- * #### Note: This object is also exposed as [[$urlRouter]] for injection during runtime.
- *
- * @deprecated
- */
-var $urlRouterProvider;
-/**
- * The Url Router
- *
- * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
- *
- * The [[UrlRouter]] singleton as a **Service Object** (injectable during runtime).
- *
- * #### Note: This object is also exposed as [[$urlRouterProvider]] for injection during angular config time.
- *
- * @deprecated
- */
-var $urlRouter;
-/**
- * The URL Matcher Factory
- *
- * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
- *
- * The [[UrlMatcherFactory]] singleton as a **Service Object** (injectable during runtime).
- *
- * This service is used to set url mapping options, define custom parameter types, and create [[UrlMatcher]] objects.
- *
- * #### Note: This object is also exposed as [[$urlMatcherFactoryProvider]] for injection during angular config time.
- *
- * @deprecated
- */
-var $urlMatcherFactory;
-/**
- * The URL Matcher Factory
- *
- * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
- *
- * The [[UrlMatcherFactory]] singleton as a **Provider Object** (injectable during config time).
- *
- * This service is used to set url mapping options, define custom parameter types, and create [[UrlMatcher]] objects.
- *
- * #### Note: This object is also exposed as [[$urlMatcherFactory]] for injection during runtime.
- *
- * @deprecated
- */
-var $urlMatcherFactoryProvider;
-
-},{}],8:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var core_1 = require("@uirouter/core");
-/**
- * Implements UI-Router LocationServices and LocationConfig using Angular 1's $location service
- */
-var Ng1LocationServices = (function () {
-    function Ng1LocationServices($locationProvider) {
-        // .onChange() registry
-        this._urlListeners = [];
-        this.$locationProvider = $locationProvider;
-        var _lp = core_1.val($locationProvider);
-        core_1.createProxyFunctions(_lp, this, _lp, ['hashPrefix']);
-    }
-    Ng1LocationServices.prototype.dispose = function () { };
-    Ng1LocationServices.prototype.onChange = function (callback) {
-        var _this = this;
-        this._urlListeners.push(callback);
-        return function () { return core_1.removeFrom(_this._urlListeners)(callback); };
-    };
-    Ng1LocationServices.prototype.html5Mode = function () {
-        var html5Mode = this.$locationProvider.html5Mode();
-        html5Mode = core_1.isObject(html5Mode) ? html5Mode.enabled : html5Mode;
-        return html5Mode && this.$sniffer.history;
-    };
-    Ng1LocationServices.prototype.url = function (newUrl, replace, state) {
-        if (replace === void 0) { replace = false; }
-        if (newUrl)
-            this.$location.url(newUrl);
-        if (replace)
-            this.$location.replace();
-        if (state)
-            this.$location.state(state);
-        return this.$location.url();
-    };
-    Ng1LocationServices.prototype._runtimeServices = function ($rootScope, $location, $sniffer, $browser) {
-        var _this = this;
-        this.$location = $location;
-        this.$sniffer = $sniffer;
-        // Bind $locationChangeSuccess to the listeners registered in LocationService.onChange
-        $rootScope.$on("$locationChangeSuccess", function (evt) { return _this._urlListeners.forEach(function (fn) { return fn(evt); }); });
-        var _loc = core_1.val($location);
-        var _browser = core_1.val($browser);
-        // Bind these LocationService functions to $location
-        core_1.createProxyFunctions(_loc, this, _loc, ["replace", "path", "search", "hash"]);
-        // Bind these LocationConfig functions to $location
-        core_1.createProxyFunctions(_loc, this, _loc, ['port', 'protocol', 'host']);
-        // Bind these LocationConfig functions to $browser
-        core_1.createProxyFunctions(_browser, this, _browser, ['baseHref']);
-    };
-    /**
-     * Applys ng1-specific path parameter encoding
-     *
-     * The Angular 1 `$location` service is a bit weird.
-     * It doesn't allow slashes to be encoded/decoded bi-directionally.
-     *
-     * See the writeup at https://github.com/angular-ui/ui-router/issues/2598
-     *
-     * This code patches the `path` parameter type so it encoded/decodes slashes as ~2F
-     *
-     * @param router
-     */
-    Ng1LocationServices.monkeyPatchPathParameterType = function (router) {
-        var pathType = router.urlMatcherFactory.type('path');
-        pathType.encode = function (val) {
-            return val != null ? val.toString().replace(/(~|\/)/g, function (m) { return ({ '~': '~~', '/': '~2F' }[m]); }) : val;
-        };
-        pathType.decode = function (val) {
-            return val != null ? val.toString().replace(/(~~|~2F)/g, function (m) { return ({ '~~': '~', '~2F': '/' }[m]); }) : val;
-        };
-    };
-    return Ng1LocationServices;
-}());
-exports.Ng1LocationServices = Ng1LocationServices;
-
-},{"@uirouter/core":37}],9:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * # Angular 1 types
- *
- * UI-Router core provides various Typescript types which you can use for code completion and validating parameter values, etc.
- * The customizations to the core types for Angular UI-Router are documented here.
- *
- * The optional [[$resolve]] service is also documented here.
- *
- * @module ng1
- * @preferred
- */
-/** for typedoc */
-var angular_1 = require("./angular");
-var core_1 = require("@uirouter/core");
-var views_1 = require("./statebuilders/views");
-var templateFactory_1 = require("./templateFactory");
-var stateProvider_1 = require("./stateProvider");
-var onEnterExitRetain_1 = require("./statebuilders/onEnterExitRetain");
-var locationServices_1 = require("./locationServices");
-var urlRouterProvider_1 = require("./urlRouterProvider");
-angular_1.ng.module("ui.router.angular1", []);
-var mod_init = angular_1.ng.module('ui.router.init', []);
-var mod_util = angular_1.ng.module('ui.router.util', ['ng', 'ui.router.init']);
-var mod_rtr = angular_1.ng.module('ui.router.router', ['ui.router.util']);
-var mod_state = angular_1.ng.module('ui.router.state', ['ui.router.router', 'ui.router.util', 'ui.router.angular1']);
-var mod_main = angular_1.ng.module('ui.router', ['ui.router.init', 'ui.router.state', 'ui.router.angular1']);
-var mod_cmpt = angular_1.ng.module('ui.router.compat', ['ui.router']); // tslint:disable-line
-var router = null;
-$uiRouter.$inject = ['$locationProvider'];
-/** This angular 1 provider instantiates a Router and exposes its services via the angular injector */
-function $uiRouter($locationProvider) {
-    // Create a new instance of the Router when the $uiRouterProvider is initialized
-    router = this.router = new core_1.UIRouter();
-    router.stateProvider = new stateProvider_1.StateProvider(router.stateRegistry, router.stateService);
-    // Apply ng1 specific StateBuilder code for `views`, `resolve`, and `onExit/Retain/Enter` properties
-    router.stateRegistry.decorator("views", views_1.ng1ViewsBuilder);
-    router.stateRegistry.decorator("onExit", onEnterExitRetain_1.getStateHookBuilder("onExit"));
-    router.stateRegistry.decorator("onRetain", onEnterExitRetain_1.getStateHookBuilder("onRetain"));
-    router.stateRegistry.decorator("onEnter", onEnterExitRetain_1.getStateHookBuilder("onEnter"));
-    router.viewService._pluginapi._viewConfigFactory('ng1', views_1.getNg1ViewConfigFactory());
-    var ng1LocationService = router.locationService = router.locationConfig = new locationServices_1.Ng1LocationServices($locationProvider);
-    locationServices_1.Ng1LocationServices.monkeyPatchPathParameterType(router);
-    // backwards compat: also expose router instance as $uiRouterProvider.router
-    router['router'] = router;
-    router['$get'] = $get;
-    $get.$inject = ['$location', '$browser', '$sniffer', '$rootScope', '$http', '$templateCache'];
-    function $get($location, $browser, $sniffer, $rootScope, $http, $templateCache) {
-        ng1LocationService._runtimeServices($rootScope, $location, $sniffer, $browser);
-        delete router['router'];
-        delete router['$get'];
-        return router;
-    }
-    return router;
-}
-var getProviderFor = function (serviceName) { return ['$uiRouterProvider', function ($urp) {
-        var service = $urp.router[serviceName];
-        service["$get"] = function () { return service; };
-        return service;
-    }]; };
-// This effectively calls $get() on `$uiRouterProvider` to trigger init (when ng enters runtime)
-runBlock.$inject = ['$injector', '$q', '$uiRouter'];
-function runBlock($injector, $q, $uiRouter) {
-    core_1.services.$injector = $injector;
-    core_1.services.$q = $q;
-    // The $injector is now available.
-    // Find any resolvables that had dependency annotation deferred
-    $uiRouter.stateRegistry.get()
-        .map(function (x) { return x.$$state().resolvables; })
-        .reduce(core_1.unnestR, [])
-        .filter(function (x) { return x.deps === "deferred"; })
-        .forEach(function (resolvable) { return resolvable.deps = $injector.annotate(resolvable.resolveFn); });
-}
-// $urlRouter service and $urlRouterProvider
-var getUrlRouterProvider = function (uiRouter) {
-    return uiRouter.urlRouterProvider = new urlRouterProvider_1.UrlRouterProvider(uiRouter);
-};
-// $state service and $stateProvider
-// $urlRouter service and $urlRouterProvider
-var getStateProvider = function () {
-    return core_1.extend(router.stateProvider, { $get: function () { return router.stateService; } });
-};
-watchDigests.$inject = ['$rootScope'];
-function watchDigests($rootScope) {
-    $rootScope.$watch(function () { core_1.trace.approximateDigests++; });
-}
-exports.watchDigests = watchDigests;
-mod_init.provider("$uiRouter", $uiRouter);
-mod_rtr.provider('$urlRouter', ['$uiRouterProvider', getUrlRouterProvider]);
-mod_util.provider('$urlService', getProviderFor('urlService'));
-mod_util.provider('$urlMatcherFactory', ['$uiRouterProvider', function () { return router.urlMatcherFactory; }]);
-mod_util.provider('$templateFactory', function () { return new templateFactory_1.TemplateFactory(); });
-mod_state.provider('$stateRegistry', getProviderFor('stateRegistry'));
-mod_state.provider('$uiRouterGlobals', getProviderFor('globals'));
-mod_state.provider('$transitions', getProviderFor('transitionService'));
-mod_state.provider('$state', ['$uiRouterProvider', getStateProvider]);
-mod_state.factory('$stateParams', ['$uiRouter', function ($uiRouter) { return $uiRouter.globals.params; }]);
-mod_main.factory('$view', function () { return router.viewService; });
-mod_main.service("$trace", function () { return core_1.trace; });
-mod_main.run(watchDigests);
-mod_util.run(['$urlMatcherFactory', function ($urlMatcherFactory) { }]);
-mod_state.run(['$state', function ($state) { }]);
-mod_rtr.run(['$urlRouter', function ($urlRouter) { }]);
-mod_init.run(runBlock);
-/** @hidden TODO: find a place to move this */
-exports.getLocals = function (ctx) {
-    var tokens = ctx.getTokens().filter(core_1.isString);
-    var tuples = tokens.map(function (key) {
-        var resolvable = ctx.getResolvable(key);
-        var waitPolicy = ctx.getPolicy(resolvable).async;
-        return [key, waitPolicy === 'NOWAIT' ? resolvable.promise : resolvable.data];
-    });
-    return tuples.reduce(core_1.applyPairs, {});
-};
-
-},{"./angular":3,"./locationServices":8,"./stateProvider":11,"./statebuilders/onEnterExitRetain":12,"./statebuilders/views":13,"./templateFactory":14,"./urlRouterProvider":15,"@uirouter/core":37}],10:[function(require,module,exports){
-"use strict";
-/** @module ng1 */ /** for typedoc */
-Object.defineProperty(exports, "__esModule", { value: true });
-var angular_1 = require("./angular");
-/**
- * `isState` Filter: truthy if the current state is the parameter
- *
- * Translates to [[StateService.is]] `$state.is("stateName")`.
- *
- * #### Example:
- * ```html
- * <div ng-if="'stateName' | isState">show if state is 'stateName'</div>
- * ```
- */
-$IsStateFilter.$inject = ['$state'];
-function $IsStateFilter($state) {
-    var isFilter = function (state, params, options) {
-        return $state.is(state, params, options);
-    };
-    isFilter.$stateful = true;
-    return isFilter;
-}
-exports.$IsStateFilter = $IsStateFilter;
-/**
- * `includedByState` Filter: truthy if the current state includes the parameter
- *
- * Translates to [[StateService.includes]]` $state.is("fullOrPartialStateName")`.
- *
- * #### Example:
- * ```html
- * <div ng-if="'fullOrPartialStateName' | includedByState">show if state includes 'fullOrPartialStateName'</div>
- * ```
- */
-$IncludedByStateFilter.$inject = ['$state'];
-function $IncludedByStateFilter($state) {
-    var includesFilter = function (state, params, options) {
-        return $state.includes(state, params, options);
-    };
-    includesFilter.$stateful = true;
-    return includesFilter;
-}
-exports.$IncludedByStateFilter = $IncludedByStateFilter;
-angular_1.ng.module('ui.router.state')
-    .filter('isState', $IsStateFilter)
-    .filter('includedByState', $IncludedByStateFilter);
-
-},{"./angular":3}],11:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/** @module ng1 */ /** for typedoc */
-var core_1 = require("@uirouter/core");
-/**
- * The Angular 1 `StateProvider`
- *
- * The `$stateProvider` works similar to Angular's v1 router, but it focuses purely
- * on state.
- *
- * A state corresponds to a "place" in the application in terms of the overall UI and
- * navigation. A state describes (via the controller / template / view properties) what
- * the UI looks like and does at that place.
- *
- * States often have things in common, and the primary way of factoring out these
- * commonalities in this model is via the state hierarchy, i.e. parent/child states aka
- * nested states.
- *
- * The `$stateProvider` provides interfaces to declare these states for your app.
- */
-var StateProvider = (function () {
-    function StateProvider(stateRegistry, stateService) {
-        this.stateRegistry = stateRegistry;
-        this.stateService = stateService;
-        core_1.createProxyFunctions(core_1.val(StateProvider.prototype), this, core_1.val(this));
-    }
-    /**
-     * Decorates states when they are registered
-     *
-     * Allows you to extend (carefully) or override (at your own peril) the
-     * `stateBuilder` object used internally by [[StateRegistry]].
-     * This can be used to add custom functionality to ui-router,
-     * for example inferring templateUrl based on the state name.
-     *
-     * When passing only a name, it returns the current (original or decorated) builder
-     * function that matches `name`.
-     *
-     * The builder functions that can be decorated are listed below. Though not all
-     * necessarily have a good use case for decoration, that is up to you to decide.
-     *
-     * In addition, users can attach custom decorators, which will generate new
-     * properties within the state's internal definition. There is currently no clear
-     * use-case for this beyond accessing internal states (i.e. $state.$current),
-     * however, expect this to become increasingly relevant as we introduce additional
-     * meta-programming features.
-     *
-     * **Warning**: Decorators should not be interdependent because the order of
-     * execution of the builder functions in non-deterministic. Builder functions
-     * should only be dependent on the state definition object and super function.
-     *
-     *
-     * Existing builder functions and current return values:
-     *
-     * - **parent** `{object}` - returns the parent state object.
-     * - **data** `{object}` - returns state data, including any inherited data that is not
-     *   overridden by own values (if any).
-     * - **url** `{object}` - returns a {@link ui.router.util.type:UrlMatcher UrlMatcher}
-     *   or `null`.
-     * - **navigable** `{object}` - returns closest ancestor state that has a URL (aka is
-     *   navigable).
-     * - **params** `{object}` - returns an array of state params that are ensured to
-     *   be a super-set of parent's params.
-     * - **views** `{object}` - returns a views object where each key is an absolute view
-     *   name (i.e. "viewName@stateName") and each value is the config object
-     *   (template, controller) for the view. Even when you don't use the views object
-     *   explicitly on a state config, one is still created for you internally.
-     *   So by decorating this builder function you have access to decorating template
-     *   and controller properties.
-     * - **ownParams** `{object}` - returns an array of params that belong to the state,
-     *   not including any params defined by ancestor states.
-     * - **path** `{string}` - returns the full path from the root down to this state.
-     *   Needed for state activation.
-     * - **includes** `{object}` - returns an object that includes every state that
-     *   would pass a `$state.includes()` test.
-     *
-     * #### Example:
-     * Override the internal 'views' builder with a function that takes the state
-     * definition, and a reference to the internal function being overridden:
-     * ```js
-     * $stateProvider.decorator('views', function (state, parent) {
-     *   let result = {},
-     *       views = parent(state);
-     *
-     *   angular.forEach(views, function (config, name) {
-     *     let autoName = (state.name + '.' + name).replace('.', '/');
-     *     config.templateUrl = config.templateUrl || '/partials/' + autoName + '.html';
-     *     result[name] = config;
-     *   });
-     *   return result;
-     * });
-     *
-     * $stateProvider.state('home', {
-     *   views: {
-     *     'contact.list': { controller: 'ListController' },
-     *     'contact.item': { controller: 'ItemController' }
-     *   }
-     * });
-     * ```
-     *
-     *
-     * ```js
-     * // Auto-populates list and item views with /partials/home/contact/list.html,
-     * // and /partials/home/contact/item.html, respectively.
-     * $state.go('home');
-     * ```
-     *
-     * @param {string} name The name of the builder function to decorate.
-     * @param {object} func A function that is responsible for decorating the original
-     * builder function. The function receives two parameters:
-     *
-     *   - `{object}` - state - The state config object.
-     *   - `{object}` - super - The original builder function.
-     *
-     * @return {object} $stateProvider - $stateProvider instance
-     */
-    StateProvider.prototype.decorator = function (name, func) {
-        return this.stateRegistry.decorator(name, func) || this;
-    };
-    StateProvider.prototype.state = function (name, definition) {
-        if (core_1.isObject(name)) {
-            definition = name;
-        }
-        else {
-            definition.name = name;
-        }
-        this.stateRegistry.register(definition);
-        return this;
-    };
-    /**
-     * Registers an invalid state handler
-     *
-     * This is a passthrough to [[StateService.onInvalid]] for ng1.
-     */
-    StateProvider.prototype.onInvalid = function (callback) {
-        return this.stateService.onInvalid(callback);
-    };
-    return StateProvider;
-}());
-exports.StateProvider = StateProvider;
-
-},{"@uirouter/core":37}],12:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/** @module ng1 */ /** */
-var core_1 = require("@uirouter/core");
-var services_1 = require("../services");
-/**
- * This is a [[StateBuilder.builder]] function for angular1 `onEnter`, `onExit`,
- * `onRetain` callback hooks on a [[Ng1StateDeclaration]].
- *
- * When the [[StateBuilder]] builds a [[StateObject]] object from a raw [[StateDeclaration]], this builder
- * ensures that those hooks are injectable for @uirouter/angularjs (ng1).
- */
-exports.getStateHookBuilder = function (hookName) {
-    return function stateHookBuilder(state, parentFn) {
-        var hook = state[hookName];
-        var pathname = hookName === 'onExit' ? 'from' : 'to';
-        function decoratedNg1Hook(trans, state) {
-            var resolveContext = new core_1.ResolveContext(trans.treeChanges(pathname));
-            var locals = core_1.extend(services_1.getLocals(resolveContext), { $state$: state, $transition$: trans });
-            return core_1.services.$injector.invoke(hook, this, locals);
-        }
-        return hook ? decoratedNg1Hook : undefined;
-    };
-};
-
-},{"../services":9,"@uirouter/core":37}],13:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var core_1 = require("@uirouter/core");
-function getNg1ViewConfigFactory() {
-    var templateFactory = null;
-    return function (path, view) {
-        templateFactory = templateFactory || core_1.services.$injector.get("$templateFactory");
-        return [new Ng1ViewConfig(path, view, templateFactory)];
-    };
-}
-exports.getNg1ViewConfigFactory = getNg1ViewConfigFactory;
-var hasAnyKey = function (keys, obj) {
-    return keys.reduce(function (acc, key) { return acc || core_1.isDefined(obj[key]); }, false);
-};
-/**
- * This is a [[StateBuilder.builder]] function for angular1 `views`.
- *
- * When the [[StateBuilder]] builds a [[StateObject]] object from a raw [[StateDeclaration]], this builder
- * handles the `views` property with logic specific to @uirouter/angularjs (ng1).
- *
- * If no `views: {}` property exists on the [[StateDeclaration]], then it creates the `views` object
- * and applies the state-level configuration to a view named `$default`.
- */
-function ng1ViewsBuilder(state) {
-    // Do not process root state
-    if (!state.parent)
-        return {};
-    var tplKeys = ['templateProvider', 'templateUrl', 'template', 'notify', 'async'], ctrlKeys = ['controller', 'controllerProvider', 'controllerAs', 'resolveAs'], compKeys = ['component', 'bindings', 'componentProvider'], nonCompKeys = tplKeys.concat(ctrlKeys), allViewKeys = compKeys.concat(nonCompKeys);
-    // Do not allow a state to have both state-level props and also a `views: {}` property.
-    // A state without a `views: {}` property can declare properties for the `$default` view as properties of the state.
-    // However, the `$default` approach should not be mixed with a separate `views: ` block.
-    if (core_1.isDefined(state.views) && hasAnyKey(allViewKeys, state)) {
-        throw new Error("State '" + state.name + "' has a 'views' object. " +
-            "It cannot also have \"view properties\" at the state level.  " +
-            "Move the following properties into a view (in the 'views' object): " +
-            (" " + allViewKeys.filter(function (key) { return core_1.isDefined(state[key]); }).join(", ")));
-    }
-    var views = {}, viewsObject = state.views || { "$default": core_1.pick(state, allViewKeys) };
-    core_1.forEach(viewsObject, function (config, name) {
-        // Account for views: { "": { template... } }
-        name = name || "$default";
-        // Account for views: { header: "headerComponent" }
-        if (core_1.isString(config))
-            config = { component: config };
-        // Make a shallow copy of the config object
-        config = core_1.extend({}, config);
-        // Do not allow a view to mix props for component-style view with props for template/controller-style view
-        if (hasAnyKey(compKeys, config) && hasAnyKey(nonCompKeys, config)) {
-            throw new Error("Cannot combine: " + compKeys.join("|") + " with: " + nonCompKeys.join("|") + " in stateview: '" + name + "@" + state.name + "'");
-        }
-        config.resolveAs = config.resolveAs || '$resolve';
-        config.$type = "ng1";
-        config.$context = state;
-        config.$name = name;
-        var normalized = core_1.ViewService.normalizeUIViewTarget(config.$context, config.$name);
-        config.$uiViewName = normalized.uiViewName;
-        config.$uiViewContextAnchor = normalized.uiViewContextAnchor;
-        views[name] = config;
-    });
-    return views;
-}
-exports.ng1ViewsBuilder = ng1ViewsBuilder;
-var id = 0;
-var Ng1ViewConfig = (function () {
-    function Ng1ViewConfig(path, viewDecl, factory) {
-        var _this = this;
-        this.path = path;
-        this.viewDecl = viewDecl;
-        this.factory = factory;
-        this.$id = id++;
-        this.loaded = false;
-        this.getTemplate = function (uiView, context) {
-            return _this.component ? _this.factory.makeComponentTemplate(uiView, context, _this.component, _this.viewDecl.bindings) : _this.template;
-        };
-    }
-    Ng1ViewConfig.prototype.load = function () {
-        var _this = this;
-        var $q = core_1.services.$q;
-        var context = new core_1.ResolveContext(this.path);
-        var params = this.path.reduce(function (acc, node) { return core_1.extend(acc, node.paramValues); }, {});
-        var promises = {
-            template: $q.when(this.factory.fromConfig(this.viewDecl, params, context)),
-            controller: $q.when(this.getController(context))
-        };
-        return $q.all(promises).then(function (results) {
-            core_1.trace.traceViewServiceEvent("Loaded", _this);
-            _this.controller = results.controller;
-            core_1.extend(_this, results.template); // Either { template: "tpl" } or { component: "cmpName" }
-            return _this;
-        });
-    };
-    /**
-     * Gets the controller for a view configuration.
-     *
-     * @returns {Function|Promise.<Function>} Returns a controller, or a promise that resolves to a controller.
-     */
-    Ng1ViewConfig.prototype.getController = function (context) {
-        var provider = this.viewDecl.controllerProvider;
-        if (!core_1.isInjectable(provider))
-            return this.viewDecl.controller;
-        var deps = core_1.services.$injector.annotate(provider);
-        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
-        var resolvable = new core_1.Resolvable("", providerFn, deps);
-        return resolvable.get(context);
-    };
-    return Ng1ViewConfig;
-}());
-exports.Ng1ViewConfig = Ng1ViewConfig;
-
-},{"@uirouter/core":37}],14:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/** @module view */
-/** for typedoc */
-var angular_1 = require("./angular");
-var core_1 = require("@uirouter/core");
-/**
- * Service which manages loading of templates from a ViewConfig.
- */
-var TemplateFactory = (function () {
-    function TemplateFactory() {
-        var _this = this;
-        /** @hidden */ this._useHttp = angular_1.ng.version.minor < 3;
-        /** @hidden */ this.$get = ['$http', '$templateCache', '$injector', function ($http, $templateCache, $injector) {
-                _this.$templateRequest = $injector.has && $injector.has('$templateRequest') && $injector.get('$templateRequest');
-                _this.$http = $http;
-                _this.$templateCache = $templateCache;
-                return _this;
-            }];
-    }
-    /** @hidden */
-    TemplateFactory.prototype.useHttpService = function (value) {
-        this._useHttp = value;
-    };
-    ;
-    /**
-     * Creates a template from a configuration object.
-     *
-     * @param config Configuration object for which to load a template.
-     * The following properties are search in the specified order, and the first one
-     * that is defined is used to create the template:
-     *
-     * @param params  Parameters to pass to the template function.
-     * @param context The resolve context associated with the template's view
-     *
-     * @return {string|object}  The template html as a string, or a promise for
-     * that string,or `null` if no template is configured.
-     */
-    TemplateFactory.prototype.fromConfig = function (config, params, context) {
-        var defaultTemplate = "<ui-view></ui-view>";
-        var asTemplate = function (result) { return core_1.services.$q.when(result).then(function (str) { return ({ template: str }); }); };
-        var asComponent = function (result) { return core_1.services.$q.when(result).then(function (str) { return ({ component: str }); }); };
-        return (core_1.isDefined(config.template) ? asTemplate(this.fromString(config.template, params)) :
-            core_1.isDefined(config.templateUrl) ? asTemplate(this.fromUrl(config.templateUrl, params)) :
-                core_1.isDefined(config.templateProvider) ? asTemplate(this.fromProvider(config.templateProvider, params, context)) :
-                    core_1.isDefined(config.component) ? asComponent(config.component) :
-                        core_1.isDefined(config.componentProvider) ? asComponent(this.fromComponentProvider(config.componentProvider, params, context)) :
-                            asTemplate(defaultTemplate));
-    };
-    ;
-    /**
-     * Creates a template from a string or a function returning a string.
-     *
-     * @param template html template as a string or function that returns an html template as a string.
-     * @param params Parameters to pass to the template function.
-     *
-     * @return {string|object} The template html as a string, or a promise for that
-     * string.
-     */
-    TemplateFactory.prototype.fromString = function (template, params) {
-        return core_1.isFunction(template) ? template(params) : template;
-    };
-    ;
-    /**
-     * Loads a template from the a URL via `$http` and `$templateCache`.
-     *
-     * @param {string|Function} url url of the template to load, or a function
-     * that returns a url.
-     * @param {Object} params Parameters to pass to the url function.
-     * @return {string|Promise.<string>} The template html as a string, or a promise
-     * for that string.
-     */
-    TemplateFactory.prototype.fromUrl = function (url, params) {
-        if (core_1.isFunction(url))
-            url = url(params);
-        if (url == null)
-            return null;
-        if (this._useHttp) {
-            return this.$http.get(url, { cache: this.$templateCache, headers: { Accept: 'text/html' } })
-                .then(function (response) {
-                return response.data;
-            });
-        }
-        return this.$templateRequest(url);
-    };
-    ;
-    /**
-     * Creates a template by invoking an injectable provider function.
-     *
-     * @param provider Function to invoke via `locals`
-     * @param {Function} injectFn a function used to invoke the template provider
-     * @return {string|Promise.<string>} The template html as a string, or a promise
-     * for that string.
-     */
-    TemplateFactory.prototype.fromProvider = function (provider, params, context) {
-        var deps = core_1.services.$injector.annotate(provider);
-        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
-        var resolvable = new core_1.Resolvable("", providerFn, deps);
-        return resolvable.get(context);
-    };
-    ;
-    /**
-     * Creates a component's template by invoking an injectable provider function.
-     *
-     * @param provider Function to invoke via `locals`
-     * @param {Function} injectFn a function used to invoke the template provider
-     * @return {string} The template html as a string: "<component-name input1='::$resolve.foo'></component-name>".
-     */
-    TemplateFactory.prototype.fromComponentProvider = function (provider, params, context) {
-        var deps = core_1.services.$injector.annotate(provider);
-        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
-        var resolvable = new core_1.Resolvable("", providerFn, deps);
-        return resolvable.get(context);
-    };
-    ;
-    /**
-     * Creates a template from a component's name
-     *
-     * This implements route-to-component.
-     * It works by retrieving the component (directive) metadata from the injector.
-     * It analyses the component's bindings, then constructs a template that instantiates the component.
-     * The template wires input and output bindings to resolves or from the parent component.
-     *
-     * @param uiView {object} The parent ui-view (for binding outputs to callbacks)
-     * @param context The ResolveContext (for binding outputs to callbacks returned from resolves)
-     * @param component {string} Component's name in camel case.
-     * @param bindings An object defining the component's bindings: {foo: '<'}
-     * @return {string} The template as a string: "<component-name input1='::$resolve.foo'></component-name>".
-     */
-    TemplateFactory.prototype.makeComponentTemplate = function (uiView, context, component, bindings) {
-        bindings = bindings || {};
-        // Bind once prefix
-        var prefix = angular_1.ng.version.minor >= 3 ? "::" : "";
-        // Convert to kebob name. Add x- prefix if the string starts with `x-` or `data-`
-        var kebob = function (camelCase) {
-            var kebobed = core_1.kebobString(camelCase);
-            return /^(x|data)-/.exec(kebobed) ? "x-" + kebobed : kebobed;
-        };
-        var attributeTpl = function (input) {
-            var name = input.name, type = input.type;
-            var attrName = kebob(name);
-            // If the ui-view has an attribute which matches a binding on the routed component
-            // then pass that attribute through to the routed component template.
-            // Prefer ui-view wired mappings to resolve data, unless the resolve was explicitly bound using `bindings:`
-            if (uiView.attr(attrName) && !bindings[name])
-                return attrName + "='" + uiView.attr(attrName) + "'";
-            var resolveName = bindings[name] || name;
-            // Pre-evaluate the expression for "@" bindings by enclosing in {{ }}
-            // some-attr="{{ ::$resolve.someResolveName }}"
-            if (type === '@')
-                return attrName + "='{{" + prefix + "$resolve." + resolveName + "}}'";
-            // Wire "&" callbacks to resolves that return a callback function
-            // Get the result of the resolve (should be a function) and annotate it to get its arguments.
-            // some-attr="$resolve.someResolveResultName(foo, bar)"
-            if (type === '&') {
-                var res = context.getResolvable(resolveName);
-                var fn = res && res.data;
-                var args = fn && core_1.services.$injector.annotate(fn) || [];
-                // account for array style injection, i.e., ['foo', function(foo) {}]
-                var arrayIdxStr = core_1.isArray(fn) ? "[" + (fn.length - 1) + "]" : '';
-                return attrName + "='$resolve." + resolveName + arrayIdxStr + "(" + args.join(",") + ")'";
-            }
-            // some-attr="::$resolve.someResolveName"
-            return attrName + "='" + prefix + "$resolve." + resolveName + "'";
-        };
-        var attrs = getComponentBindings(component).map(attributeTpl).join(" ");
-        var kebobName = kebob(component);
-        return "<" + kebobName + " " + attrs + "></" + kebobName + ">";
-    };
-    ;
-    return TemplateFactory;
-}());
-exports.TemplateFactory = TemplateFactory;
-// Gets all the directive(s)' inputs ('@', '=', and '<') and outputs ('&')
-function getComponentBindings(name) {
-    var cmpDefs = core_1.services.$injector.get(name + "Directive"); // could be multiple
-    if (!cmpDefs || !cmpDefs.length)
-        throw new Error("Unable to find component named '" + name + "'");
-    return cmpDefs.map(getBindings).reduce(core_1.unnestR, []);
-}
-// Given a directive definition, find its object input attributes
-// Use different properties, depending on the type of directive (component, bindToController, normal)
-var getBindings = function (def) {
-    if (core_1.isObject(def.bindToController))
-        return scopeBindings(def.bindToController);
-    return scopeBindings(def.scope);
-};
-// for ng 1.2 style, process the scope: { input: "=foo" }
-// for ng 1.3 through ng 1.5, process the component's bindToController: { input: "=foo" } object
-var scopeBindings = function (bindingsObj) { return Object.keys(bindingsObj || {})
-    .map(function (key) { return [key, /^([=<@&])[?]?(.*)/.exec(bindingsObj[key])]; })
-    .filter(function (tuple) { return core_1.isDefined(tuple) && core_1.isArray(tuple[1]); })
-    .map(function (tuple) { return ({ name: tuple[1][2] || tuple[0], type: tuple[1][1] }); }); };
-
-},{"./angular":3,"@uirouter/core":37}],15:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/** @module url */ /** */
-var core_1 = require("@uirouter/core");
-var core_2 = require("@uirouter/core");
-/**
- * Manages rules for client-side URL
- *
- * ### Deprecation warning:
- * This class is now considered to be an internal API
- * Use the [[UrlService]] instead.
- * For configuring URL rules, use the [[UrlRulesApi]] which can be found as [[UrlService.rules]].
- *
- * This class manages the router rules for what to do when the URL changes.
- *
- * This provider remains for backwards compatibility.
- *
- * @deprecated
- */
-var UrlRouterProvider = (function () {
-    /** @hidden */
-    function UrlRouterProvider(router) {
-        this._router = router;
-        this._urlRouter = router.urlRouter;
-    }
-    /** @hidden */
-    UrlRouterProvider.prototype.$get = function () {
-        var urlRouter = this._urlRouter;
-        urlRouter.update(true);
-        if (!urlRouter.interceptDeferred)
-            urlRouter.listen();
-        return urlRouter;
-    };
-    /**
-     * Registers a url handler function.
-     *
-     * Registers a low level url handler (a `rule`).
-     * A rule detects specific URL patterns and returns a redirect, or performs some action.
-     *
-     * If a rule returns a string, the URL is replaced with the string, and all rules are fired again.
-     *
-     * #### Example:
-     * ```js
-     * var app = angular.module('app', ['ui.router.router']);
-     *
-     * app.config(function ($urlRouterProvider) {
-     *   // Here's an example of how you might allow case insensitive urls
-     *   $urlRouterProvider.rule(function ($injector, $location) {
-     *     var path = $location.path(),
-     *         normalized = path.toLowerCase();
-     *
-     *     if (path !== normalized) {
-     *       return normalized;
-     *     }
-     *   });
-     * });
-     * ```
-     *
-     * @param ruleFn
-     * Handler function that takes `$injector` and `$location` services as arguments.
-     * You can use them to detect a url and return a different url as a string.
-     *
-     * @return [[UrlRouterProvider]] (`this`)
-     */
-    UrlRouterProvider.prototype.rule = function (ruleFn) {
-        var _this = this;
-        if (!core_2.isFunction(ruleFn))
-            throw new Error("'rule' must be a function");
-        var match = function () {
-            return ruleFn(core_2.services.$injector, _this._router.locationService);
-        };
-        var rule = new core_1.BaseUrlRule(match, core_2.identity);
-        this._urlRouter.rule(rule);
-        return this;
-    };
-    ;
-    /**
-     * Defines the path or behavior to use when no url can be matched.
-     *
-     * #### Example:
-     * ```js
-     * var app = angular.module('app', ['ui.router.router']);
-     *
-     * app.config(function ($urlRouterProvider) {
-     *   // if the path doesn't match any of the urls you configured
-     *   // otherwise will take care of routing the user to the
-     *   // specified url
-     *   $urlRouterProvider.otherwise('/index');
-     *
-     *   // Example of using function rule as param
-     *   $urlRouterProvider.otherwise(function ($injector, $location) {
-     *     return '/a/valid/url';
-     *   });
-     * });
-     * ```
-     *
-     * @param rule
-     * The url path you want to redirect to or a function rule that returns the url path or performs a `$state.go()`.
-     * The function version is passed two params: `$injector` and `$location` services, and should return a url string.
-     *
-     * @return {object} `$urlRouterProvider` - `$urlRouterProvider` instance
-     */
-    UrlRouterProvider.prototype.otherwise = function (rule) {
-        var _this = this;
-        var urlRouter = this._urlRouter;
-        if (core_2.isString(rule)) {
-            urlRouter.otherwise(rule);
-        }
-        else if (core_2.isFunction(rule)) {
-            urlRouter.otherwise(function () { return rule(core_2.services.$injector, _this._router.locationService); });
-        }
-        else {
-            throw new Error("'rule' must be a string or function");
-        }
-        return this;
-    };
-    ;
-    /**
-     * Registers a handler for a given url matching.
-     *
-     * If the handler is a string, it is
-     * treated as a redirect, and is interpolated according to the syntax of match
-     * (i.e. like `String.replace()` for `RegExp`, or like a `UrlMatcher` pattern otherwise).
-     *
-     * If the handler is a function, it is injectable.
-     * It gets invoked if `$location` matches.
-     * You have the option of inject the match object as `$match`.
-     *
-     * The handler can return
-     *
-     * - **falsy** to indicate that the rule didn't match after all, then `$urlRouter`
-     *   will continue trying to find another one that matches.
-     * - **string** which is treated as a redirect and passed to `$location.url()`
-     * - **void** or any **truthy** value tells `$urlRouter` that the url was handled.
-     *
-     * #### Example:
-     * ```js
-     * var app = angular.module('app', ['ui.router.router']);
-     *
-     * app.config(function ($urlRouterProvider) {
-     *   $urlRouterProvider.when($state.url, function ($match, $stateParams) {
-     *     if ($state.$current.navigable !== state ||
-     *         !equalForKeys($match, $stateParams) {
-     *      $state.transitionTo(state, $match, false);
-     *     }
-     *   });
-     * });
-     * ```
-     *
-     * @param what A pattern string to match, compiled as a [[UrlMatcher]].
-     * @param handler The path (or function that returns a path) that you want to redirect your user to.
-     * @param ruleCallback [optional] A callback that receives the `rule` registered with [[UrlMatcher.rule]]
-     *
-     * Note: the handler may also invoke arbitrary code, such as `$state.go()`
-     */
-    UrlRouterProvider.prototype.when = function (what, handler) {
-        if (core_2.isArray(handler) || core_2.isFunction(handler)) {
-            handler = UrlRouterProvider.injectableHandler(this._router, handler);
-        }
-        this._urlRouter.when(what, handler);
-        return this;
-    };
-    ;
-    UrlRouterProvider.injectableHandler = function (router, handler) {
-        return function (match) {
-            return core_2.services.$injector.invoke(handler, null, { $match: match, $stateParams: router.globals.params });
-        };
-    };
-    /**
-     * Disables monitoring of the URL.
-     *
-     * Call this method before UI-Router has bootstrapped.
-     * It will stop UI-Router from performing the initial url sync.
-     *
-     * This can be useful to perform some asynchronous initialization before the router starts.
-     * Once the initialization is complete, call [[listen]] to tell UI-Router to start watching and synchronizing the URL.
-     *
-     * #### Example:
-     * ```js
-     * var app = angular.module('app', ['ui.router']);
-     *
-     * app.config(function ($urlRouterProvider) {
-     *   // Prevent $urlRouter from automatically intercepting URL changes;
-     *   $urlRouterProvider.deferIntercept();
-     * })
-     *
-     * app.run(function (MyService, $urlRouter, $http) {
-     *   $http.get("/stuff").then(function(resp) {
-     *     MyService.doStuff(resp.data);
-     *     $urlRouter.listen();
-     *     $urlRouter.sync();
-     *   });
-     * });
-     * ```
-     *
-     * @param defer Indicates whether to defer location change interception.
-     *        Passing no parameter is equivalent to `true`.
-     */
-    UrlRouterProvider.prototype.deferIntercept = function (defer) {
-        this._urlRouter.deferIntercept(defer);
-    };
-    ;
-    return UrlRouterProvider;
-}());
-exports.UrlRouterProvider = UrlRouterProvider;
-
-},{"@uirouter/core":37}],16:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-/** @module ng1 */ /** */
-var angular_1 = require("./angular");
-/** @hidden */
-function $ViewScrollProvider() {
-    var useAnchorScroll = false;
-    this.useAnchorScroll = function () {
-        useAnchorScroll = true;
-    };
-    this.$get = ['$anchorScroll', '$timeout', function ($anchorScroll, $timeout) {
-            if (useAnchorScroll) {
-                return $anchorScroll;
-            }
-            return function ($element) {
-                return $timeout(function () {
-                    $element[0].scrollIntoView();
-                }, 0, false);
-            };
-        }];
-}
-angular_1.ng.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider);
-
-},{"./angular":3}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -3259,7 +646,7 @@ exports.silentRejection = function (error) {
     return exports.silenceUncaughtInPromise(coreservices_1.services.$q.reject(error));
 };
 
-},{"./coreservices":18,"./hof":20,"./predicates":22}],18:[function(require,module,exports){
+},{"./coreservices":2,"./hof":4,"./predicates":6}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notImplemented = function (fnname) { return function () {
@@ -3271,7 +658,7 @@ var services = {
 };
 exports.services = services;
 
-},{}],19:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -3355,7 +742,7 @@ var Glob = (function () {
 }());
 exports.Glob = Glob;
 
-},{}],20:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 "use strict";
 /**
  * Higher order functions
@@ -3601,7 +988,7 @@ function pattern(struct) {
 }
 exports.pattern = pattern;
 
-},{}],21:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -3617,7 +1004,7 @@ __export(require("./queue"));
 __export(require("./strings"));
 __export(require("./trace"));
 
-},{"./common":17,"./coreservices":18,"./glob":19,"./hof":20,"./predicates":22,"./queue":23,"./strings":24,"./trace":25}],22:[function(require,module,exports){
+},{"./common":1,"./coreservices":2,"./glob":3,"./hof":4,"./predicates":6,"./queue":7,"./strings":8,"./trace":9}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** Predicates
@@ -3665,7 +1052,7 @@ exports.isInjectable = isInjectable;
  */
 exports.isPromise = hof_1.and(exports.isObject, hof_1.pipe(hof_1.prop('then'), exports.isFunction));
 
-},{"../state/stateObject":55,"./hof":20}],23:[function(require,module,exports){
+},{"../state/stateObject":39,"./hof":4}],7:[function(require,module,exports){
 "use strict";
 /**
  * @module common
@@ -3712,7 +1099,7 @@ var Queue = (function () {
 }());
 exports.Queue = Queue;
 
-},{}],24:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 /**
  * Functions that manipulate strings
@@ -3865,7 +1252,7 @@ function joinNeighborsR(acc, x) {
 exports.joinNeighborsR = joinNeighborsR;
 ;
 
-},{"../resolve/resolvable":49,"../transition/rejectFactory":64,"../transition/transition":65,"./common":17,"./hof":20,"./predicates":22}],25:[function(require,module,exports){
+},{"../resolve/resolvable":33,"../transition/rejectFactory":48,"../transition/transition":49,"./common":1,"./hof":4,"./predicates":6}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4109,7 +1496,7 @@ exports.Trace = Trace;
 var trace = new Trace();
 exports.trace = trace;
 
-},{"../common/hof":20,"../common/predicates":22,"./strings":24}],26:[function(require,module,exports){
+},{"../common/hof":4,"../common/predicates":6,"./strings":8}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4148,7 +1535,7 @@ var UIRouterGlobals = (function () {
 }());
 exports.UIRouterGlobals = UIRouterGlobals;
 
-},{"./common/queue":23,"./params/stateParams":43}],27:[function(require,module,exports){
+},{"./common/queue":7,"./params/stateParams":27}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module hooks */ /** */
@@ -4167,7 +1554,7 @@ exports.registerAddCoreResolvables = function (transitionService) {
     return transitionService.onCreate({}, addCoreResolvables);
 };
 
-},{"../router":51,"../transition/transition":65}],28:[function(require,module,exports){
+},{"../router":35,"../transition/transition":49}],12:[function(require,module,exports){
 "use strict";
 /** @module hooks */ /** */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4199,7 +1586,7 @@ exports.registerIgnoredTransitionHook = function (transitionService) {
     return transitionService.onBefore({}, ignoredHook, { priority: -9999 });
 };
 
-},{"../common/trace":25,"../transition/rejectFactory":64}],29:[function(require,module,exports){
+},{"../common/trace":9,"../transition/rejectFactory":48}],13:[function(require,module,exports){
 "use strict";
 /** @module hooks */ /** */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4219,7 +1606,7 @@ exports.registerInvalidTransitionHook = function (transitionService) {
     return transitionService.onBefore({}, invalidTransitionHook, { priority: -10000 });
 };
 
-},{}],30:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var coreservices_1 = require("../common/coreservices");
@@ -4317,7 +1704,7 @@ function lazyLoadState(transition, state) {
 }
 exports.lazyLoadState = lazyLoadState;
 
-},{"../common/coreservices":18}],31:[function(require,module,exports){
+},{"../common/coreservices":2}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4375,7 +1762,7 @@ exports.registerOnEnterHook = function (transitionService) {
     return transitionService.onEnter({ entering: function (state) { return !!state.onEnter; } }, onEnterHook);
 };
 
-},{}],32:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module hooks */ /** */
@@ -4413,7 +1800,7 @@ exports.registerRedirectToHook = function (transitionService) {
     return transitionService.onStart({ to: function (state) { return !!state.redirectTo; } }, redirectToHook);
 };
 
-},{"../common/coreservices":18,"../common/predicates":22,"../state/targetState":59}],33:[function(require,module,exports){
+},{"../common/coreservices":2,"../common/predicates":6,"../state/targetState":43}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module hooks */
@@ -4457,7 +1844,7 @@ exports.registerLazyResolveState = function (transitionService) {
     return transitionService.onEnter({ entering: hof_1.val(true) }, lazyResolveState, { priority: 1000 });
 };
 
-},{"../common/common":17,"../common/hof":20,"../resolve/resolveContext":50}],34:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../resolve/resolveContext":34}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var common_1 = require("../common/common");
@@ -4493,7 +1880,7 @@ exports.registerUpdateGlobalState = function (transitionService) {
     return transitionService.onCreate({}, updateGlobalState);
 };
 
-},{"../common/common":17}],35:[function(require,module,exports){
+},{"../common/common":1}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4519,7 +1906,7 @@ exports.registerUpdateUrl = function (transitionService) {
     return transitionService.onSuccess({}, updateUrl, { priority: 9999 });
 };
 
-},{}],36:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module hooks */ /** for typedoc */
@@ -4567,7 +1954,7 @@ exports.registerActivateViews = function (transitionService) {
     return transitionService.onSuccess({}, activateViews);
 };
 
-},{"../common/common":17,"../common/coreservices":18}],37:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2}],21:[function(require,module,exports){
 "use strict";
 /**
  * @coreapi
@@ -4590,7 +1977,7 @@ __export(require("./router"));
 __export(require("./vanilla"));
 __export(require("./interface"));
 
-},{"./common/index":21,"./globals":26,"./interface":38,"./params/index":39,"./path/index":44,"./resolve/index":47,"./router":51,"./state/index":52,"./transition/index":62,"./url/index":69,"./vanilla":75,"./view/index":87}],38:[function(require,module,exports){
+},{"./common/index":5,"./globals":10,"./interface":22,"./params/index":23,"./path/index":28,"./resolve/index":31,"./router":35,"./state/index":36,"./transition/index":46,"./url/index":53,"./vanilla":59,"./view/index":71}],22:[function(require,module,exports){
 "use strict";
 /**
  * # Core classes and interfaces
@@ -4612,7 +1999,7 @@ var UIRouterPluginBase = (function () {
 }());
 exports.UIRouterPluginBase = UIRouterPluginBase;
 
-},{}],39:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -4623,7 +2010,7 @@ __export(require("./paramTypes"));
 __export(require("./stateParams"));
 __export(require("./paramType"));
 
-},{"./param":40,"./paramType":41,"./paramTypes":42,"./stateParams":43}],40:[function(require,module,exports){
+},{"./param":24,"./paramType":25,"./paramTypes":26,"./stateParams":27}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4822,7 +2209,7 @@ var Param = (function () {
 }());
 exports.Param = Param;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/predicates":22,"./paramType":41}],41:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/predicates":6,"./paramType":25}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -4965,7 +2352,7 @@ function ArrayType(type, mode) {
     });
 }
 
-},{"../common/common":17,"../common/predicates":22}],42:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -5122,7 +2509,7 @@ function initDefaultTypes() {
 }
 initDefaultTypes();
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/predicates":22,"./paramType":41}],43:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/predicates":6,"./paramType":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -5167,7 +2554,7 @@ var StateParams = (function () {
 }());
 exports.StateParams = StateParams;
 
-},{"../common/common":17}],44:[function(require,module,exports){
+},{"../common/common":1}],28:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -5177,7 +2564,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./pathNode"));
 __export(require("./pathFactory"));
 
-},{"./pathFactory":45,"./pathNode":46}],45:[function(require,module,exports){
+},{"./pathFactory":29,"./pathNode":30}],29:[function(require,module,exports){
 "use strict";
 /** @module path */ /** for typedoc */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -5351,7 +2738,7 @@ PathUtils.paramValues = function (path) {
 };
 exports.PathUtils = PathUtils;
 
-},{"../common/common":17,"../common/hof":20,"../state/targetState":59,"./pathNode":46}],46:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../state/targetState":43,"./pathNode":30}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module path */ /** for typedoc */
@@ -5429,7 +2816,7 @@ var PathNode = (function () {
 }());
 exports.PathNode = PathNode;
 
-},{"../common/common":17,"../common/hof":20,"../params/param":40}],47:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../params/param":24}],31:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -5440,7 +2827,7 @@ __export(require("./interface"));
 __export(require("./resolvable"));
 __export(require("./resolveContext"));
 
-},{"./interface":48,"./resolvable":49,"./resolveContext":50}],48:[function(require,module,exports){
+},{"./interface":32,"./resolvable":33,"./resolveContext":34}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @internalapi */
@@ -5456,7 +2843,7 @@ exports.resolvePolicies = {
     }
 };
 
-},{}],49:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -5590,7 +2977,7 @@ Resolvable.fromData = function (token, data) {
 };
 exports.Resolvable = Resolvable;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/predicates":22,"../common/strings":24,"../common/trace":25}],50:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/predicates":6,"../common/strings":8,"../common/trace":9}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module resolve */
@@ -5791,7 +3178,7 @@ var UIInjectorImpl = (function () {
     return UIInjectorImpl;
 }());
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/strings":24,"../common/trace":25,"../path/pathFactory":45,"./interface":48,"./resolvable":49}],51:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/strings":8,"../common/trace":9,"../path/pathFactory":29,"./interface":32,"./resolvable":33}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -5976,7 +3363,7 @@ var UIRouter = (function () {
 }());
 exports.UIRouter = UIRouter;
 
-},{"./common/common":17,"./common/predicates":22,"./common/trace":25,"./globals":26,"./state/stateRegistry":57,"./state/stateService":58,"./transition/transitionService":68,"./url/urlMatcherFactory":71,"./url/urlRouter":72,"./url/urlService":74,"./view/view":88}],52:[function(require,module,exports){
+},{"./common/common":1,"./common/predicates":6,"./common/trace":9,"./globals":10,"./state/stateRegistry":41,"./state/stateService":42,"./transition/transitionService":52,"./url/urlMatcherFactory":55,"./url/urlRouter":56,"./url/urlService":58,"./view/view":72}],36:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -5990,7 +3377,7 @@ __export(require("./stateRegistry"));
 __export(require("./stateService"));
 __export(require("./targetState"));
 
-},{"./stateBuilder":53,"./stateMatcher":54,"./stateObject":55,"./stateQueueManager":56,"./stateRegistry":57,"./stateService":58,"./targetState":59}],53:[function(require,module,exports){
+},{"./stateBuilder":37,"./stateMatcher":38,"./stateObject":39,"./stateQueueManager":40,"./stateRegistry":41,"./stateService":42,"./targetState":43}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module state */ /** for typedoc */
@@ -6266,7 +3653,7 @@ var StateBuilder = (function () {
 }());
 exports.StateBuilder = StateBuilder;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/predicates":22,"../common/strings":24,"../resolve/resolvable":49}],54:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/predicates":6,"../common/strings":8,"../resolve/resolvable":33}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module state */ /** for typedoc */
@@ -6330,7 +3717,7 @@ var StateMatcher = (function () {
 }());
 exports.StateMatcher = StateMatcher;
 
-},{"../common/common":17,"../common/predicates":22}],55:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var common_1 = require("../common/common");
@@ -6445,7 +3832,7 @@ StateObject.isState = function (obj) {
 };
 exports.StateObject = StateObject;
 
-},{"../common/common":17,"../common/glob":19,"../common/hof":20,"../common/predicates":22}],56:[function(require,module,exports){
+},{"../common/common":1,"../common/glob":3,"../common/hof":4,"../common/predicates":6}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** @module state */ /** for typedoc */
@@ -6538,7 +3925,7 @@ var StateQueueManager = (function () {
 }());
 exports.StateQueueManager = StateQueueManager;
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"./stateObject":55}],57:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"./stateObject":39}],41:[function(require,module,exports){
 "use strict";
 /**
  * @coreapi
@@ -6695,7 +4082,7 @@ var StateRegistry = (function () {
 }());
 exports.StateRegistry = StateRegistry;
 
-},{"../common/common":17,"../common/hof":20,"./stateBuilder":53,"./stateMatcher":54,"./stateQueueManager":56}],58:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"./stateBuilder":37,"./stateMatcher":38,"./stateQueueManager":40}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -7269,7 +4656,7 @@ var StateService = (function () {
 }());
 exports.StateService = StateService;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/glob":19,"../common/hof":20,"../common/predicates":22,"../common/queue":23,"../hooks/lazyLoad":30,"../params/param":40,"../path/pathFactory":45,"../path/pathNode":46,"../resolve/resolveContext":50,"../transition/rejectFactory":64,"../transition/transitionService":68,"./targetState":59}],59:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/glob":3,"../common/hof":4,"../common/predicates":6,"../common/queue":7,"../hooks/lazyLoad":14,"../params/param":24,"../path/pathFactory":29,"../path/pathNode":30,"../resolve/resolveContext":34,"../transition/rejectFactory":48,"../transition/transitionService":52,"./targetState":43}],43:[function(require,module,exports){
 "use strict";
 /**
  * @coreapi
@@ -7384,7 +4771,7 @@ TargetState.isDef = function (obj) {
 };
 exports.TargetState = TargetState;
 
-},{"../common/common":17,"../common/predicates":22}],60:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6}],44:[function(require,module,exports){
 "use strict";
 /**
  * @coreapi
@@ -7504,7 +4891,7 @@ function tupleSort(reverseDepthSort) {
     };
 }
 
-},{"../common/common":17,"../common/predicates":22,"./interface":63,"./transitionHook":67}],61:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6,"./interface":47,"./transitionHook":51}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -7661,7 +5048,7 @@ function makeEvent(registry, transitionService, eventType) {
 }
 exports.makeEvent = makeEvent;
 
-},{"../common/common":17,"../common/glob":19,"../common/predicates":22,"./interface":63}],62:[function(require,module,exports){
+},{"../common/common":1,"../common/glob":3,"../common/predicates":6,"./interface":47}],46:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -7690,7 +5077,7 @@ __export(require("./transitionHook"));
 __export(require("./transitionEventType"));
 __export(require("./transitionService"));
 
-},{"./hookBuilder":60,"./hookRegistry":61,"./interface":63,"./rejectFactory":64,"./transition":65,"./transitionEventType":66,"./transitionHook":67,"./transitionService":68}],63:[function(require,module,exports){
+},{"./hookBuilder":44,"./hookRegistry":45,"./interface":47,"./rejectFactory":48,"./transition":49,"./transitionEventType":50,"./transitionHook":51,"./transitionService":52}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var TransitionHookPhase;
@@ -7707,7 +5094,7 @@ var TransitionHookScope;
     TransitionHookScope[TransitionHookScope["STATE"] = 1] = "STATE";
 })(TransitionHookScope = exports.TransitionHookScope || (exports.TransitionHookScope = {}));
 
-},{}],64:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /**
  * @coreapi
  * @module transition
@@ -7797,7 +5184,7 @@ var Rejection = (function () {
 }());
 exports.Rejection = Rejection;
 
-},{"../common/common":17,"../common/hof":20,"../common/strings":24}],65:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/strings":8}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -8425,7 +5812,7 @@ var Transition = (function () {
 Transition.diToken = Transition;
 exports.Transition = Transition;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/predicates":22,"../common/trace":25,"../params/param":40,"../path/pathFactory":45,"../resolve/resolvable":49,"../resolve/resolveContext":50,"../state/targetState":59,"./hookBuilder":60,"./hookRegistry":61,"./interface":63,"./transitionHook":67}],66:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/predicates":6,"../common/trace":9,"../params/param":24,"../path/pathFactory":29,"../resolve/resolvable":33,"../resolve/resolveContext":34,"../state/targetState":43,"./hookBuilder":44,"./hookRegistry":45,"./interface":47,"./transitionHook":51}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var transitionHook_1 = require("./transitionHook");
@@ -8454,7 +5841,7 @@ var TransitionEventType = (function () {
 }());
 exports.TransitionEventType = TransitionEventType;
 
-},{"./transitionHook":67}],67:[function(require,module,exports){
+},{"./transitionHook":51}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -8675,7 +6062,7 @@ TransitionHook.THROW_ERROR = function (hook) { return function (error) {
 }; };
 exports.TransitionHook = TransitionHook;
 
-},{"../common/common":17,"../common/coreservices":18,"../common/hof":20,"../common/predicates":22,"../common/strings":24,"../common/trace":25,"../state/targetState":59,"./interface":63,"./rejectFactory":64}],68:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2,"../common/hof":4,"../common/predicates":6,"../common/strings":8,"../common/trace":9,"../state/targetState":43,"./interface":47,"./rejectFactory":48}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -8915,7 +6302,7 @@ var TransitionService = (function () {
 }());
 exports.TransitionService = TransitionService;
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"../hooks/coreResolvables":27,"../hooks/ignoredTransition":28,"../hooks/invalidTransition":29,"../hooks/lazyLoad":30,"../hooks/onEnterExitRetain":31,"../hooks/redirectTo":32,"../hooks/resolve":33,"../hooks/updateGlobals":34,"../hooks/url":35,"../hooks/views":36,"./hookRegistry":61,"./interface":63,"./transition":65,"./transitionEventType":66,"./transitionHook":67}],69:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"../hooks/coreResolvables":11,"../hooks/ignoredTransition":12,"../hooks/invalidTransition":13,"../hooks/lazyLoad":14,"../hooks/onEnterExitRetain":15,"../hooks/redirectTo":16,"../hooks/resolve":17,"../hooks/updateGlobals":18,"../hooks/url":19,"../hooks/views":20,"./hookRegistry":45,"./interface":47,"./transition":49,"./transitionEventType":50,"./transitionHook":51}],53:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -8927,7 +6314,7 @@ __export(require("./urlRouter"));
 __export(require("./urlRule"));
 __export(require("./urlService"));
 
-},{"./urlMatcher":70,"./urlMatcherFactory":71,"./urlRouter":72,"./urlRule":73,"./urlService":74}],70:[function(require,module,exports){
+},{"./urlMatcher":54,"./urlMatcherFactory":55,"./urlRouter":56,"./urlRule":57,"./urlService":58}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -9431,7 +6818,7 @@ var UrlMatcher = (function () {
 UrlMatcher.nameValidator = /^\w+([-.]+\w+)*(?:\[\])?$/;
 exports.UrlMatcher = UrlMatcher;
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"../common/strings":24,"../params/param":40}],71:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"../common/strings":8,"../params/param":24}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -9559,7 +6946,7 @@ var UrlMatcherFactory = (function () {
 }());
 exports.UrlMatcherFactory = UrlMatcherFactory;
 
-},{"../common/common":17,"../common/predicates":22,"../params/param":40,"../params/paramTypes":42,"./urlMatcher":70}],72:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6,"../params/param":24,"../params/paramTypes":26,"./urlMatcher":54}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -9833,7 +7220,7 @@ function getHandlerFn(handler) {
     return predicates_1.isFunction(handler) ? handler : hof_1.val(handler);
 }
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"../state/targetState":59,"./urlMatcher":70,"./urlRule":73}],73:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"../state/targetState":43,"./urlMatcher":54,"./urlRule":57}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10043,7 +7430,7 @@ var BaseUrlRule = (function () {
 }());
 exports.BaseUrlRule = BaseUrlRule;
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"./urlMatcher":70}],74:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"./urlMatcher":54}],58:[function(require,module,exports){
 "use strict";
 /**
  * @coreapi
@@ -10124,7 +7511,7 @@ UrlService.locationServiceStub = makeStub(locationServicesFns);
 UrlService.locationConfigStub = makeStub(locationConfigFns);
 exports.UrlService = UrlService;
 
-},{"../common/common":17,"../common/coreservices":18}],75:[function(require,module,exports){
+},{"../common/common":1,"../common/coreservices":2}],59:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -10137,7 +7524,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /** */
 __export(require("./vanilla/index"));
 
-},{"./vanilla/index":79}],76:[function(require,module,exports){
+},{"./vanilla/index":63}],60:[function(require,module,exports){
 "use strict";
 /**
  * @internalapi
@@ -10183,7 +7570,7 @@ var BaseLocationServices = (function () {
 }());
 exports.BaseLocationServices = BaseLocationServices;
 
-},{"../common/common":17,"../common/predicates":22,"./utils":86}],77:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6,"./utils":70}],61:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10231,7 +7618,7 @@ var BrowserLocationConfig = (function () {
 }());
 exports.BrowserLocationConfig = BrowserLocationConfig;
 
-},{"../common/predicates":22}],78:[function(require,module,exports){
+},{"../common/predicates":6}],62:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
@@ -10273,7 +7660,7 @@ var HashLocationService = (function (_super) {
 }(baseLocationService_1.BaseLocationServices));
 exports.HashLocationService = HashLocationService;
 
-},{"./baseLocationService":76,"./utils":86}],79:[function(require,module,exports){
+},{"./baseLocationService":60,"./utils":70}],63:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -10290,7 +7677,7 @@ __export(require("./browserLocationConfig"));
 __export(require("./utils"));
 __export(require("./plugins"));
 
-},{"./baseLocationService":76,"./browserLocationConfig":77,"./hashLocationService":78,"./injector":80,"./memoryLocationConfig":81,"./memoryLocationService":82,"./plugins":83,"./pushStateLocationService":84,"./q":85,"./utils":86}],80:[function(require,module,exports){
+},{"./baseLocationService":60,"./browserLocationConfig":61,"./hashLocationService":62,"./injector":64,"./memoryLocationConfig":65,"./memoryLocationService":66,"./plugins":67,"./pushStateLocationService":68,"./q":69,"./utils":70}],64:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10391,7 +7778,7 @@ exports.$injector = {
     }
 };
 
-},{"../common/index":21}],81:[function(require,module,exports){
+},{"../common/index":5}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var predicates_1 = require("../common/predicates");
@@ -10417,7 +7804,7 @@ var MemoryLocationConfig = (function () {
 }());
 exports.MemoryLocationConfig = MemoryLocationConfig;
 
-},{"../common/common":17,"../common/predicates":22}],82:[function(require,module,exports){
+},{"../common/common":1,"../common/predicates":6}],66:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
@@ -10452,7 +7839,7 @@ var MemoryLocationService = (function (_super) {
 }(baseLocationService_1.BaseLocationServices));
 exports.MemoryLocationService = MemoryLocationService;
 
-},{"./baseLocationService":76}],83:[function(require,module,exports){
+},{"./baseLocationService":60}],67:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10482,7 +7869,7 @@ exports.pushStateLocationPlugin = utils_1.locationPluginFactory("vanilla.pushSta
 /** A `UIRouterPlugin` that gets/sets the current location from an in-memory object */
 exports.memoryLocationPlugin = utils_1.locationPluginFactory("vanilla.memoryLocation", false, memoryLocationService_1.MemoryLocationService, memoryLocationConfig_1.MemoryLocationConfig);
 
-},{"../common/coreservices":18,"./browserLocationConfig":77,"./hashLocationService":78,"./injector":80,"./memoryLocationConfig":81,"./memoryLocationService":82,"./pushStateLocationService":84,"./q":85,"./utils":86}],84:[function(require,module,exports){
+},{"../common/coreservices":2,"./browserLocationConfig":61,"./hashLocationService":62,"./injector":64,"./memoryLocationConfig":65,"./memoryLocationService":66,"./pushStateLocationService":68,"./q":69,"./utils":70}],68:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
@@ -10535,7 +7922,7 @@ var PushStateLocationService = (function (_super) {
 }(baseLocationService_1.BaseLocationServices));
 exports.PushStateLocationService = PushStateLocationService;
 
-},{"./baseLocationService":76,"./utils":86}],85:[function(require,module,exports){
+},{"./baseLocationService":60,"./utils":70}],69:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10591,7 +7978,7 @@ exports.$q = {
     }
 };
 
-},{"../common/index":21}],86:[function(require,module,exports){
+},{"../common/index":5}],70:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10660,7 +8047,7 @@ function locationPluginFactory(name, isHtml5, serviceClass, configurationClass) 
 }
 exports.locationPluginFactory = locationPluginFactory;
 
-},{"../common/common":17,"../common/index":21}],87:[function(require,module,exports){
+},{"../common/common":1,"../common/index":5}],71:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -10668,7 +8055,7 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./view"));
 
-},{"./view":88}],88:[function(require,module,exports){
+},{"./view":72}],72:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
@@ -10952,7 +8339,3427 @@ ViewService.matches = function (uiViewsByFqn, uiView) { return function (viewCon
 }; };
 exports.ViewService = ViewService;
 
-},{"../common/common":17,"../common/hof":20,"../common/predicates":22,"../common/trace":25}],89:[function(require,module,exports){
+},{"../common/common":1,"../common/hof":4,"../common/predicates":6,"../common/trace":9}],73:[function(require,module,exports){
+/**
+ * @license AngularJS v1.6.9
+ * (c) 2010-2018 Google, Inc. http://angularjs.org
+ * License: MIT
+ */
+(function(window, angular) {'use strict';
+
+/**
+ * @ngdoc module
+ * @name ngAria
+ * @description
+ *
+ * The `ngAria` module provides support for common
+ * [<abbr title="Accessible Rich Internet Applications">ARIA</abbr>](http://www.w3.org/TR/wai-aria/)
+ * attributes that convey state or semantic information about the application for users
+ * of assistive technologies, such as screen readers.
+ *
+ * ## Usage
+ *
+ * For ngAria to do its magic, simply include the module `ngAria` as a dependency. The following
+ * directives are supported:
+ * `ngModel`, `ngChecked`, `ngReadonly`, `ngRequired`, `ngValue`, `ngDisabled`, `ngShow`, `ngHide`, `ngClick`,
+ * `ngDblClick`, and `ngMessages`.
+ *
+ * Below is a more detailed breakdown of the attributes handled by ngAria:
+ *
+ * | Directive                                   | Supported Attributes                                                                                |
+ * |---------------------------------------------|-----------------------------------------------------------------------------------------------------|
+ * | {@link ng.directive:ngModel ngModel}        | aria-checked, aria-valuemin, aria-valuemax, aria-valuenow, aria-invalid, aria-required, input roles |
+ * | {@link ng.directive:ngDisabled ngDisabled}  | aria-disabled                                                                                       |
+ * | {@link ng.directive:ngRequired ngRequired}  | aria-required                                                                                       |
+ * | {@link ng.directive:ngChecked ngChecked}    | aria-checked                                                                                        |
+ * | {@link ng.directive:ngReadonly ngReadonly}  | aria-readonly                                                                                       |
+ * | {@link ng.directive:ngValue ngValue}        | aria-checked                                                                                        |
+ * | {@link ng.directive:ngShow ngShow}          | aria-hidden                                                                                         |
+ * | {@link ng.directive:ngHide ngHide}          | aria-hidden                                                                                         |
+ * | {@link ng.directive:ngDblclick ngDblclick}  | tabindex                                                                                            |
+ * | {@link module:ngMessages ngMessages}        | aria-live                                                                                           |
+ * | {@link ng.directive:ngClick ngClick}        | tabindex, keydown event, button role                                                                |
+ *
+ * Find out more information about each directive by reading the
+ * {@link guide/accessibility ngAria Developer Guide}.
+ *
+ * ## Example
+ * Using ngDisabled with ngAria:
+ * ```html
+ * <md-checkbox ng-disabled="disabled">
+ * ```
+ * Becomes:
+ * ```html
+ * <md-checkbox ng-disabled="disabled" aria-disabled="true">
+ * ```
+ *
+ * ## Disabling Attributes
+ * It's possible to disable individual attributes added by ngAria with the
+ * {@link ngAria.$ariaProvider#config config} method. For more details, see the
+ * {@link guide/accessibility Developer Guide}.
+ */
+var ngAriaModule = angular.module('ngAria', ['ng']).
+                        info({ angularVersion: '1.6.9' }).
+                        provider('$aria', $AriaProvider);
+
+/**
+* Internal Utilities
+*/
+var nodeBlackList = ['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'DETAILS', 'SUMMARY'];
+
+var isNodeOneOf = function(elem, nodeTypeArray) {
+  if (nodeTypeArray.indexOf(elem[0].nodeName) !== -1) {
+    return true;
+  }
+};
+/**
+ * @ngdoc provider
+ * @name $ariaProvider
+ * @this
+ *
+ * @description
+ *
+ * Used for configuring the ARIA attributes injected and managed by ngAria.
+ *
+ * ```js
+ * angular.module('myApp', ['ngAria'], function config($ariaProvider) {
+ *   $ariaProvider.config({
+ *     ariaValue: true,
+ *     tabindex: false
+ *   });
+ * });
+ *```
+ *
+ * ## Dependencies
+ * Requires the {@link ngAria} module to be installed.
+ *
+ */
+function $AriaProvider() {
+  var config = {
+    ariaHidden: true,
+    ariaChecked: true,
+    ariaReadonly: true,
+    ariaDisabled: true,
+    ariaRequired: true,
+    ariaInvalid: true,
+    ariaValue: true,
+    tabindex: true,
+    bindKeydown: true,
+    bindRoleForClick: true
+  };
+
+  /**
+   * @ngdoc method
+   * @name $ariaProvider#config
+   *
+   * @param {object} config object to enable/disable specific ARIA attributes
+   *
+   *  - **ariaHidden** – `{boolean}` – Enables/disables aria-hidden tags
+   *  - **ariaChecked** – `{boolean}` – Enables/disables aria-checked tags
+   *  - **ariaReadonly** – `{boolean}` – Enables/disables aria-readonly tags
+   *  - **ariaDisabled** – `{boolean}` – Enables/disables aria-disabled tags
+   *  - **ariaRequired** – `{boolean}` – Enables/disables aria-required tags
+   *  - **ariaInvalid** – `{boolean}` – Enables/disables aria-invalid tags
+   *  - **ariaValue** – `{boolean}` – Enables/disables aria-valuemin, aria-valuemax and
+   *    aria-valuenow tags
+   *  - **tabindex** – `{boolean}` – Enables/disables tabindex tags
+   *  - **bindKeydown** – `{boolean}` – Enables/disables keyboard event binding on non-interactive
+   *    elements (such as `div` or `li`) using ng-click, making them more accessible to users of
+   *    assistive technologies
+   *  - **bindRoleForClick** – `{boolean}` – Adds role=button to non-interactive elements (such as
+   *    `div` or `li`) using ng-click, making them more accessible to users of assistive
+   *    technologies
+   *
+   * @description
+   * Enables/disables various ARIA attributes
+   */
+  this.config = function(newConfig) {
+    config = angular.extend(config, newConfig);
+  };
+
+  function watchExpr(attrName, ariaAttr, nodeBlackList, negate) {
+    return function(scope, elem, attr) {
+      var ariaCamelName = attr.$normalize(ariaAttr);
+      if (config[ariaCamelName] && !isNodeOneOf(elem, nodeBlackList) && !attr[ariaCamelName]) {
+        scope.$watch(attr[attrName], function(boolVal) {
+          // ensure boolean value
+          boolVal = negate ? !boolVal : !!boolVal;
+          elem.attr(ariaAttr, boolVal);
+        });
+      }
+    };
+  }
+  /**
+   * @ngdoc service
+   * @name $aria
+   *
+   * @description
+   * @priority 200
+   *
+   * The $aria service contains helper methods for applying common
+   * [ARIA](http://www.w3.org/TR/wai-aria/) attributes to HTML directives.
+   *
+   * ngAria injects common accessibility attributes that tell assistive technologies when HTML
+   * elements are enabled, selected, hidden, and more. To see how this is performed with ngAria,
+   * let's review a code snippet from ngAria itself:
+   *
+   *```js
+   * ngAriaModule.directive('ngDisabled', ['$aria', function($aria) {
+   *   return $aria.$$watchExpr('ngDisabled', 'aria-disabled', nodeBlackList, false);
+   * }])
+   *```
+   * Shown above, the ngAria module creates a directive with the same signature as the
+   * traditional `ng-disabled` directive. But this ngAria version is dedicated to
+   * solely managing accessibility attributes on custom elements. The internal `$aria` service is
+   * used to watch the boolean attribute `ngDisabled`. If it has not been explicitly set by the
+   * developer, `aria-disabled` is injected as an attribute with its value synchronized to the
+   * value in `ngDisabled`.
+   *
+   * Because ngAria hooks into the `ng-disabled` directive, developers do not have to do
+   * anything to enable this feature. The `aria-disabled` attribute is automatically managed
+   * simply as a silent side-effect of using `ng-disabled` with the ngAria module.
+   *
+   * The full list of directives that interface with ngAria:
+   * * **ngModel**
+   * * **ngChecked**
+   * * **ngReadonly**
+   * * **ngRequired**
+   * * **ngDisabled**
+   * * **ngValue**
+   * * **ngShow**
+   * * **ngHide**
+   * * **ngClick**
+   * * **ngDblclick**
+   * * **ngMessages**
+   *
+   * Read the {@link guide/accessibility ngAria Developer Guide} for a thorough explanation of each
+   * directive.
+   *
+   *
+   * ## Dependencies
+   * Requires the {@link ngAria} module to be installed.
+   */
+  this.$get = function() {
+    return {
+      config: function(key) {
+        return config[key];
+      },
+      $$watchExpr: watchExpr
+    };
+  };
+}
+
+
+ngAriaModule.directive('ngShow', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngShow', 'aria-hidden', [], true);
+}])
+.directive('ngHide', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngHide', 'aria-hidden', [], false);
+}])
+.directive('ngValue', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngValue', 'aria-checked', nodeBlackList, false);
+}])
+.directive('ngChecked', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngChecked', 'aria-checked', nodeBlackList, false);
+}])
+.directive('ngReadonly', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngReadonly', 'aria-readonly', nodeBlackList, false);
+}])
+.directive('ngRequired', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngRequired', 'aria-required', nodeBlackList, false);
+}])
+.directive('ngModel', ['$aria', function($aria) {
+
+  function shouldAttachAttr(attr, normalizedAttr, elem, allowBlacklistEls) {
+    return $aria.config(normalizedAttr) && !elem.attr(attr) && (allowBlacklistEls || !isNodeOneOf(elem, nodeBlackList));
+  }
+
+  function shouldAttachRole(role, elem) {
+    // if element does not have role attribute
+    // AND element type is equal to role (if custom element has a type equaling shape) <-- remove?
+    // AND element is not in nodeBlackList
+    return !elem.attr('role') && (elem.attr('type') === role) && !isNodeOneOf(elem, nodeBlackList);
+  }
+
+  function getShape(attr, elem) {
+    var type = attr.type,
+        role = attr.role;
+
+    return ((type || role) === 'checkbox' || role === 'menuitemcheckbox') ? 'checkbox' :
+           ((type || role) === 'radio'    || role === 'menuitemradio') ? 'radio' :
+           (type === 'range'              || role === 'progressbar' || role === 'slider') ? 'range' : '';
+  }
+
+  return {
+    restrict: 'A',
+    require: 'ngModel',
+    priority: 200, //Make sure watches are fired after any other directives that affect the ngModel value
+    compile: function(elem, attr) {
+      var shape = getShape(attr, elem);
+
+      return {
+        post: function(scope, elem, attr, ngModel) {
+          var needsTabIndex = shouldAttachAttr('tabindex', 'tabindex', elem, false);
+
+          function ngAriaWatchModelValue() {
+            return ngModel.$modelValue;
+          }
+
+          function getRadioReaction(newVal) {
+            // Strict comparison would cause a BC
+            // eslint-disable-next-line eqeqeq
+            var boolVal = (attr.value == ngModel.$viewValue);
+            elem.attr('aria-checked', boolVal);
+          }
+
+          function getCheckboxReaction() {
+            elem.attr('aria-checked', !ngModel.$isEmpty(ngModel.$viewValue));
+          }
+
+          switch (shape) {
+            case 'radio':
+            case 'checkbox':
+              if (shouldAttachRole(shape, elem)) {
+                elem.attr('role', shape);
+              }
+              if (shouldAttachAttr('aria-checked', 'ariaChecked', elem, false)) {
+                scope.$watch(ngAriaWatchModelValue, shape === 'radio' ?
+                    getRadioReaction : getCheckboxReaction);
+              }
+              if (needsTabIndex) {
+                elem.attr('tabindex', 0);
+              }
+              break;
+            case 'range':
+              if (shouldAttachRole(shape, elem)) {
+                elem.attr('role', 'slider');
+              }
+              if ($aria.config('ariaValue')) {
+                var needsAriaValuemin = !elem.attr('aria-valuemin') &&
+                    (attr.hasOwnProperty('min') || attr.hasOwnProperty('ngMin'));
+                var needsAriaValuemax = !elem.attr('aria-valuemax') &&
+                    (attr.hasOwnProperty('max') || attr.hasOwnProperty('ngMax'));
+                var needsAriaValuenow = !elem.attr('aria-valuenow');
+
+                if (needsAriaValuemin) {
+                  attr.$observe('min', function ngAriaValueMinReaction(newVal) {
+                    elem.attr('aria-valuemin', newVal);
+                  });
+                }
+                if (needsAriaValuemax) {
+                  attr.$observe('max', function ngAriaValueMinReaction(newVal) {
+                    elem.attr('aria-valuemax', newVal);
+                  });
+                }
+                if (needsAriaValuenow) {
+                  scope.$watch(ngAriaWatchModelValue, function ngAriaValueNowReaction(newVal) {
+                    elem.attr('aria-valuenow', newVal);
+                  });
+                }
+              }
+              if (needsTabIndex) {
+                elem.attr('tabindex', 0);
+              }
+              break;
+          }
+
+          if (!attr.hasOwnProperty('ngRequired') && ngModel.$validators.required
+            && shouldAttachAttr('aria-required', 'ariaRequired', elem, false)) {
+            // ngModel.$error.required is undefined on custom controls
+            attr.$observe('required', function() {
+              elem.attr('aria-required', !!attr['required']);
+            });
+          }
+
+          if (shouldAttachAttr('aria-invalid', 'ariaInvalid', elem, true)) {
+            scope.$watch(function ngAriaInvalidWatch() {
+              return ngModel.$invalid;
+            }, function ngAriaInvalidReaction(newVal) {
+              elem.attr('aria-invalid', !!newVal);
+            });
+          }
+        }
+      };
+    }
+  };
+}])
+.directive('ngDisabled', ['$aria', function($aria) {
+  return $aria.$$watchExpr('ngDisabled', 'aria-disabled', nodeBlackList, false);
+}])
+.directive('ngMessages', function() {
+  return {
+    restrict: 'A',
+    require: '?ngMessages',
+    link: function(scope, elem, attr, ngMessages) {
+      if (!elem.attr('aria-live')) {
+        elem.attr('aria-live', 'assertive');
+      }
+    }
+  };
+})
+.directive('ngClick',['$aria', '$parse', function($aria, $parse) {
+  return {
+    restrict: 'A',
+    compile: function(elem, attr) {
+      var fn = $parse(attr.ngClick);
+      return function(scope, elem, attr) {
+
+        if (!isNodeOneOf(elem, nodeBlackList)) {
+
+          if ($aria.config('bindRoleForClick') && !elem.attr('role')) {
+            elem.attr('role', 'button');
+          }
+
+          if ($aria.config('tabindex') && !elem.attr('tabindex')) {
+            elem.attr('tabindex', 0);
+          }
+
+          if ($aria.config('bindKeydown') && !attr.ngKeydown && !attr.ngKeypress && !attr.ngKeyup) {
+            elem.on('keydown', function(event) {
+              var keyCode = event.which || event.keyCode;
+              if (keyCode === 32 || keyCode === 13) {
+                scope.$apply(callback);
+              }
+
+              function callback() {
+                fn(scope, { $event: event });
+              }
+            });
+          }
+        }
+      };
+    }
+  };
+}])
+.directive('ngDblclick', ['$aria', function($aria) {
+  return function(scope, elem, attr) {
+    if ($aria.config('tabindex') && !elem.attr('tabindex') && !isNodeOneOf(elem, nodeBlackList)) {
+      elem.attr('tabindex', 0);
+    }
+  };
+}]);
+
+
+})(window, window.angular);
+
+},{}],74:[function(require,module,exports){
+require('./angular-aria');
+module.exports = 'ngAria';
+
+},{"./angular-aria":73}],75:[function(require,module,exports){
+/**
+ * @license AngularJS v1.6.9
+ * (c) 2010-2018 Google, Inc. http://angularjs.org
+ * License: MIT
+ */
+(function(window, angular) {'use strict';
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *     Any commits to this file should be reviewed with security in mind.  *
+ *   Changes to this file can potentially create security vulnerabilities. *
+ *          An approval from 2 Core members with history of modifying      *
+ *                         this file is required.                          *
+ *                                                                         *
+ *  Does the change somehow allow for arbitrary javascript to be executed? *
+ *    Or allows for someone to change the prototype of built-in objects?   *
+ *     Or gives undesired access to variables likes document or window?    *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var $sanitizeMinErr = angular.$$minErr('$sanitize');
+var bind;
+var extend;
+var forEach;
+var isDefined;
+var lowercase;
+var noop;
+var nodeContains;
+var htmlParser;
+var htmlSanitizeWriter;
+
+/**
+ * @ngdoc module
+ * @name ngSanitize
+ * @description
+ *
+ * The `ngSanitize` module provides functionality to sanitize HTML.
+ *
+ * See {@link ngSanitize.$sanitize `$sanitize`} for usage.
+ */
+
+/**
+ * @ngdoc service
+ * @name $sanitize
+ * @kind function
+ *
+ * @description
+ *   Sanitizes an html string by stripping all potentially dangerous tokens.
+ *
+ *   The input is sanitized by parsing the HTML into tokens. All safe tokens (from a whitelist) are
+ *   then serialized back to properly escaped html string. This means that no unsafe input can make
+ *   it into the returned string.
+ *
+ *   The whitelist for URL sanitization of attribute values is configured using the functions
+ *   `aHrefSanitizationWhitelist` and `imgSrcSanitizationWhitelist` of {@link ng.$compileProvider
+ *   `$compileProvider`}.
+ *
+ *   The input may also contain SVG markup if this is enabled via {@link $sanitizeProvider}.
+ *
+ * @param {string} html HTML input.
+ * @returns {string} Sanitized HTML.
+ *
+ * @example
+   <example module="sanitizeExample" deps="angular-sanitize.js" name="sanitize-service">
+   <file name="index.html">
+     <script>
+         angular.module('sanitizeExample', ['ngSanitize'])
+           .controller('ExampleController', ['$scope', '$sce', function($scope, $sce) {
+             $scope.snippet =
+               '<p style="color:blue">an html\n' +
+               '<em onmouseover="this.textContent=\'PWN3D!\'">click here</em>\n' +
+               'snippet</p>';
+             $scope.deliberatelyTrustDangerousSnippet = function() {
+               return $sce.trustAsHtml($scope.snippet);
+             };
+           }]);
+     </script>
+     <div ng-controller="ExampleController">
+        Snippet: <textarea ng-model="snippet" cols="60" rows="3"></textarea>
+       <table>
+         <tr>
+           <td>Directive</td>
+           <td>How</td>
+           <td>Source</td>
+           <td>Rendered</td>
+         </tr>
+         <tr id="bind-html-with-sanitize">
+           <td>ng-bind-html</td>
+           <td>Automatically uses $sanitize</td>
+           <td><pre>&lt;div ng-bind-html="snippet"&gt;<br/>&lt;/div&gt;</pre></td>
+           <td><div ng-bind-html="snippet"></div></td>
+         </tr>
+         <tr id="bind-html-with-trust">
+           <td>ng-bind-html</td>
+           <td>Bypass $sanitize by explicitly trusting the dangerous value</td>
+           <td>
+           <pre>&lt;div ng-bind-html="deliberatelyTrustDangerousSnippet()"&gt;
+&lt;/div&gt;</pre>
+           </td>
+           <td><div ng-bind-html="deliberatelyTrustDangerousSnippet()"></div></td>
+         </tr>
+         <tr id="bind-default">
+           <td>ng-bind</td>
+           <td>Automatically escapes</td>
+           <td><pre>&lt;div ng-bind="snippet"&gt;<br/>&lt;/div&gt;</pre></td>
+           <td><div ng-bind="snippet"></div></td>
+         </tr>
+       </table>
+       </div>
+   </file>
+   <file name="protractor.js" type="protractor">
+     it('should sanitize the html snippet by default', function() {
+       expect(element(by.css('#bind-html-with-sanitize div')).getAttribute('innerHTML')).
+         toBe('<p>an html\n<em>click here</em>\nsnippet</p>');
+     });
+
+     it('should inline raw snippet if bound to a trusted value', function() {
+       expect(element(by.css('#bind-html-with-trust div')).getAttribute('innerHTML')).
+         toBe("<p style=\"color:blue\">an html\n" +
+              "<em onmouseover=\"this.textContent='PWN3D!'\">click here</em>\n" +
+              "snippet</p>");
+     });
+
+     it('should escape snippet without any filter', function() {
+       expect(element(by.css('#bind-default div')).getAttribute('innerHTML')).
+         toBe("&lt;p style=\"color:blue\"&gt;an html\n" +
+              "&lt;em onmouseover=\"this.textContent='PWN3D!'\"&gt;click here&lt;/em&gt;\n" +
+              "snippet&lt;/p&gt;");
+     });
+
+     it('should update', function() {
+       element(by.model('snippet')).clear();
+       element(by.model('snippet')).sendKeys('new <b onclick="alert(1)">text</b>');
+       expect(element(by.css('#bind-html-with-sanitize div')).getAttribute('innerHTML')).
+         toBe('new <b>text</b>');
+       expect(element(by.css('#bind-html-with-trust div')).getAttribute('innerHTML')).toBe(
+         'new <b onclick="alert(1)">text</b>');
+       expect(element(by.css('#bind-default div')).getAttribute('innerHTML')).toBe(
+         "new &lt;b onclick=\"alert(1)\"&gt;text&lt;/b&gt;");
+     });
+   </file>
+   </example>
+ */
+
+
+/**
+ * @ngdoc provider
+ * @name $sanitizeProvider
+ * @this
+ *
+ * @description
+ * Creates and configures {@link $sanitize} instance.
+ */
+function $SanitizeProvider() {
+  var svgEnabled = false;
+
+  this.$get = ['$$sanitizeUri', function($$sanitizeUri) {
+    if (svgEnabled) {
+      extend(validElements, svgElements);
+    }
+    return function(html) {
+      var buf = [];
+      htmlParser(html, htmlSanitizeWriter(buf, function(uri, isImage) {
+        return !/^unsafe:/.test($$sanitizeUri(uri, isImage));
+      }));
+      return buf.join('');
+    };
+  }];
+
+
+  /**
+   * @ngdoc method
+   * @name $sanitizeProvider#enableSvg
+   * @kind function
+   *
+   * @description
+   * Enables a subset of svg to be supported by the sanitizer.
+   *
+   * <div class="alert alert-warning">
+   *   <p>By enabling this setting without taking other precautions, you might expose your
+   *   application to click-hijacking attacks. In these attacks, sanitized svg elements could be positioned
+   *   outside of the containing element and be rendered over other elements on the page (e.g. a login
+   *   link). Such behavior can then result in phishing incidents.</p>
+   *
+   *   <p>To protect against these, explicitly setup `overflow: hidden` css rule for all potential svg
+   *   tags within the sanitized content:</p>
+   *
+   *   <br>
+   *
+   *   <pre><code>
+   *   .rootOfTheIncludedContent svg {
+   *     overflow: hidden !important;
+   *   }
+   *   </code></pre>
+   * </div>
+   *
+   * @param {boolean=} flag Enable or disable SVG support in the sanitizer.
+   * @returns {boolean|ng.$sanitizeProvider} Returns the currently configured value if called
+   *    without an argument or self for chaining otherwise.
+   */
+  this.enableSvg = function(enableSvg) {
+    if (isDefined(enableSvg)) {
+      svgEnabled = enableSvg;
+      return this;
+    } else {
+      return svgEnabled;
+    }
+  };
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Private stuff
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+
+  bind = angular.bind;
+  extend = angular.extend;
+  forEach = angular.forEach;
+  isDefined = angular.isDefined;
+  lowercase = angular.lowercase;
+  noop = angular.noop;
+
+  htmlParser = htmlParserImpl;
+  htmlSanitizeWriter = htmlSanitizeWriterImpl;
+
+  nodeContains = window.Node.prototype.contains || /** @this */ function(arg) {
+    // eslint-disable-next-line no-bitwise
+    return !!(this.compareDocumentPosition(arg) & 16);
+  };
+
+  // Regular Expressions for parsing tags and attributes
+  var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+    // Match everything outside of normal chars and " (quote character)
+    NON_ALPHANUMERIC_REGEXP = /([^#-~ |!])/g;
+
+
+  // Good source of info about elements and attributes
+  // http://dev.w3.org/html5/spec/Overview.html#semantics
+  // http://simon.html5.org/html-elements
+
+  // Safe Void Elements - HTML5
+  // http://dev.w3.org/html5/spec/Overview.html#void-elements
+  var voidElements = toMap('area,br,col,hr,img,wbr');
+
+  // Elements that you can, intentionally, leave open (and which close themselves)
+  // http://dev.w3.org/html5/spec/Overview.html#optional-tags
+  var optionalEndTagBlockElements = toMap('colgroup,dd,dt,li,p,tbody,td,tfoot,th,thead,tr'),
+      optionalEndTagInlineElements = toMap('rp,rt'),
+      optionalEndTagElements = extend({},
+                                              optionalEndTagInlineElements,
+                                              optionalEndTagBlockElements);
+
+  // Safe Block Elements - HTML5
+  var blockElements = extend({}, optionalEndTagBlockElements, toMap('address,article,' +
+          'aside,blockquote,caption,center,del,dir,div,dl,figure,figcaption,footer,h1,h2,h3,h4,h5,' +
+          'h6,header,hgroup,hr,ins,map,menu,nav,ol,pre,section,table,ul'));
+
+  // Inline Elements - HTML5
+  var inlineElements = extend({}, optionalEndTagInlineElements, toMap('a,abbr,acronym,b,' +
+          'bdi,bdo,big,br,cite,code,del,dfn,em,font,i,img,ins,kbd,label,map,mark,q,ruby,rp,rt,s,' +
+          'samp,small,span,strike,strong,sub,sup,time,tt,u,var'));
+
+  // SVG Elements
+  // https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Elements
+  // Note: the elements animate,animateColor,animateMotion,animateTransform,set are intentionally omitted.
+  // They can potentially allow for arbitrary javascript to be executed. See #11290
+  var svgElements = toMap('circle,defs,desc,ellipse,font-face,font-face-name,font-face-src,g,glyph,' +
+          'hkern,image,linearGradient,line,marker,metadata,missing-glyph,mpath,path,polygon,polyline,' +
+          'radialGradient,rect,stop,svg,switch,text,title,tspan');
+
+  // Blocked Elements (will be stripped)
+  var blockedElements = toMap('script,style');
+
+  var validElements = extend({},
+                                     voidElements,
+                                     blockElements,
+                                     inlineElements,
+                                     optionalEndTagElements);
+
+  //Attributes that have href and hence need to be sanitized
+  var uriAttrs = toMap('background,cite,href,longdesc,src,xlink:href,xml:base');
+
+  var htmlAttrs = toMap('abbr,align,alt,axis,bgcolor,border,cellpadding,cellspacing,class,clear,' +
+      'color,cols,colspan,compact,coords,dir,face,headers,height,hreflang,hspace,' +
+      'ismap,lang,language,nohref,nowrap,rel,rev,rows,rowspan,rules,' +
+      'scope,scrolling,shape,size,span,start,summary,tabindex,target,title,type,' +
+      'valign,value,vspace,width');
+
+  // SVG attributes (without "id" and "name" attributes)
+  // https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Attributes
+  var svgAttrs = toMap('accent-height,accumulate,additive,alphabetic,arabic-form,ascent,' +
+      'baseProfile,bbox,begin,by,calcMode,cap-height,class,color,color-rendering,content,' +
+      'cx,cy,d,dx,dy,descent,display,dur,end,fill,fill-rule,font-family,font-size,font-stretch,' +
+      'font-style,font-variant,font-weight,from,fx,fy,g1,g2,glyph-name,gradientUnits,hanging,' +
+      'height,horiz-adv-x,horiz-origin-x,ideographic,k,keyPoints,keySplines,keyTimes,lang,' +
+      'marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,mathematical,' +
+      'max,min,offset,opacity,orient,origin,overline-position,overline-thickness,panose-1,' +
+      'path,pathLength,points,preserveAspectRatio,r,refX,refY,repeatCount,repeatDur,' +
+      'requiredExtensions,requiredFeatures,restart,rotate,rx,ry,slope,stemh,stemv,stop-color,' +
+      'stop-opacity,strikethrough-position,strikethrough-thickness,stroke,stroke-dasharray,' +
+      'stroke-dashoffset,stroke-linecap,stroke-linejoin,stroke-miterlimit,stroke-opacity,' +
+      'stroke-width,systemLanguage,target,text-anchor,to,transform,type,u1,u2,underline-position,' +
+      'underline-thickness,unicode,unicode-range,units-per-em,values,version,viewBox,visibility,' +
+      'width,widths,x,x-height,x1,x2,xlink:actuate,xlink:arcrole,xlink:role,xlink:show,xlink:title,' +
+      'xlink:type,xml:base,xml:lang,xml:space,xmlns,xmlns:xlink,y,y1,y2,zoomAndPan', true);
+
+  var validAttrs = extend({},
+                                  uriAttrs,
+                                  svgAttrs,
+                                  htmlAttrs);
+
+  function toMap(str, lowercaseKeys) {
+    var obj = {}, items = str.split(','), i;
+    for (i = 0; i < items.length; i++) {
+      obj[lowercaseKeys ? lowercase(items[i]) : items[i]] = true;
+    }
+    return obj;
+  }
+
+  /**
+   * Create an inert document that contains the dirty HTML that needs sanitizing
+   * Depending upon browser support we use one of three strategies for doing this.
+   * Support: Safari 10.x -> XHR strategy
+   * Support: Firefox -> DomParser strategy
+   */
+  var getInertBodyElement /* function(html: string): HTMLBodyElement */ = (function(window, document) {
+    var inertDocument;
+    if (document && document.implementation) {
+      inertDocument = document.implementation.createHTMLDocument('inert');
+    } else {
+      throw $sanitizeMinErr('noinert', 'Can\'t create an inert html document');
+    }
+    var inertBodyElement = (inertDocument.documentElement || inertDocument.getDocumentElement()).querySelector('body');
+
+    // Check for the Safari 10.1 bug - which allows JS to run inside the SVG G element
+    inertBodyElement.innerHTML = '<svg><g onload="this.parentNode.remove()"></g></svg>';
+    if (!inertBodyElement.querySelector('svg')) {
+      return getInertBodyElement_XHR;
+    } else {
+      // Check for the Firefox bug - which prevents the inner img JS from being sanitized
+      inertBodyElement.innerHTML = '<svg><p><style><img src="</style><img src=x onerror=alert(1)//">';
+      if (inertBodyElement.querySelector('svg img')) {
+        return getInertBodyElement_DOMParser;
+      } else {
+        return getInertBodyElement_InertDocument;
+      }
+    }
+
+    function getInertBodyElement_XHR(html) {
+      // We add this dummy element to ensure that the rest of the content is parsed as expected
+      // e.g. leading whitespace is maintained and tags like `<meta>` do not get hoisted to the `<head>` tag.
+      html = '<remove></remove>' + html;
+      try {
+        html = encodeURI(html);
+      } catch (e) {
+        return undefined;
+      }
+      var xhr = new window.XMLHttpRequest();
+      xhr.responseType = 'document';
+      xhr.open('GET', 'data:text/html;charset=utf-8,' + html, false);
+      xhr.send(null);
+      var body = xhr.response.body;
+      body.firstChild.remove();
+      return body;
+    }
+
+    function getInertBodyElement_DOMParser(html) {
+      // We add this dummy element to ensure that the rest of the content is parsed as expected
+      // e.g. leading whitespace is maintained and tags like `<meta>` do not get hoisted to the `<head>` tag.
+      html = '<remove></remove>' + html;
+      try {
+        var body = new window.DOMParser().parseFromString(html, 'text/html').body;
+        body.firstChild.remove();
+        return body;
+      } catch (e) {
+        return undefined;
+      }
+    }
+
+    function getInertBodyElement_InertDocument(html) {
+      inertBodyElement.innerHTML = html;
+
+      // Support: IE 9-11 only
+      // strip custom-namespaced attributes on IE<=11
+      if (document.documentMode) {
+        stripCustomNsAttrs(inertBodyElement);
+      }
+
+      return inertBodyElement;
+    }
+  })(window, window.document);
+
+  /**
+   * @example
+   * htmlParser(htmlString, {
+   *     start: function(tag, attrs) {},
+   *     end: function(tag) {},
+   *     chars: function(text) {},
+   *     comment: function(text) {}
+   * });
+   *
+   * @param {string} html string
+   * @param {object} handler
+   */
+  function htmlParserImpl(html, handler) {
+    if (html === null || html === undefined) {
+      html = '';
+    } else if (typeof html !== 'string') {
+      html = '' + html;
+    }
+
+    var inertBodyElement = getInertBodyElement(html);
+    if (!inertBodyElement) return '';
+
+    //mXSS protection
+    var mXSSAttempts = 5;
+    do {
+      if (mXSSAttempts === 0) {
+        throw $sanitizeMinErr('uinput', 'Failed to sanitize html because the input is unstable');
+      }
+      mXSSAttempts--;
+
+      // trigger mXSS if it is going to happen by reading and writing the innerHTML
+      html = inertBodyElement.innerHTML;
+      inertBodyElement = getInertBodyElement(html);
+    } while (html !== inertBodyElement.innerHTML);
+
+    var node = inertBodyElement.firstChild;
+    while (node) {
+      switch (node.nodeType) {
+        case 1: // ELEMENT_NODE
+          handler.start(node.nodeName.toLowerCase(), attrToMap(node.attributes));
+          break;
+        case 3: // TEXT NODE
+          handler.chars(node.textContent);
+          break;
+      }
+
+      var nextNode;
+      if (!(nextNode = node.firstChild)) {
+        if (node.nodeType === 1) {
+          handler.end(node.nodeName.toLowerCase());
+        }
+        nextNode = getNonDescendant('nextSibling', node);
+        if (!nextNode) {
+          while (nextNode == null) {
+            node = getNonDescendant('parentNode', node);
+            if (node === inertBodyElement) break;
+            nextNode = getNonDescendant('nextSibling', node);
+            if (node.nodeType === 1) {
+              handler.end(node.nodeName.toLowerCase());
+            }
+          }
+        }
+      }
+      node = nextNode;
+    }
+
+    while ((node = inertBodyElement.firstChild)) {
+      inertBodyElement.removeChild(node);
+    }
+  }
+
+  function attrToMap(attrs) {
+    var map = {};
+    for (var i = 0, ii = attrs.length; i < ii; i++) {
+      var attr = attrs[i];
+      map[attr.name] = attr.value;
+    }
+    return map;
+  }
+
+
+  /**
+   * Escapes all potentially dangerous characters, so that the
+   * resulting string can be safely inserted into attribute or
+   * element text.
+   * @param value
+   * @returns {string} escaped text
+   */
+  function encodeEntities(value) {
+    return value.
+      replace(/&/g, '&amp;').
+      replace(SURROGATE_PAIR_REGEXP, function(value) {
+        var hi = value.charCodeAt(0);
+        var low = value.charCodeAt(1);
+        return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
+      }).
+      replace(NON_ALPHANUMERIC_REGEXP, function(value) {
+        return '&#' + value.charCodeAt(0) + ';';
+      }).
+      replace(/</g, '&lt;').
+      replace(/>/g, '&gt;');
+  }
+
+  /**
+   * create an HTML/XML writer which writes to buffer
+   * @param {Array} buf use buf.join('') to get out sanitized html string
+   * @returns {object} in the form of {
+   *     start: function(tag, attrs) {},
+   *     end: function(tag) {},
+   *     chars: function(text) {},
+   *     comment: function(text) {}
+   * }
+   */
+  function htmlSanitizeWriterImpl(buf, uriValidator) {
+    var ignoreCurrentElement = false;
+    var out = bind(buf, buf.push);
+    return {
+      start: function(tag, attrs) {
+        tag = lowercase(tag);
+        if (!ignoreCurrentElement && blockedElements[tag]) {
+          ignoreCurrentElement = tag;
+        }
+        if (!ignoreCurrentElement && validElements[tag] === true) {
+          out('<');
+          out(tag);
+          forEach(attrs, function(value, key) {
+            var lkey = lowercase(key);
+            var isImage = (tag === 'img' && lkey === 'src') || (lkey === 'background');
+            if (validAttrs[lkey] === true &&
+              (uriAttrs[lkey] !== true || uriValidator(value, isImage))) {
+              out(' ');
+              out(key);
+              out('="');
+              out(encodeEntities(value));
+              out('"');
+            }
+          });
+          out('>');
+        }
+      },
+      end: function(tag) {
+        tag = lowercase(tag);
+        if (!ignoreCurrentElement && validElements[tag] === true && voidElements[tag] !== true) {
+          out('</');
+          out(tag);
+          out('>');
+        }
+        // eslint-disable-next-line eqeqeq
+        if (tag == ignoreCurrentElement) {
+          ignoreCurrentElement = false;
+        }
+      },
+      chars: function(chars) {
+        if (!ignoreCurrentElement) {
+          out(encodeEntities(chars));
+        }
+      }
+    };
+  }
+
+
+  /**
+   * When IE9-11 comes across an unknown namespaced attribute e.g. 'xlink:foo' it adds 'xmlns:ns1' attribute to declare
+   * ns1 namespace and prefixes the attribute with 'ns1' (e.g. 'ns1:xlink:foo'). This is undesirable since we don't want
+   * to allow any of these custom attributes. This method strips them all.
+   *
+   * @param node Root element to process
+   */
+  function stripCustomNsAttrs(node) {
+    while (node) {
+      if (node.nodeType === window.Node.ELEMENT_NODE) {
+        var attrs = node.attributes;
+        for (var i = 0, l = attrs.length; i < l; i++) {
+          var attrNode = attrs[i];
+          var attrName = attrNode.name.toLowerCase();
+          if (attrName === 'xmlns:ns1' || attrName.lastIndexOf('ns1:', 0) === 0) {
+            node.removeAttributeNode(attrNode);
+            i--;
+            l--;
+          }
+        }
+      }
+
+      var nextNode = node.firstChild;
+      if (nextNode) {
+        stripCustomNsAttrs(nextNode);
+      }
+
+      node = getNonDescendant('nextSibling', node);
+    }
+  }
+
+  function getNonDescendant(propName, node) {
+    // An element is clobbered if its `propName` property points to one of its descendants
+    var nextNode = node[propName];
+    if (nextNode && nodeContains.call(node, nextNode)) {
+      throw $sanitizeMinErr('elclob', 'Failed to sanitize html because the element is clobbered: {0}', node.outerHTML || node.outerText);
+    }
+    return nextNode;
+  }
+}
+
+function sanitizeText(chars) {
+  var buf = [];
+  var writer = htmlSanitizeWriter(buf, noop);
+  writer.chars(chars);
+  return buf.join('');
+}
+
+
+// define ngSanitize module and register $sanitize service
+angular.module('ngSanitize', [])
+  .provider('$sanitize', $SanitizeProvider)
+  .info({ angularVersion: '1.6.9' });
+
+/**
+ * @ngdoc filter
+ * @name linky
+ * @kind function
+ *
+ * @description
+ * Finds links in text input and turns them into html links. Supports `http/https/ftp/sftp/mailto` and
+ * plain email address links.
+ *
+ * Requires the {@link ngSanitize `ngSanitize`} module to be installed.
+ *
+ * @param {string} text Input text.
+ * @param {string} [target] Window (`_blank|_self|_parent|_top`) or named frame to open links in.
+ * @param {object|function(url)} [attributes] Add custom attributes to the link element.
+ *
+ *    Can be one of:
+ *
+ *    - `object`: A map of attributes
+ *    - `function`: Takes the url as a parameter and returns a map of attributes
+ *
+ *    If the map of attributes contains a value for `target`, it overrides the value of
+ *    the target parameter.
+ *
+ *
+ * @returns {string} Html-linkified and {@link $sanitize sanitized} text.
+ *
+ * @usage
+   <span ng-bind-html="linky_expression | linky"></span>
+ *
+ * @example
+   <example module="linkyExample" deps="angular-sanitize.js" name="linky-filter">
+     <file name="index.html">
+       <div ng-controller="ExampleController">
+       Snippet: <textarea ng-model="snippet" cols="60" rows="3"></textarea>
+       <table>
+         <tr>
+           <th>Filter</th>
+           <th>Source</th>
+           <th>Rendered</th>
+         </tr>
+         <tr id="linky-filter">
+           <td>linky filter</td>
+           <td>
+             <pre>&lt;div ng-bind-html="snippet | linky"&gt;<br>&lt;/div&gt;</pre>
+           </td>
+           <td>
+             <div ng-bind-html="snippet | linky"></div>
+           </td>
+         </tr>
+         <tr id="linky-target">
+          <td>linky target</td>
+          <td>
+            <pre>&lt;div ng-bind-html="snippetWithSingleURL | linky:'_blank'"&gt;<br>&lt;/div&gt;</pre>
+          </td>
+          <td>
+            <div ng-bind-html="snippetWithSingleURL | linky:'_blank'"></div>
+          </td>
+         </tr>
+         <tr id="linky-custom-attributes">
+          <td>linky custom attributes</td>
+          <td>
+            <pre>&lt;div ng-bind-html="snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}"&gt;<br>&lt;/div&gt;</pre>
+          </td>
+          <td>
+            <div ng-bind-html="snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}"></div>
+          </td>
+         </tr>
+         <tr id="escaped-html">
+           <td>no filter</td>
+           <td><pre>&lt;div ng-bind="snippet"&gt;<br>&lt;/div&gt;</pre></td>
+           <td><div ng-bind="snippet"></div></td>
+         </tr>
+       </table>
+     </file>
+     <file name="script.js">
+       angular.module('linkyExample', ['ngSanitize'])
+         .controller('ExampleController', ['$scope', function($scope) {
+           $scope.snippet =
+             'Pretty text with some links:\n' +
+             'http://angularjs.org/,\n' +
+             'mailto:us@somewhere.org,\n' +
+             'another@somewhere.org,\n' +
+             'and one more: ftp://127.0.0.1/.';
+           $scope.snippetWithSingleURL = 'http://angularjs.org/';
+         }]);
+     </file>
+     <file name="protractor.js" type="protractor">
+       it('should linkify the snippet with urls', function() {
+         expect(element(by.id('linky-filter')).element(by.binding('snippet | linky')).getText()).
+             toBe('Pretty text with some links: http://angularjs.org/, us@somewhere.org, ' +
+                  'another@somewhere.org, and one more: ftp://127.0.0.1/.');
+         expect(element.all(by.css('#linky-filter a')).count()).toEqual(4);
+       });
+
+       it('should not linkify snippet without the linky filter', function() {
+         expect(element(by.id('escaped-html')).element(by.binding('snippet')).getText()).
+             toBe('Pretty text with some links: http://angularjs.org/, mailto:us@somewhere.org, ' +
+                  'another@somewhere.org, and one more: ftp://127.0.0.1/.');
+         expect(element.all(by.css('#escaped-html a')).count()).toEqual(0);
+       });
+
+       it('should update', function() {
+         element(by.model('snippet')).clear();
+         element(by.model('snippet')).sendKeys('new http://link.');
+         expect(element(by.id('linky-filter')).element(by.binding('snippet | linky')).getText()).
+             toBe('new http://link.');
+         expect(element.all(by.css('#linky-filter a')).count()).toEqual(1);
+         expect(element(by.id('escaped-html')).element(by.binding('snippet')).getText())
+             .toBe('new http://link.');
+       });
+
+       it('should work with the target property', function() {
+        expect(element(by.id('linky-target')).
+            element(by.binding("snippetWithSingleURL | linky:'_blank'")).getText()).
+            toBe('http://angularjs.org/');
+        expect(element(by.css('#linky-target a')).getAttribute('target')).toEqual('_blank');
+       });
+
+       it('should optionally add custom attributes', function() {
+        expect(element(by.id('linky-custom-attributes')).
+            element(by.binding("snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}")).getText()).
+            toBe('http://angularjs.org/');
+        expect(element(by.css('#linky-custom-attributes a')).getAttribute('rel')).toEqual('nofollow');
+       });
+     </file>
+   </example>
+ */
+angular.module('ngSanitize').filter('linky', ['$sanitize', function($sanitize) {
+  var LINKY_URL_REGEXP =
+        /((s?ftp|https?):\/\/|(www\.)|(mailto:)?[A-Za-z0-9._%+-]+@)\S*[^\s.;,(){}<>"\u201d\u2019]/i,
+      MAILTO_REGEXP = /^mailto:/i;
+
+  var linkyMinErr = angular.$$minErr('linky');
+  var isDefined = angular.isDefined;
+  var isFunction = angular.isFunction;
+  var isObject = angular.isObject;
+  var isString = angular.isString;
+
+  return function(text, target, attributes) {
+    if (text == null || text === '') return text;
+    if (!isString(text)) throw linkyMinErr('notstring', 'Expected string but received: {0}', text);
+
+    var attributesFn =
+      isFunction(attributes) ? attributes :
+      isObject(attributes) ? function getAttributesObject() {return attributes;} :
+      function getEmptyAttributesObject() {return {};};
+
+    var match;
+    var raw = text;
+    var html = [];
+    var url;
+    var i;
+    while ((match = raw.match(LINKY_URL_REGEXP))) {
+      // We can not end in these as they are sometimes found at the end of the sentence
+      url = match[0];
+      // if we did not match ftp/http/www/mailto then assume mailto
+      if (!match[2] && !match[4]) {
+        url = (match[3] ? 'http://' : 'mailto:') + url;
+      }
+      i = match.index;
+      addText(raw.substr(0, i));
+      addLink(url, match[0].replace(MAILTO_REGEXP, ''));
+      raw = raw.substring(i + match[0].length);
+    }
+    addText(raw);
+    return $sanitize(html.join(''));
+
+    function addText(text) {
+      if (!text) {
+        return;
+      }
+      html.push(sanitizeText(text));
+    }
+
+    function addLink(url, text) {
+      var key, linkAttributes = attributesFn(url);
+      html.push('<a ');
+
+      for (key in linkAttributes) {
+        html.push(key + '="' + linkAttributes[key] + '" ');
+      }
+
+      if (isDefined(target) && !('target' in linkAttributes)) {
+        html.push('target="',
+                  target,
+                  '" ');
+      }
+      html.push('href="',
+                url.replace(/"/g, '&quot;'),
+                '">');
+      addText(text);
+      html.push('</a>');
+    }
+  };
+}]);
+
+
+})(window, window.angular);
+
+},{}],76:[function(require,module,exports){
+require('./angular-sanitize');
+module.exports = 'ngSanitize';
+
+},{"./angular-sanitize":75}],77:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var ng_from_import = require("angular");
+var ng_from_global = angular;
+exports.ng = (ng_from_import && ng_from_import.module) ? ng_from_import : ng_from_global;
+
+},{"angular":92}],78:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * # Angular 1 Directives
+ *
+ * These are the directives included in UI-Router for Angular 1.
+ * These directives are used in templates to create viewports and link/navigate to states.
+ *
+ * @ng1api
+ * @preferred
+ * @module directives
+ */ /** for typedoc */
+var angular_1 = require("../angular");
+var core_1 = require("@uirouter/core");
+/** @hidden */
+function parseStateRef(ref) {
+    var paramsOnly = ref.match(/^\s*({[^}]*})\s*$/), parsed;
+    if (paramsOnly)
+        ref = '(' + paramsOnly[1] + ')';
+    parsed = ref.replace(/\n/g, " ").match(/^\s*([^(]*?)\s*(\((.*)\))?\s*$/);
+    if (!parsed || parsed.length !== 4)
+        throw new Error("Invalid state ref '" + ref + "'");
+    return { state: parsed[1] || null, paramExpr: parsed[3] || null };
+}
+/** @hidden */
+function stateContext(el) {
+    var $uiView = el.parent().inheritedData('$uiView');
+    var path = core_1.parse('$cfg.path')($uiView);
+    return path ? core_1.tail(path).state.name : undefined;
+}
+/** @hidden */
+function processedDef($state, $element, def) {
+    var uiState = def.uiState || $state.current.name;
+    var uiStateOpts = core_1.extend(defaultOpts($element, $state), def.uiStateOpts || {});
+    var href = $state.href(uiState, def.uiStateParams, uiStateOpts);
+    return { uiState: uiState, uiStateParams: def.uiStateParams, uiStateOpts: uiStateOpts, href: href };
+}
+/** @hidden */
+function getTypeInfo(el) {
+    // SVGAElement does not use the href attribute, but rather the 'xlinkHref' attribute.
+    var isSvg = Object.prototype.toString.call(el.prop('href')) === '[object SVGAnimatedString]';
+    var isForm = el[0].nodeName === "FORM";
+    return {
+        attr: isForm ? "action" : (isSvg ? 'xlink:href' : 'href'),
+        isAnchor: el.prop("tagName").toUpperCase() === "A",
+        clickable: !isForm
+    };
+}
+/** @hidden */
+function clickHook(el, $state, $timeout, type, getDef) {
+    return function (e) {
+        var button = e.which || e.button, target = getDef();
+        if (!(button > 1 || e.ctrlKey || e.metaKey || e.shiftKey || el.attr('target'))) {
+            // HACK: This is to allow ng-clicks to be processed before the transition is initiated:
+            var transition = $timeout(function () {
+                $state.go(target.uiState, target.uiStateParams, target.uiStateOpts);
+            });
+            e.preventDefault();
+            // if the state has no URL, ignore one preventDefault from the <a> directive.
+            var ignorePreventDefaultCount = type.isAnchor && !target.href ? 1 : 0;
+            e.preventDefault = function () {
+                if (ignorePreventDefaultCount-- <= 0)
+                    $timeout.cancel(transition);
+            };
+        }
+    };
+}
+/** @hidden */
+function defaultOpts(el, $state) {
+    return {
+        relative: stateContext(el) || $state.$current,
+        inherit: true,
+        source: "sref"
+    };
+}
+/** @hidden */
+function bindEvents(element, scope, hookFn, uiStateOpts) {
+    var events;
+    if (uiStateOpts) {
+        events = uiStateOpts.events;
+    }
+    if (!core_1.isArray(events)) {
+        events = ['click'];
+    }
+    var on = element.on ? 'on' : 'bind';
+    for (var _i = 0, events_1 = events; _i < events_1.length; _i++) {
+        var event_1 = events_1[_i];
+        element[on](event_1, hookFn);
+    }
+    scope.$on('$destroy', function () {
+        var off = element.off ? 'off' : 'unbind';
+        for (var _i = 0, events_2 = events; _i < events_2.length; _i++) {
+            var event_2 = events_2[_i];
+            element[off](event_2, hookFn);
+        }
+    });
+}
+/**
+ * `ui-sref`: A directive for linking to a state
+ *
+ * A directive which links to a state (and optionally, parameters).
+ * When clicked, this directive activates the linked state with the supplied parameter values.
+ *
+ * ### Linked State
+ * The attribute value of the `ui-sref` is the name of the state to link to.
+ *
+ * #### Example:
+ * This will activate the `home` state when the link is clicked.
+ * ```html
+ * <a ui-sref="home">Home</a>
+ * ```
+ *
+ * ### Relative Links
+ * You can also use relative state paths within `ui-sref`, just like a relative path passed to `$state.go()` ([[StateService.go]]).
+ * You just need to be aware that the path is relative to the state that *created* the link.
+ * This allows a state to create a relative `ui-sref` which always targets the same destination.
+ *
+ * #### Example:
+ * Both these links are relative to the parent state, even when a child state is currently active.
+ * ```html
+ * <a ui-sref=".child1">child 1 state</a>
+ * <a ui-sref=".child2">child 2 state</a>
+ * ```
+ *
+ * This link activates the parent state.
+ * ```html
+ * <a ui-sref="^">Return</a>
+ * ```
+ *
+ * ### hrefs
+ * If the linked state has a URL, the directive will automatically generate and
+ * update the `href` attribute (using the [[StateService.href]]  method).
+ *
+ * #### Example:
+ * Assuming the `users` state has a url of `/users/`
+ * ```html
+ * <a ui-sref="users" href="/users/">Users</a>
+ * ```
+ *
+ * ### Parameter Values
+ * In addition to the state name, a `ui-sref` can include parameter values which are applied when activating the state.
+ * Param values can be provided in the `ui-sref` value after the state name, enclosed by parentheses.
+ * The content inside the parentheses is an expression, evaluated to the parameter values.
+ *
+ * #### Example:
+ * This example renders a list of links to users.
+ * The state's `userId` parameter value comes from each user's `user.id` property.
+ * ```html
+ * <li ng-repeat="user in users">
+ *   <a ui-sref="users.detail({ userId: user.id })">{{ user.displayName }}</a>
+ * </li>
+ * ```
+ *
+ * Note:
+ * The parameter values expression is `$watch`ed for updates.
+ *
+ * ### Transition Options
+ * You can specify [[TransitionOptions]] to pass to [[StateService.go]] by using the `ui-sref-opts` attribute.
+ * Options are restricted to `location`, `inherit`, and `reload`.
+ *
+ * #### Example:
+ * ```html
+ * <a ui-sref="home" ui-sref-opts="{ reload: true }">Home</a>
+ * ```
+ *
+ * ### Other DOM Events
+ *
+ * You can also customize which DOM events to respond to (instead of `click`) by
+ * providing an `events` array in the `ui-sref-opts` attribute.
+ *
+ * #### Example:
+ * ```html
+ * <input type="text" ui-sref="contacts" ui-sref-opts="{ events: ['change', 'blur'] }">
+ * ```
+ *
+ * ### Highlighting the active link
+ * This directive can be used in conjunction with [[uiSrefActive]] to highlight the active link.
+ *
+ * ### Examples
+ * If you have the following template:
+ *
+ * ```html
+ * <a ui-sref="home">Home</a>
+ * <a ui-sref="about">About</a>
+ * <a ui-sref="{page: 2}">Next page</a>
+ *
+ * <ul>
+ *     <li ng-repeat="contact in contacts">
+ *         <a ui-sref="contacts.detail({ id: contact.id })">{{ contact.name }}</a>
+ *     </li>
+ * </ul>
+ * ```
+ *
+ * Then (assuming the current state is `contacts`) the rendered html including hrefs would be:
+ *
+ * ```html
+ * <a href="#/home" ui-sref="home">Home</a>
+ * <a href="#/about" ui-sref="about">About</a>
+ * <a href="#/contacts?page=2" ui-sref="{page: 2}">Next page</a>
+ *
+ * <ul>
+ *     <li ng-repeat="contact in contacts">
+ *         <a href="#/contacts/1" ui-sref="contacts.detail({ id: contact.id })">Joe</a>
+ *     </li>
+ *     <li ng-repeat="contact in contacts">
+ *         <a href="#/contacts/2" ui-sref="contacts.detail({ id: contact.id })">Alice</a>
+ *     </li>
+ *     <li ng-repeat="contact in contacts">
+ *         <a href="#/contacts/3" ui-sref="contacts.detail({ id: contact.id })">Bob</a>
+ *     </li>
+ * </ul>
+ *
+ * <a href="#/home" ui-sref="home" ui-sref-opts="{reload: true}">Home</a>
+ * ```
+ *
+ * ### Notes
+ *
+ * - You can use `ui-sref` to change **only the parameter values** by omitting the state name and parentheses.
+ * #### Example:
+ * Sets the `lang` parameter to `en` and remains on the same state.
+ *
+ * ```html
+ * <a ui-sref="{ lang: 'en' }">English</a>
+ * ```
+ *
+ * - A middle-click, right-click, or ctrl-click is handled (natively) by the browser to open the href in a new window, for example.
+ *
+ * - Unlike the parameter values expression, the state name is not `$watch`ed (for performance reasons).
+ * If you need to dynamically update the state being linked to, use the fully dynamic [[uiState]] directive.
+ */
+var uiSref;
+uiSref = ['$uiRouter', '$timeout',
+    function $StateRefDirective($uiRouter, $timeout) {
+        var $state = $uiRouter.stateService;
+        return {
+            restrict: 'A',
+            require: ['?^uiSrefActive', '?^uiSrefActiveEq'],
+            link: function (scope, element, attrs, uiSrefActive) {
+                var type = getTypeInfo(element);
+                var active = uiSrefActive[1] || uiSrefActive[0];
+                var unlinkInfoFn = null;
+                var hookFn;
+                var rawDef = {};
+                var getDef = function () { return processedDef($state, element, rawDef); };
+                var ref = parseStateRef(attrs.uiSref);
+                rawDef.uiState = ref.state;
+                rawDef.uiStateOpts = attrs.uiSrefOpts ? scope.$eval(attrs.uiSrefOpts) : {};
+                function update() {
+                    var def = getDef();
+                    if (unlinkInfoFn)
+                        unlinkInfoFn();
+                    if (active)
+                        unlinkInfoFn = active.$$addStateInfo(def.uiState, def.uiStateParams);
+                    if (def.href != null)
+                        attrs.$set(type.attr, def.href);
+                }
+                if (ref.paramExpr) {
+                    scope.$watch(ref.paramExpr, function (val) {
+                        rawDef.uiStateParams = core_1.extend({}, val);
+                        update();
+                    }, true);
+                    rawDef.uiStateParams = core_1.extend({}, scope.$eval(ref.paramExpr));
+                }
+                update();
+                scope.$on('$destroy', $uiRouter.stateRegistry.onStatesChanged(update));
+                scope.$on('$destroy', $uiRouter.transitionService.onSuccess({}, update));
+                if (!type.clickable)
+                    return;
+                hookFn = clickHook(element, $state, $timeout, type, getDef);
+                bindEvents(element, scope, hookFn, rawDef.uiStateOpts);
+            }
+        };
+    }];
+/**
+ * `ui-state`: A fully dynamic directive for linking to a state
+ *
+ * A directive which links to a state (and optionally, parameters).
+ * When clicked, this directive activates the linked state with the supplied parameter values.
+ *
+ * **This directive is very similar to [[uiSref]], but it `$observe`s and `$watch`es/evaluates all its inputs.**
+ *
+ * A directive which links to a state (and optionally, parameters).
+ * When clicked, this directive activates the linked state with the supplied parameter values.
+ *
+ * ### Linked State
+ * The attribute value of `ui-state` is an expression which is `$watch`ed and evaluated as the state to link to.
+ * **This is in contrast with `ui-sref`, which takes a state name as a string literal.**
+ *
+ * #### Example:
+ * Create a list of links.
+ * ```html
+ * <li ng-repeat="link in navlinks">
+ *   <a ui-state="link.state">{{ link.displayName }}</a>
+ * </li>
+ * ```
+ *
+ * ### Relative Links
+ * If the expression evaluates to a relative path, it is processed like [[uiSref]].
+ * You just need to be aware that the path is relative to the state that *created* the link.
+ * This allows a state to create relative `ui-state` which always targets the same destination.
+ *
+ * ### hrefs
+ * If the linked state has a URL, the directive will automatically generate and
+ * update the `href` attribute (using the [[StateService.href]]  method).
+ *
+ * ### Parameter Values
+ * In addition to the state name expression, a `ui-state` can include parameter values which are applied when activating the state.
+ * Param values should be provided using the `ui-state-params` attribute.
+ * The `ui-state-params` attribute value is `$watch`ed and evaluated as an expression.
+ *
+ * #### Example:
+ * This example renders a list of links with param values.
+ * The state's `userId` parameter value comes from each user's `user.id` property.
+ * ```html
+ * <li ng-repeat="link in navlinks">
+ *   <a ui-state="link.state" ui-state-params="link.params">{{ link.displayName }}</a>
+ * </li>
+ * ```
+ *
+ * ### Transition Options
+ * You can specify [[TransitionOptions]] to pass to [[StateService.go]] by using the `ui-state-opts` attribute.
+ * Options are restricted to `location`, `inherit`, and `reload`.
+ * The value of the `ui-state-opts` is `$watch`ed and evaluated as an expression.
+ *
+ * #### Example:
+ * ```html
+ * <a ui-state="returnto.state" ui-state-opts="{ reload: true }">Home</a>
+ * ```
+ *
+ * ### Other DOM Events
+ *
+ * You can also customize which DOM events to respond to (instead of `click`) by
+ * providing an `events` array in the `ui-state-opts` attribute.
+ *
+ * #### Example:
+ * ```html
+ * <input type="text" ui-state="contacts" ui-state-opts="{ events: ['change', 'blur'] }">
+ * ```
+ *
+ * ### Highlighting the active link
+ * This directive can be used in conjunction with [[uiSrefActive]] to highlight the active link.
+ *
+ * ### Notes
+ *
+ * - You can use `ui-params` to change **only the parameter values** by omitting the state name and supplying only `ui-state-params`.
+ *   However, it might be simpler to use [[uiSref]] parameter-only links.
+ *
+ * #### Example:
+ * Sets the `lang` parameter to `en` and remains on the same state.
+ *
+ * ```html
+ * <a ui-state="" ui-state-params="{ lang: 'en' }">English</a>
+ * ```
+ *
+ * - A middle-click, right-click, or ctrl-click is handled (natively) by the browser to open the href in a new window, for example.
+ * ```
+ */
+var uiState;
+uiState = ['$uiRouter', '$timeout',
+    function $StateRefDynamicDirective($uiRouter, $timeout) {
+        var $state = $uiRouter.stateService;
+        return {
+            restrict: 'A',
+            require: ['?^uiSrefActive', '?^uiSrefActiveEq'],
+            link: function (scope, element, attrs, uiSrefActive) {
+                var type = getTypeInfo(element);
+                var active = uiSrefActive[1] || uiSrefActive[0];
+                var unlinkInfoFn = null;
+                var hookFn;
+                var rawDef = {};
+                var getDef = function () { return processedDef($state, element, rawDef); };
+                var inputAttrs = ['uiState', 'uiStateParams', 'uiStateOpts'];
+                var watchDeregFns = inputAttrs.reduce(function (acc, attr) { return (acc[attr] = core_1.noop, acc); }, {});
+                function update() {
+                    var def = getDef();
+                    if (unlinkInfoFn)
+                        unlinkInfoFn();
+                    if (active)
+                        unlinkInfoFn = active.$$addStateInfo(def.uiState, def.uiStateParams);
+                    if (def.href != null)
+                        attrs.$set(type.attr, def.href);
+                }
+                inputAttrs.forEach(function (field) {
+                    rawDef[field] = attrs[field] ? scope.$eval(attrs[field]) : null;
+                    attrs.$observe(field, function (expr) {
+                        watchDeregFns[field]();
+                        watchDeregFns[field] = scope.$watch(expr, function (newval) {
+                            rawDef[field] = newval;
+                            update();
+                        }, true);
+                    });
+                });
+                update();
+                scope.$on('$destroy', $uiRouter.stateRegistry.onStatesChanged(update));
+                scope.$on('$destroy', $uiRouter.transitionService.onSuccess({}, update));
+                if (!type.clickable)
+                    return;
+                hookFn = clickHook(element, $state, $timeout, type, getDef);
+                bindEvents(element, scope, hookFn, rawDef.uiStateOpts);
+            }
+        };
+    }];
+/**
+ * `ui-sref-active` and `ui-sref-active-eq`: A directive that adds a CSS class when a `ui-sref` is active
+ *
+ * A directive working alongside [[uiSref]] and [[uiState]] to add classes to an element when the
+ * related directive's state is active (and remove them when it is inactive).
+ *
+ * The primary use-case is to highlight the active link in navigation menus,
+ * distinguishing it from the inactive menu items.
+ *
+ * ### Linking to a `ui-sref` or `ui-state`
+ * `ui-sref-active` can live on the same element as `ui-sref`/`ui-state`, or it can be on a parent element.
+ * If a `ui-sref-active` is a parent to more than one `ui-sref`/`ui-state`, it will apply the CSS class when **any of the links are active**.
+ *
+ * ### Matching
+ *
+ * The `ui-sref-active` directive applies the CSS class when the `ui-sref`/`ui-state`'s target state **or any child state is active**.
+ * This is a "fuzzy match" which uses [[StateService.includes]].
+ *
+ * The `ui-sref-active-eq` directive applies the CSS class when the `ui-sref`/`ui-state`'s target state is directly active (not when child states are active).
+ * This is an "exact match" which uses [[StateService.is]].
+ *
+ * ### Parameter values
+ * If the `ui-sref`/`ui-state` includes parameter values, the current parameter values must match the link's values for the link to be highlighted.
+ * This allows a list of links to the same state with different parameters to be rendered, and the correct one highlighted.
+ *
+ * #### Example:
+ * ```html
+ * <li ng-repeat="user in users" ui-sref-active="active">
+ *   <a ui-sref="user.details({ userId: user.id })">{{ user.lastName }}</a>
+ * </li>
+ * ```
+ *
+ * ### Examples
+ *
+ * Given the following template:
+ * #### Example:
+ * ```html
+ * <ul>
+ *   <li ui-sref-active="active" class="item">
+ *     <a href ui-sref="app.user({user: 'bilbobaggins'})">@bilbobaggins</a>
+ *   </li>
+ * </ul>
+ * ```
+ *
+ * When the app state is `app.user` (or any child state),
+ * and contains the state parameter "user" with value "bilbobaggins",
+ * the resulting HTML will appear as (note the 'active' class):
+ *
+ * ```html
+ * <ul>
+ *   <li ui-sref-active="active" class="item active">
+ *     <a ui-sref="app.user({user: 'bilbobaggins'})" href="/users/bilbobaggins">@bilbobaggins</a>
+ *   </li>
+ * </ul>
+ * ```
+ *
+ * ### Glob mode
+ *
+ * It is possible to pass `ui-sref-active` an expression that evaluates to an object.
+ * The objects keys represent active class names and values represent the respective state names/globs.
+ * `ui-sref-active` will match if the current active state **includes** any of
+ * the specified state names/globs, even the abstract ones.
+ *
+ * #### Example:
+ * Given the following template, with "admin" being an abstract state:
+ * ```html
+ * <div ui-sref-active="{'active': 'admin.**'}">
+ *   <a ui-sref-active="active" ui-sref="admin.roles">Roles</a>
+ * </div>
+ * ```
+ *
+ * When the current state is "admin.roles" the "active" class will be applied to both the <div> and <a> elements.
+ * It is important to note that the state names/globs passed to `ui-sref-active` override any state provided by a linked `ui-sref`.
+ *
+ * ### Notes:
+ *
+ * - The class name is interpolated **once** during the directives link time (any further changes to the
+ * interpolated value are ignored).
+ *
+ * - Multiple classes may be specified in a space-separated format: `ui-sref-active='class1 class2 class3'`
+ */
+var uiSrefActive;
+uiSrefActive = ['$state', '$stateParams', '$interpolate', '$uiRouter',
+    function $StateRefActiveDirective($state, $stateParams, $interpolate, $uiRouter) {
+        return {
+            restrict: "A",
+            controller: ['$scope', '$element', '$attrs',
+                function ($scope, $element, $attrs) {
+                    var states = [], activeEqClass, uiSrefActive;
+                    // There probably isn't much point in $observing this
+                    // uiSrefActive and uiSrefActiveEq share the same directive object with some
+                    // slight difference in logic routing
+                    activeEqClass = $interpolate($attrs.uiSrefActiveEq || '', false)($scope);
+                    try {
+                        uiSrefActive = $scope.$eval($attrs.uiSrefActive);
+                    }
+                    catch (e) {
+                        // Do nothing. uiSrefActive is not a valid expression.
+                        // Fall back to using $interpolate below
+                    }
+                    uiSrefActive = uiSrefActive || $interpolate($attrs.uiSrefActive || '', false)($scope);
+                    if (core_1.isObject(uiSrefActive)) {
+                        core_1.forEach(uiSrefActive, function (stateOrName, activeClass) {
+                            if (core_1.isString(stateOrName)) {
+                                var ref = parseStateRef(stateOrName);
+                                addState(ref.state, $scope.$eval(ref.paramExpr), activeClass);
+                            }
+                        });
+                    }
+                    // Allow uiSref to communicate with uiSrefActive[Equals]
+                    this.$$addStateInfo = function (newState, newParams) {
+                        // we already got an explicit state provided by ui-sref-active, so we
+                        // shadow the one that comes from ui-sref
+                        if (core_1.isObject(uiSrefActive) && states.length > 0) {
+                            return;
+                        }
+                        var deregister = addState(newState, newParams, uiSrefActive);
+                        update();
+                        return deregister;
+                    };
+                    function updateAfterTransition(trans) {
+                        trans.promise.then(update);
+                    }
+                    $scope.$on('$stateChangeSuccess', update);
+                    $scope.$on('$destroy', $uiRouter.transitionService.onStart({}, updateAfterTransition));
+                    if ($uiRouter.globals.transition) {
+                        updateAfterTransition($uiRouter.globals.transition);
+                    }
+                    function addState(stateName, stateParams, activeClass) {
+                        var state = $state.get(stateName, stateContext($element));
+                        var stateInfo = {
+                            state: state || { name: stateName },
+                            params: stateParams,
+                            activeClass: activeClass
+                        };
+                        states.push(stateInfo);
+                        return function removeState() {
+                            core_1.removeFrom(states)(stateInfo);
+                        };
+                    }
+                    // Update route state
+                    function update() {
+                        var splitClasses = function (str) {
+                            return str.split(/\s/).filter(core_1.identity);
+                        };
+                        var getClasses = function (stateList) {
+                            return stateList.map(function (x) { return x.activeClass; }).map(splitClasses).reduce(core_1.unnestR, []);
+                        };
+                        var allClasses = getClasses(states).concat(splitClasses(activeEqClass)).reduce(core_1.uniqR, []);
+                        var fuzzyClasses = getClasses(states.filter(function (x) { return $state.includes(x.state.name, x.params); }));
+                        var exactlyMatchesAny = !!states.filter(function (x) { return $state.is(x.state.name, x.params); }).length;
+                        var exactClasses = exactlyMatchesAny ? splitClasses(activeEqClass) : [];
+                        var addClasses = fuzzyClasses.concat(exactClasses).reduce(core_1.uniqR, []);
+                        var removeClasses = allClasses.filter(function (cls) { return !core_1.inArray(addClasses, cls); });
+                        $scope.$evalAsync(function () {
+                            addClasses.forEach(function (className) { return $element.addClass(className); });
+                            removeClasses.forEach(function (className) { return $element.removeClass(className); });
+                        });
+                    }
+                    update();
+                }]
+        };
+    }];
+angular_1.ng.module('ui.router.state')
+    .directive('uiSref', uiSref)
+    .directive('uiSrefActive', uiSrefActive)
+    .directive('uiSrefActiveEq', uiSrefActive)
+    .directive('uiState', uiState);
+
+},{"../angular":77,"@uirouter/core":21}],79:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * @ng1api
+ * @module directives
+ */ /** for typedoc */
+var angular_1 = require("../angular");
+var angular_2 = require("angular");
+var core_1 = require("@uirouter/core");
+var views_1 = require("../statebuilders/views");
+var services_1 = require("../services");
+exports.uiView = ['$view', '$animate', '$uiViewScroll', '$interpolate', '$q',
+    function $ViewDirective($view, $animate, $uiViewScroll, $interpolate, $q) {
+        function getRenderer(attrs, scope) {
+            return {
+                enter: function (element, target, cb) {
+                    if (angular_1.ng.version.minor > 2) {
+                        $animate.enter(element, null, target).then(cb);
+                    }
+                    else {
+                        $animate.enter(element, null, target, cb);
+                    }
+                },
+                leave: function (element, cb) {
+                    if (angular_1.ng.version.minor > 2) {
+                        $animate.leave(element).then(cb);
+                    }
+                    else {
+                        $animate.leave(element, cb);
+                    }
+                }
+            };
+        }
+        function configsEqual(config1, config2) {
+            return config1 === config2;
+        }
+        var rootData = {
+            $cfg: { viewDecl: { $context: $view._pluginapi._rootViewContext() } },
+            $uiView: {}
+        };
+        var directive = {
+            count: 0,
+            restrict: 'ECA',
+            terminal: true,
+            priority: 400,
+            transclude: 'element',
+            compile: function (tElement, tAttrs, $transclude) {
+                return function (scope, $element, attrs) {
+                    var previousEl, currentEl, currentScope, unregister, onloadExp = attrs['onload'] || '', autoScrollExp = attrs['autoscroll'], renderer = getRenderer(attrs, scope), viewConfig = undefined, inherited = $element.inheritedData('$uiView') || rootData, name = $interpolate(attrs['uiView'] || attrs['name'] || '')(scope) || '$default';
+                    var activeUIView = {
+                        $type: 'ng1',
+                        id: directive.count++,
+                        name: name,
+                        fqn: inherited.$uiView.fqn ? inherited.$uiView.fqn + "." + name : name,
+                        config: null,
+                        configUpdated: configUpdatedCallback,
+                        get creationContext() {
+                            var fromParentTagConfig = core_1.parse('$cfg.viewDecl.$context')(inherited);
+                            // Allow <ui-view name="foo"><ui-view name="bar"></ui-view></ui-view>
+                            // See https://github.com/angular-ui/ui-router/issues/3355
+                            var fromParentTag = core_1.parse('$uiView.creationContext')(inherited);
+                            return fromParentTagConfig || fromParentTag;
+                        }
+                    };
+                    core_1.trace.traceUIViewEvent("Linking", activeUIView);
+                    function configUpdatedCallback(config) {
+                        if (config && !(config instanceof views_1.Ng1ViewConfig))
+                            return;
+                        if (configsEqual(viewConfig, config))
+                            return;
+                        core_1.trace.traceUIViewConfigUpdated(activeUIView, config && config.viewDecl && config.viewDecl.$context);
+                        viewConfig = config;
+                        updateView(config);
+                    }
+                    $element.data('$uiView', { $uiView: activeUIView });
+                    updateView();
+                    unregister = $view.registerUIView(activeUIView);
+                    scope.$on("$destroy", function () {
+                        core_1.trace.traceUIViewEvent("Destroying/Unregistering", activeUIView);
+                        unregister();
+                    });
+                    function cleanupLastView() {
+                        if (previousEl) {
+                            core_1.trace.traceUIViewEvent("Removing (previous) el", previousEl.data('$uiView'));
+                            previousEl.remove();
+                            previousEl = null;
+                        }
+                        if (currentScope) {
+                            core_1.trace.traceUIViewEvent("Destroying scope", activeUIView);
+                            currentScope.$destroy();
+                            currentScope = null;
+                        }
+                        if (currentEl) {
+                            var _viewData_1 = currentEl.data('$uiViewAnim');
+                            core_1.trace.traceUIViewEvent("Animate out", _viewData_1);
+                            renderer.leave(currentEl, function () {
+                                _viewData_1.$$animLeave.resolve();
+                                previousEl = null;
+                            });
+                            previousEl = currentEl;
+                            currentEl = null;
+                        }
+                    }
+                    function updateView(config) {
+                        var newScope = scope.$new();
+                        var animEnter = $q.defer(), animLeave = $q.defer();
+                        var $uiViewData = {
+                            $cfg: config,
+                            $uiView: activeUIView,
+                        };
+                        var $uiViewAnim = {
+                            $animEnter: animEnter.promise,
+                            $animLeave: animLeave.promise,
+                            $$animLeave: animLeave
+                        };
+                        /**
+                         * @ngdoc event
+                         * @name ui.router.state.directive:ui-view#$viewContentLoading
+                         * @eventOf ui.router.state.directive:ui-view
+                         * @eventType emits on ui-view directive scope
+                         * @description
+                         *
+                         * Fired once the view **begins loading**, *before* the DOM is rendered.
+                         *
+                         * @param {Object} event Event object.
+                         * @param {string} viewName Name of the view.
+                         */
+                        newScope.$emit('$viewContentLoading', name);
+                        var cloned = $transclude(newScope, function (clone) {
+                            clone.data('$uiViewAnim', $uiViewAnim);
+                            clone.data('$uiView', $uiViewData);
+                            renderer.enter(clone, $element, function onUIViewEnter() {
+                                animEnter.resolve();
+                                if (currentScope)
+                                    currentScope.$emit('$viewContentAnimationEnded');
+                                if (core_1.isDefined(autoScrollExp) && !autoScrollExp || scope.$eval(autoScrollExp)) {
+                                    $uiViewScroll(clone);
+                                }
+                            });
+                            cleanupLastView();
+                        });
+                        currentEl = cloned;
+                        currentScope = newScope;
+                        /**
+                         * @ngdoc event
+                         * @name ui.router.state.directive:ui-view#$viewContentLoaded
+                         * @eventOf ui.router.state.directive:ui-view
+                         * @eventType emits on ui-view directive scope
+                         * @description           *
+                         * Fired once the view is **loaded**, *after* the DOM is rendered.
+                         *
+                         * @param {Object} event Event object.
+                         */
+                        currentScope.$emit('$viewContentLoaded', config || viewConfig);
+                        currentScope.$eval(onloadExp);
+                    }
+                };
+            }
+        };
+        return directive;
+    }];
+$ViewDirectiveFill.$inject = ['$compile', '$controller', '$transitions', '$view', '$q', '$timeout'];
+/** @hidden */
+function $ViewDirectiveFill($compile, $controller, $transitions, $view, $q, $timeout) {
+    var getControllerAs = core_1.parse('viewDecl.controllerAs');
+    var getResolveAs = core_1.parse('viewDecl.resolveAs');
+    return {
+        restrict: 'ECA',
+        priority: -400,
+        compile: function (tElement) {
+            var initial = tElement.html();
+            tElement.empty();
+            return function (scope, $element) {
+                var data = $element.data('$uiView');
+                if (!data) {
+                    $element.html(initial);
+                    $compile($element.contents())(scope);
+                    return;
+                }
+                var cfg = data.$cfg || { viewDecl: {}, getTemplate: angular_2.noop };
+                var resolveCtx = cfg.path && new core_1.ResolveContext(cfg.path);
+                $element.html(cfg.getTemplate($element, resolveCtx) || initial);
+                core_1.trace.traceUIViewFill(data.$uiView, $element.html());
+                var link = $compile($element.contents());
+                var controller = cfg.controller;
+                var controllerAs = getControllerAs(cfg);
+                var resolveAs = getResolveAs(cfg);
+                var locals = resolveCtx && services_1.getLocals(resolveCtx);
+                scope[resolveAs] = locals;
+                if (controller) {
+                    var controllerInstance = $controller(controller, core_1.extend({}, locals, { $scope: scope, $element: $element }));
+                    if (controllerAs) {
+                        scope[controllerAs] = controllerInstance;
+                        scope[controllerAs][resolveAs] = locals;
+                    }
+                    // TODO: Use $view service as a central point for registering component-level hooks
+                    // Then, when a component is created, tell the $view service, so it can invoke hooks
+                    // $view.componentLoaded(controllerInstance, { $scope: scope, $element: $element });
+                    // scope.$on('$destroy', () => $view.componentUnloaded(controllerInstance, { $scope: scope, $element: $element }));
+                    $element.data('$ngControllerController', controllerInstance);
+                    $element.children().data('$ngControllerController', controllerInstance);
+                    registerControllerCallbacks($q, $transitions, controllerInstance, scope, cfg);
+                }
+                // Wait for the component to appear in the DOM
+                if (core_1.isString(cfg.viewDecl.component)) {
+                    var cmp_1 = cfg.viewDecl.component;
+                    var kebobName = core_1.kebobString(cmp_1);
+                    var tagRegexp_1 = new RegExp("^(x-|data-)?" + kebobName + "$", "i");
+                    var getComponentController = function () {
+                        var directiveEl = [].slice.call($element[0].children)
+                            .filter(function (el) { return el && el.tagName && tagRegexp_1.exec(el.tagName); });
+                        return directiveEl && angular_1.ng.element(directiveEl).data("$" + cmp_1 + "Controller");
+                    };
+                    var deregisterWatch_1 = scope.$watch(getComponentController, function (ctrlInstance) {
+                        if (!ctrlInstance)
+                            return;
+                        registerControllerCallbacks($q, $transitions, ctrlInstance, scope, cfg);
+                        deregisterWatch_1();
+                    });
+                }
+                link(scope);
+            };
+        }
+    };
+}
+/** @hidden */
+var hasComponentImpl = typeof angular_1.ng.module('ui.router')['component'] === 'function';
+/** @hidden incrementing id */
+var _uiCanExitId = 0;
+/** @hidden TODO: move these callbacks to $view and/or `/hooks/components.ts` or something */
+function registerControllerCallbacks($q, $transitions, controllerInstance, $scope, cfg) {
+    // Call $onInit() ASAP
+    if (core_1.isFunction(controllerInstance.$onInit) && !(cfg.viewDecl.component && hasComponentImpl)) {
+        controllerInstance.$onInit();
+    }
+    var viewState = core_1.tail(cfg.path).state.self;
+    var hookOptions = { bind: controllerInstance };
+    // Add component-level hook for onParamsChange
+    if (core_1.isFunction(controllerInstance.uiOnParamsChanged)) {
+        var resolveContext = new core_1.ResolveContext(cfg.path);
+        var viewCreationTrans_1 = resolveContext.getResolvable('$transition$').data;
+        // Fire callback on any successful transition
+        var paramsUpdated = function ($transition$) {
+            // Exit early if the $transition$ is the same as the view was created within.
+            // Exit early if the $transition$ will exit the state the view is for.
+            if ($transition$ === viewCreationTrans_1 || $transition$.exiting().indexOf(viewState) !== -1)
+                return;
+            var toParams = $transition$.params("to");
+            var fromParams = $transition$.params("from");
+            var toSchema = $transition$.treeChanges().to.map(function (node) { return node.paramSchema; }).reduce(core_1.unnestR, []);
+            var fromSchema = $transition$.treeChanges().from.map(function (node) { return node.paramSchema; }).reduce(core_1.unnestR, []);
+            // Find the to params that have different values than the from params
+            var changedToParams = toSchema.filter(function (param) {
+                var idx = fromSchema.indexOf(param);
+                return idx === -1 || !fromSchema[idx].type.equals(toParams[param.id], fromParams[param.id]);
+            });
+            // Only trigger callback if a to param has changed or is new
+            if (changedToParams.length) {
+                var changedKeys_1 = changedToParams.map(function (x) { return x.id; });
+                // Filter the params to only changed/new to params.  `$transition$.params()` may be used to get all params.
+                var newValues = core_1.filter(toParams, function (val, key) { return changedKeys_1.indexOf(key) !== -1; });
+                controllerInstance.uiOnParamsChanged(newValues, $transition$);
+            }
+        };
+        $scope.$on('$destroy', $transitions.onSuccess({}, paramsUpdated, hookOptions));
+    }
+    // Add component-level hook for uiCanExit
+    if (core_1.isFunction(controllerInstance.uiCanExit)) {
+        var id_1 = _uiCanExitId++;
+        var cacheProp_1 = '_uiCanExitIds';
+        // Returns true if a redirect transition already answered truthy
+        var prevTruthyAnswer_1 = function (trans) {
+            return !!trans && (trans[cacheProp_1] && trans[cacheProp_1][id_1] === true || prevTruthyAnswer_1(trans.redirectedFrom()));
+        };
+        // If a user answered yes, but the transition was later redirected, don't also ask for the new redirect transition
+        var wrappedHook = function (trans) {
+            var promise, ids = trans[cacheProp_1] = trans[cacheProp_1] || {};
+            if (!prevTruthyAnswer_1(trans)) {
+                promise = $q.when(controllerInstance.uiCanExit(trans));
+                promise.then(function (val) { return ids[id_1] = (val !== false); });
+            }
+            return promise;
+        };
+        var criteria = { exiting: viewState.name };
+        $scope.$on('$destroy', $transitions.onBefore(criteria, wrappedHook, hookOptions));
+    }
+}
+angular_1.ng.module('ui.router.state').directive('uiView', exports.uiView);
+angular_1.ng.module('ui.router.state').directive('uiView', $ViewDirectiveFill);
+
+},{"../angular":77,"../services":83,"../statebuilders/views":87,"@uirouter/core":21,"angular":92}],80:[function(require,module,exports){
+"use strict";
+/**
+ * Main entry point for angular 1.x build
+ * @module ng1
+ */ /** */
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+var core = require("@uirouter/core");
+exports.core = core;
+__export(require("@uirouter/core"));
+__export(require("./services"));
+__export(require("./statebuilders/views"));
+__export(require("./stateProvider"));
+__export(require("./urlRouterProvider"));
+require("./injectables");
+require("./directives/stateDirectives");
+require("./stateFilters");
+require("./directives/viewDirective");
+require("./viewScroll");
+exports.default = "ui.router";
+
+},{"./directives/stateDirectives":78,"./directives/viewDirective":79,"./injectables":81,"./services":83,"./stateFilters":84,"./stateProvider":85,"./statebuilders/views":87,"./urlRouterProvider":89,"./viewScroll":90,"@uirouter/core":21}],81:[function(require,module,exports){
+"use strict";
+/**
+ * # Angular 1 injectable services
+ *
+ * This is a list of the objects which can be injected using angular's injector.
+ *
+ * There are three different kind of injectable objects:
+ *
+ * ## **Provider** objects
+ * #### injectable into a `.config()` block during configtime
+ *
+ * - [[$uiRouterProvider]]: The UI-Router instance
+ * - [[$stateProvider]]: State registration
+ * - [[$transitionsProvider]]: Transition hooks
+ * - [[$urlServiceProvider]]: All URL related public APIs
+ *
+ * - [[$uiViewScrollProvider]]: Disable ui-router view scrolling
+ * - [[$urlRouterProvider]]: (deprecated) Url matching rules
+ * - [[$urlMatcherFactoryProvider]]: (deprecated) Url parsing config
+ *
+ * ## **Service** objects
+ * #### injectable globally during runtime
+ *
+ * - [[$uiRouter]]: The UI-Router instance
+ * - [[$trace]]: Enable transition trace/debug
+ * - [[$transitions]]: Transition hooks
+ * - [[$state]]: Imperative state related APIs
+ * - [[$stateRegistry]]: State registration
+ * - [[$urlService]]: All URL related public APIs
+ * - [[$uiRouterGlobals]]: Global variables
+ * - [[$uiViewScroll]]: Scroll an element into view
+ *
+ * - [[$stateParams]]: (deprecated) Global state param values
+ * - [[$urlRouter]]: (deprecated) URL synchronization
+ * - [[$urlMatcherFactory]]: (deprecated) URL parsing config
+ *
+ * ## **Per-Transition** objects
+ *
+ * - These kind of objects are injectable into:
+ *   - Resolves ([[Ng1StateDeclaration.resolve]]),
+ *   - Transition Hooks ([[TransitionService.onStart]], etc),
+ *   - Routed Controllers ([[Ng1ViewDeclaration.controller]])
+ *
+ * #### Different instances are injected based on the [[Transition]]
+ *
+ * - [[$transition$]]: The current Transition object
+ * - [[$stateParams]]: State param values for pending Transition (deprecated)
+ * - Any resolve data defined using [[Ng1StateDeclaration.resolve]]
+ *
+ * @ng1api
+ * @preferred
+ * @module injectables
+ */ /** */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * The current (or pending) State Parameters
+ *
+ * An injectable global **Service Object** which holds the state parameters for the latest **SUCCESSFUL** transition.
+ *
+ * The values are not updated until *after* a `Transition` successfully completes.
+ *
+ * **Also:** an injectable **Per-Transition Object** object which holds the pending state parameters for the pending `Transition` currently running.
+ *
+ * ### Deprecation warning:
+ *
+ * The value injected for `$stateParams` is different depending on where it is injected.
+ *
+ * - When injected into an angular service, the object injected is the global **Service Object** with the parameter values for the latest successful `Transition`.
+ * - When injected into transition hooks, resolves, or view controllers, the object is the **Per-Transition Object** with the parameter values for the running `Transition`.
+ *
+ * Because of these confusing details, this service is deprecated.
+ *
+ * ### Instead of using the global `$stateParams` service object,
+ * inject [[$uiRouterGlobals]] and use [[UIRouterGlobals.params]]
+ *
+ * ```js
+ * MyService.$inject = ['$uiRouterGlobals'];
+ * function MyService($uiRouterGlobals) {
+ *   return {
+ *     paramValues: function () {
+ *       return $uiRouterGlobals.params;
+ *     }
+ *   }
+ * }
+ * ```
+ *
+ * ### Instead of using the per-transition `$stateParams` object,
+ * inject the current `Transition` (as [[$transition$]]) and use [[Transition.params]]
+ *
+ * ```js
+ * MyController.$inject = ['$transition$'];
+ * function MyController($transition$) {
+ *   var username = $transition$.params().username;
+ *   // .. do something with username
+ * }
+ * ```
+ *
+ * ---
+ *
+ * This object can be injected into other services.
+ *
+ * #### Deprecated Example:
+ * ```js
+ * SomeService.$inject = ['$http', '$stateParams'];
+ * function SomeService($http, $stateParams) {
+ *   return {
+ *     getUser: function() {
+ *       return $http.get('/api/users/' + $stateParams.username);
+ *     }
+ *   }
+ * };
+ * angular.service('SomeService', SomeService);
+ * ```
+ * @deprecated
+ */
+var $stateParams;
+/**
+ * Global UI-Router variables
+ *
+ * The router global state as a **Service Object** (injectable during runtime).
+ *
+ * This object contains globals such as the current state and current parameter values.
+ */
+var $uiRouterGlobals;
+/**
+ * The UI-Router instance
+ *
+ * The [[UIRouter]] singleton (the router instance) as a **Service Object** (injectable during runtime).
+ *
+ * This object is the UI-Router singleton instance, created by angular dependency injection during application bootstrap.
+ * It has references to the other UI-Router services
+ *
+ * #### Note: This object is also exposed as [[$uiRouterProvider]] for injection during angular config time.
+ */
+var $uiRouter;
+/**
+ * The UI-Router instance
+ *
+ * The [[UIRouter]] singleton (the router instance) as a **Provider Object** (injectable during config phase).
+ *
+ * This object is the UI-Router singleton instance, created by angular dependency injection during application bootstrap.
+ * It has references to the other UI-Router services
+ *
+ * #### Note: This object is also exposed as [[$uiRouter]] for injection during runtime.
+ */
+var $uiRouterProvider;
+/**
+ * Transition debug/tracing
+ *
+ * The [[Trace]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * Enables or disables Transition tracing which can help to debug issues.
+ */
+var $trace;
+/**
+ * The Transition Service
+ *
+ * The [[TransitionService]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * This angular service exposes the [[TransitionService]] singleton, which is primarily
+ * used to register global transition hooks.
+ *
+ * #### Note: This object is also exposed as [[$transitionsProvider]] for injection during the config phase.
+ */
+var $transitions;
+/**
+ * The Transition Service
+ *
+ * The [[TransitionService]] singleton as a **Provider Object** (injectable during config phase)
+ *
+ * This angular service exposes the [[TransitionService]] singleton, which is primarily
+ * used to register global transition hooks.
+ *
+ * #### Note: This object is also exposed as [[$transitions]] for injection during runtime.
+ */
+var $transitionsProvider;
+/**
+ * The current [[Transition]] object
+ *
+ * The current [[Transition]] object as a **Per-Transition Object** (injectable into Resolve, Hooks, Controllers)
+ *
+ * This object returns information about the current transition, including:
+ *
+ * - To/from states
+ * - To/from parameters
+ * - Transition options
+ * - States being entered, exited, and retained
+ * - Resolve data
+ * - A Promise for the transition
+ * - Any transition failure information
+ * - An injector for both Service and Per-Transition Objects
+ */
+var $transition$;
+/**
+ * The State Service
+ *
+ * The [[StateService]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * This service used to manage and query information on registered states.
+ * It exposes state related APIs including:
+ *
+ * - Start a [[Transition]]
+ * - Imperatively lazy load states
+ * - Check if a state is currently active
+ * - Look up states by name
+ * - Build URLs for a state+parameters
+ * - Configure the global Transition error handler
+ *
+ * This angular service exposes the [[StateService]] singleton.
+ */
+var $state;
+/**
+ * The State Registry
+ *
+ * The [[StateRegistry]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * This service is used to register/deregister states.
+ * It has state registration related APIs including:
+ *
+ * - Register/deregister states
+ * - Listen for state registration/deregistration
+ * - Get states by name
+ * - Add state decorators (to customize the state creation process)
+ *
+ * #### Note: This object is also exposed as [[$stateRegistryProvider]] for injection during the config phase.
+ */
+var $stateRegistry;
+/**
+ * The State Registry
+ *
+ * The [[StateRegistry]] singleton as a **Provider Object** (injectable during config time).
+ *
+ * This service is used to register/deregister states.
+ * It has state registration related APIs including:
+ *
+ * - Register/deregister states
+ * - Listen for state registration/deregistration
+ * - Get states by name
+ * - Add state decorators (to customize the state creation process)
+ *
+ * #### Note: This object is also exposed as [[$stateRegistry]] for injection during runtime.
+ */
+var $stateRegistryProvider;
+/**
+ * The View Scroll provider
+ *
+ * The [[UIViewScrollProvider]] as a **Provider Object** (injectable during config time).
+ *
+ * This angular service exposes the [[UIViewScrollProvider]] singleton and is
+ * used to disable UI-Router's scroll behavior.
+ */
+var $uiViewScrollProvider;
+/**
+ * The View Scroll function
+ *
+ * The View Scroll function as a **Service Object** (injectable during runtime).
+ *
+ * This is a function that scrolls an element into view.
+ * The element is scrolled after a `$timeout` so the DOM has time to refresh.
+ *
+ * If you prefer to rely on `$anchorScroll` to scroll the view to the anchor,
+ * this can be enabled by calling [[UIViewScrollProvider.useAnchorScroll]].
+ *
+ * Note: this function is used by the [[directives.uiView]] when the `autoscroll` expression evaluates to true.
+ */
+var $uiViewScroll;
+/**
+ * The StateProvider
+ *
+ * An angular1-only [[StateProvider]] as a **Provider Object** (injectable during config time).
+ *
+ * This angular service exposes the [[StateProvider]] singleton.
+ *
+ * The `StateProvider` is primarily used to register states or add custom state decorators.
+ *
+ * ##### Note: This provider is a ng1 vestige.
+ * It is a passthrough to [[$stateRegistry]] and [[$state]].
+ */
+var $stateProvider;
+/**
+ * The URL Service Provider
+ *
+ * The [[UrlService]] singleton as a **Provider Object** (injectable during the angular config phase).
+ *
+ * A service used to configure and interact with the URL.
+ * It has URL related APIs including:
+ *
+ * - register custom Parameter types `UrlService.config.type` ([[UrlConfigApi.type]])
+ * - add URL rules: `UrlService.rules.when` ([[UrlRulesApi.when]])
+ * - configure behavior when no url matches: `UrlService.rules.otherwise` ([[UrlRulesApi.otherwise]])
+ * - delay initial URL synchronization [[UrlService.deferIntercept]].
+ * - get or set the current url: [[UrlService.url]]
+ *
+ * ##### Note: This service can also be injected during runtime as [[$urlService]].
+ */
+var $urlServiceProvider;
+/**
+ * The URL Service
+ *
+ * The [[UrlService]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * Note: This service can also be injected during the config phase as [[$urlServiceProvider]].
+ *
+ * Used to configure the URL.
+ * It has URL related APIs including:
+ *
+ * - register custom Parameter types `UrlService.config.type` ([[UrlConfigApi.type]])
+ * - add URL rules: `UrlService.rules.when` ([[UrlRulesApi.when]])
+ * - configure behavior when no url matches: `UrlService.rules.otherwise` ([[UrlRulesApi.otherwise]])
+ * - delay initial URL synchronization [[UrlService.deferIntercept]].
+ * - get or set the current url: [[UrlService.url]]
+ *
+ * ##### Note: This service can also be injected during the config phase as [[$urlServiceProvider]].
+ */
+var $urlService;
+/**
+ * The URL Router Provider
+ *
+ * ### Deprecation warning: This object is now considered internal. Use [[$urlServiceProvider]] instead.
+ *
+ * The [[UrlRouter]] singleton as a **Provider Object** (injectable during config time).
+ *
+ * #### Note: This object is also exposed as [[$urlRouter]] for injection during runtime.
+ *
+ * @deprecated
+ */
+var $urlRouterProvider;
+/**
+ * The Url Router
+ *
+ * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
+ *
+ * The [[UrlRouter]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * #### Note: This object is also exposed as [[$urlRouterProvider]] for injection during angular config time.
+ *
+ * @deprecated
+ */
+var $urlRouter;
+/**
+ * The URL Matcher Factory
+ *
+ * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
+ *
+ * The [[UrlMatcherFactory]] singleton as a **Service Object** (injectable during runtime).
+ *
+ * This service is used to set url mapping options, define custom parameter types, and create [[UrlMatcher]] objects.
+ *
+ * #### Note: This object is also exposed as [[$urlMatcherFactoryProvider]] for injection during angular config time.
+ *
+ * @deprecated
+ */
+var $urlMatcherFactory;
+/**
+ * The URL Matcher Factory
+ *
+ * ### Deprecation warning: This object is now considered internal. Use [[$urlService]] instead.
+ *
+ * The [[UrlMatcherFactory]] singleton as a **Provider Object** (injectable during config time).
+ *
+ * This service is used to set url mapping options, define custom parameter types, and create [[UrlMatcher]] objects.
+ *
+ * #### Note: This object is also exposed as [[$urlMatcherFactory]] for injection during runtime.
+ *
+ * @deprecated
+ */
+var $urlMatcherFactoryProvider;
+
+},{}],82:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var core_1 = require("@uirouter/core");
+/**
+ * Implements UI-Router LocationServices and LocationConfig using Angular 1's $location service
+ */
+var Ng1LocationServices = (function () {
+    function Ng1LocationServices($locationProvider) {
+        // .onChange() registry
+        this._urlListeners = [];
+        this.$locationProvider = $locationProvider;
+        var _lp = core_1.val($locationProvider);
+        core_1.createProxyFunctions(_lp, this, _lp, ['hashPrefix']);
+    }
+    Ng1LocationServices.prototype.dispose = function () { };
+    Ng1LocationServices.prototype.onChange = function (callback) {
+        var _this = this;
+        this._urlListeners.push(callback);
+        return function () { return core_1.removeFrom(_this._urlListeners)(callback); };
+    };
+    Ng1LocationServices.prototype.html5Mode = function () {
+        var html5Mode = this.$locationProvider.html5Mode();
+        html5Mode = core_1.isObject(html5Mode) ? html5Mode.enabled : html5Mode;
+        return html5Mode && this.$sniffer.history;
+    };
+    Ng1LocationServices.prototype.url = function (newUrl, replace, state) {
+        if (replace === void 0) { replace = false; }
+        if (newUrl)
+            this.$location.url(newUrl);
+        if (replace)
+            this.$location.replace();
+        if (state)
+            this.$location.state(state);
+        return this.$location.url();
+    };
+    Ng1LocationServices.prototype._runtimeServices = function ($rootScope, $location, $sniffer, $browser) {
+        var _this = this;
+        this.$location = $location;
+        this.$sniffer = $sniffer;
+        // Bind $locationChangeSuccess to the listeners registered in LocationService.onChange
+        $rootScope.$on("$locationChangeSuccess", function (evt) { return _this._urlListeners.forEach(function (fn) { return fn(evt); }); });
+        var _loc = core_1.val($location);
+        var _browser = core_1.val($browser);
+        // Bind these LocationService functions to $location
+        core_1.createProxyFunctions(_loc, this, _loc, ["replace", "path", "search", "hash"]);
+        // Bind these LocationConfig functions to $location
+        core_1.createProxyFunctions(_loc, this, _loc, ['port', 'protocol', 'host']);
+        // Bind these LocationConfig functions to $browser
+        core_1.createProxyFunctions(_browser, this, _browser, ['baseHref']);
+    };
+    /**
+     * Applys ng1-specific path parameter encoding
+     *
+     * The Angular 1 `$location` service is a bit weird.
+     * It doesn't allow slashes to be encoded/decoded bi-directionally.
+     *
+     * See the writeup at https://github.com/angular-ui/ui-router/issues/2598
+     *
+     * This code patches the `path` parameter type so it encoded/decodes slashes as ~2F
+     *
+     * @param router
+     */
+    Ng1LocationServices.monkeyPatchPathParameterType = function (router) {
+        var pathType = router.urlMatcherFactory.type('path');
+        pathType.encode = function (val) {
+            return val != null ? val.toString().replace(/(~|\/)/g, function (m) { return ({ '~': '~~', '/': '~2F' }[m]); }) : val;
+        };
+        pathType.decode = function (val) {
+            return val != null ? val.toString().replace(/(~~|~2F)/g, function (m) { return ({ '~~': '~', '~2F': '/' }[m]); }) : val;
+        };
+    };
+    return Ng1LocationServices;
+}());
+exports.Ng1LocationServices = Ng1LocationServices;
+
+},{"@uirouter/core":21}],83:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * # Angular 1 types
+ *
+ * UI-Router core provides various Typescript types which you can use for code completion and validating parameter values, etc.
+ * The customizations to the core types for Angular UI-Router are documented here.
+ *
+ * The optional [[$resolve]] service is also documented here.
+ *
+ * @module ng1
+ * @preferred
+ */
+/** for typedoc */
+var angular_1 = require("./angular");
+var core_1 = require("@uirouter/core");
+var views_1 = require("./statebuilders/views");
+var templateFactory_1 = require("./templateFactory");
+var stateProvider_1 = require("./stateProvider");
+var onEnterExitRetain_1 = require("./statebuilders/onEnterExitRetain");
+var locationServices_1 = require("./locationServices");
+var urlRouterProvider_1 = require("./urlRouterProvider");
+angular_1.ng.module("ui.router.angular1", []);
+var mod_init = angular_1.ng.module('ui.router.init', []);
+var mod_util = angular_1.ng.module('ui.router.util', ['ng', 'ui.router.init']);
+var mod_rtr = angular_1.ng.module('ui.router.router', ['ui.router.util']);
+var mod_state = angular_1.ng.module('ui.router.state', ['ui.router.router', 'ui.router.util', 'ui.router.angular1']);
+var mod_main = angular_1.ng.module('ui.router', ['ui.router.init', 'ui.router.state', 'ui.router.angular1']);
+var mod_cmpt = angular_1.ng.module('ui.router.compat', ['ui.router']); // tslint:disable-line
+var router = null;
+$uiRouter.$inject = ['$locationProvider'];
+/** This angular 1 provider instantiates a Router and exposes its services via the angular injector */
+function $uiRouter($locationProvider) {
+    // Create a new instance of the Router when the $uiRouterProvider is initialized
+    router = this.router = new core_1.UIRouter();
+    router.stateProvider = new stateProvider_1.StateProvider(router.stateRegistry, router.stateService);
+    // Apply ng1 specific StateBuilder code for `views`, `resolve`, and `onExit/Retain/Enter` properties
+    router.stateRegistry.decorator("views", views_1.ng1ViewsBuilder);
+    router.stateRegistry.decorator("onExit", onEnterExitRetain_1.getStateHookBuilder("onExit"));
+    router.stateRegistry.decorator("onRetain", onEnterExitRetain_1.getStateHookBuilder("onRetain"));
+    router.stateRegistry.decorator("onEnter", onEnterExitRetain_1.getStateHookBuilder("onEnter"));
+    router.viewService._pluginapi._viewConfigFactory('ng1', views_1.getNg1ViewConfigFactory());
+    var ng1LocationService = router.locationService = router.locationConfig = new locationServices_1.Ng1LocationServices($locationProvider);
+    locationServices_1.Ng1LocationServices.monkeyPatchPathParameterType(router);
+    // backwards compat: also expose router instance as $uiRouterProvider.router
+    router['router'] = router;
+    router['$get'] = $get;
+    $get.$inject = ['$location', '$browser', '$sniffer', '$rootScope', '$http', '$templateCache'];
+    function $get($location, $browser, $sniffer, $rootScope, $http, $templateCache) {
+        ng1LocationService._runtimeServices($rootScope, $location, $sniffer, $browser);
+        delete router['router'];
+        delete router['$get'];
+        return router;
+    }
+    return router;
+}
+var getProviderFor = function (serviceName) { return ['$uiRouterProvider', function ($urp) {
+        var service = $urp.router[serviceName];
+        service["$get"] = function () { return service; };
+        return service;
+    }]; };
+// This effectively calls $get() on `$uiRouterProvider` to trigger init (when ng enters runtime)
+runBlock.$inject = ['$injector', '$q', '$uiRouter'];
+function runBlock($injector, $q, $uiRouter) {
+    core_1.services.$injector = $injector;
+    core_1.services.$q = $q;
+    // The $injector is now available.
+    // Find any resolvables that had dependency annotation deferred
+    $uiRouter.stateRegistry.get()
+        .map(function (x) { return x.$$state().resolvables; })
+        .reduce(core_1.unnestR, [])
+        .filter(function (x) { return x.deps === "deferred"; })
+        .forEach(function (resolvable) { return resolvable.deps = $injector.annotate(resolvable.resolveFn); });
+}
+// $urlRouter service and $urlRouterProvider
+var getUrlRouterProvider = function (uiRouter) {
+    return uiRouter.urlRouterProvider = new urlRouterProvider_1.UrlRouterProvider(uiRouter);
+};
+// $state service and $stateProvider
+// $urlRouter service and $urlRouterProvider
+var getStateProvider = function () {
+    return core_1.extend(router.stateProvider, { $get: function () { return router.stateService; } });
+};
+watchDigests.$inject = ['$rootScope'];
+function watchDigests($rootScope) {
+    $rootScope.$watch(function () { core_1.trace.approximateDigests++; });
+}
+exports.watchDigests = watchDigests;
+mod_init.provider("$uiRouter", $uiRouter);
+mod_rtr.provider('$urlRouter', ['$uiRouterProvider', getUrlRouterProvider]);
+mod_util.provider('$urlService', getProviderFor('urlService'));
+mod_util.provider('$urlMatcherFactory', ['$uiRouterProvider', function () { return router.urlMatcherFactory; }]);
+mod_util.provider('$templateFactory', function () { return new templateFactory_1.TemplateFactory(); });
+mod_state.provider('$stateRegistry', getProviderFor('stateRegistry'));
+mod_state.provider('$uiRouterGlobals', getProviderFor('globals'));
+mod_state.provider('$transitions', getProviderFor('transitionService'));
+mod_state.provider('$state', ['$uiRouterProvider', getStateProvider]);
+mod_state.factory('$stateParams', ['$uiRouter', function ($uiRouter) { return $uiRouter.globals.params; }]);
+mod_main.factory('$view', function () { return router.viewService; });
+mod_main.service("$trace", function () { return core_1.trace; });
+mod_main.run(watchDigests);
+mod_util.run(['$urlMatcherFactory', function ($urlMatcherFactory) { }]);
+mod_state.run(['$state', function ($state) { }]);
+mod_rtr.run(['$urlRouter', function ($urlRouter) { }]);
+mod_init.run(runBlock);
+/** @hidden TODO: find a place to move this */
+exports.getLocals = function (ctx) {
+    var tokens = ctx.getTokens().filter(core_1.isString);
+    var tuples = tokens.map(function (key) {
+        var resolvable = ctx.getResolvable(key);
+        var waitPolicy = ctx.getPolicy(resolvable).async;
+        return [key, waitPolicy === 'NOWAIT' ? resolvable.promise : resolvable.data];
+    });
+    return tuples.reduce(core_1.applyPairs, {});
+};
+
+},{"./angular":77,"./locationServices":82,"./stateProvider":85,"./statebuilders/onEnterExitRetain":86,"./statebuilders/views":87,"./templateFactory":88,"./urlRouterProvider":89,"@uirouter/core":21}],84:[function(require,module,exports){
+"use strict";
+/** @module ng1 */ /** for typedoc */
+Object.defineProperty(exports, "__esModule", { value: true });
+var angular_1 = require("./angular");
+/**
+ * `isState` Filter: truthy if the current state is the parameter
+ *
+ * Translates to [[StateService.is]] `$state.is("stateName")`.
+ *
+ * #### Example:
+ * ```html
+ * <div ng-if="'stateName' | isState">show if state is 'stateName'</div>
+ * ```
+ */
+$IsStateFilter.$inject = ['$state'];
+function $IsStateFilter($state) {
+    var isFilter = function (state, params, options) {
+        return $state.is(state, params, options);
+    };
+    isFilter.$stateful = true;
+    return isFilter;
+}
+exports.$IsStateFilter = $IsStateFilter;
+/**
+ * `includedByState` Filter: truthy if the current state includes the parameter
+ *
+ * Translates to [[StateService.includes]]` $state.is("fullOrPartialStateName")`.
+ *
+ * #### Example:
+ * ```html
+ * <div ng-if="'fullOrPartialStateName' | includedByState">show if state includes 'fullOrPartialStateName'</div>
+ * ```
+ */
+$IncludedByStateFilter.$inject = ['$state'];
+function $IncludedByStateFilter($state) {
+    var includesFilter = function (state, params, options) {
+        return $state.includes(state, params, options);
+    };
+    includesFilter.$stateful = true;
+    return includesFilter;
+}
+exports.$IncludedByStateFilter = $IncludedByStateFilter;
+angular_1.ng.module('ui.router.state')
+    .filter('isState', $IsStateFilter)
+    .filter('includedByState', $IncludedByStateFilter);
+
+},{"./angular":77}],85:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @module ng1 */ /** for typedoc */
+var core_1 = require("@uirouter/core");
+/**
+ * The Angular 1 `StateProvider`
+ *
+ * The `$stateProvider` works similar to Angular's v1 router, but it focuses purely
+ * on state.
+ *
+ * A state corresponds to a "place" in the application in terms of the overall UI and
+ * navigation. A state describes (via the controller / template / view properties) what
+ * the UI looks like and does at that place.
+ *
+ * States often have things in common, and the primary way of factoring out these
+ * commonalities in this model is via the state hierarchy, i.e. parent/child states aka
+ * nested states.
+ *
+ * The `$stateProvider` provides interfaces to declare these states for your app.
+ */
+var StateProvider = (function () {
+    function StateProvider(stateRegistry, stateService) {
+        this.stateRegistry = stateRegistry;
+        this.stateService = stateService;
+        core_1.createProxyFunctions(core_1.val(StateProvider.prototype), this, core_1.val(this));
+    }
+    /**
+     * Decorates states when they are registered
+     *
+     * Allows you to extend (carefully) or override (at your own peril) the
+     * `stateBuilder` object used internally by [[StateRegistry]].
+     * This can be used to add custom functionality to ui-router,
+     * for example inferring templateUrl based on the state name.
+     *
+     * When passing only a name, it returns the current (original or decorated) builder
+     * function that matches `name`.
+     *
+     * The builder functions that can be decorated are listed below. Though not all
+     * necessarily have a good use case for decoration, that is up to you to decide.
+     *
+     * In addition, users can attach custom decorators, which will generate new
+     * properties within the state's internal definition. There is currently no clear
+     * use-case for this beyond accessing internal states (i.e. $state.$current),
+     * however, expect this to become increasingly relevant as we introduce additional
+     * meta-programming features.
+     *
+     * **Warning**: Decorators should not be interdependent because the order of
+     * execution of the builder functions in non-deterministic. Builder functions
+     * should only be dependent on the state definition object and super function.
+     *
+     *
+     * Existing builder functions and current return values:
+     *
+     * - **parent** `{object}` - returns the parent state object.
+     * - **data** `{object}` - returns state data, including any inherited data that is not
+     *   overridden by own values (if any).
+     * - **url** `{object}` - returns a {@link ui.router.util.type:UrlMatcher UrlMatcher}
+     *   or `null`.
+     * - **navigable** `{object}` - returns closest ancestor state that has a URL (aka is
+     *   navigable).
+     * - **params** `{object}` - returns an array of state params that are ensured to
+     *   be a super-set of parent's params.
+     * - **views** `{object}` - returns a views object where each key is an absolute view
+     *   name (i.e. "viewName@stateName") and each value is the config object
+     *   (template, controller) for the view. Even when you don't use the views object
+     *   explicitly on a state config, one is still created for you internally.
+     *   So by decorating this builder function you have access to decorating template
+     *   and controller properties.
+     * - **ownParams** `{object}` - returns an array of params that belong to the state,
+     *   not including any params defined by ancestor states.
+     * - **path** `{string}` - returns the full path from the root down to this state.
+     *   Needed for state activation.
+     * - **includes** `{object}` - returns an object that includes every state that
+     *   would pass a `$state.includes()` test.
+     *
+     * #### Example:
+     * Override the internal 'views' builder with a function that takes the state
+     * definition, and a reference to the internal function being overridden:
+     * ```js
+     * $stateProvider.decorator('views', function (state, parent) {
+     *   let result = {},
+     *       views = parent(state);
+     *
+     *   angular.forEach(views, function (config, name) {
+     *     let autoName = (state.name + '.' + name).replace('.', '/');
+     *     config.templateUrl = config.templateUrl || '/partials/' + autoName + '.html';
+     *     result[name] = config;
+     *   });
+     *   return result;
+     * });
+     *
+     * $stateProvider.state('home', {
+     *   views: {
+     *     'contact.list': { controller: 'ListController' },
+     *     'contact.item': { controller: 'ItemController' }
+     *   }
+     * });
+     * ```
+     *
+     *
+     * ```js
+     * // Auto-populates list and item views with /partials/home/contact/list.html,
+     * // and /partials/home/contact/item.html, respectively.
+     * $state.go('home');
+     * ```
+     *
+     * @param {string} name The name of the builder function to decorate.
+     * @param {object} func A function that is responsible for decorating the original
+     * builder function. The function receives two parameters:
+     *
+     *   - `{object}` - state - The state config object.
+     *   - `{object}` - super - The original builder function.
+     *
+     * @return {object} $stateProvider - $stateProvider instance
+     */
+    StateProvider.prototype.decorator = function (name, func) {
+        return this.stateRegistry.decorator(name, func) || this;
+    };
+    StateProvider.prototype.state = function (name, definition) {
+        if (core_1.isObject(name)) {
+            definition = name;
+        }
+        else {
+            definition.name = name;
+        }
+        this.stateRegistry.register(definition);
+        return this;
+    };
+    /**
+     * Registers an invalid state handler
+     *
+     * This is a passthrough to [[StateService.onInvalid]] for ng1.
+     */
+    StateProvider.prototype.onInvalid = function (callback) {
+        return this.stateService.onInvalid(callback);
+    };
+    return StateProvider;
+}());
+exports.StateProvider = StateProvider;
+
+},{"@uirouter/core":21}],86:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @module ng1 */ /** */
+var core_1 = require("@uirouter/core");
+var services_1 = require("../services");
+/**
+ * This is a [[StateBuilder.builder]] function for angular1 `onEnter`, `onExit`,
+ * `onRetain` callback hooks on a [[Ng1StateDeclaration]].
+ *
+ * When the [[StateBuilder]] builds a [[StateObject]] object from a raw [[StateDeclaration]], this builder
+ * ensures that those hooks are injectable for @uirouter/angularjs (ng1).
+ */
+exports.getStateHookBuilder = function (hookName) {
+    return function stateHookBuilder(state, parentFn) {
+        var hook = state[hookName];
+        var pathname = hookName === 'onExit' ? 'from' : 'to';
+        function decoratedNg1Hook(trans, state) {
+            var resolveContext = new core_1.ResolveContext(trans.treeChanges(pathname));
+            var locals = core_1.extend(services_1.getLocals(resolveContext), { $state$: state, $transition$: trans });
+            return core_1.services.$injector.invoke(hook, this, locals);
+        }
+        return hook ? decoratedNg1Hook : undefined;
+    };
+};
+
+},{"../services":83,"@uirouter/core":21}],87:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var core_1 = require("@uirouter/core");
+function getNg1ViewConfigFactory() {
+    var templateFactory = null;
+    return function (path, view) {
+        templateFactory = templateFactory || core_1.services.$injector.get("$templateFactory");
+        return [new Ng1ViewConfig(path, view, templateFactory)];
+    };
+}
+exports.getNg1ViewConfigFactory = getNg1ViewConfigFactory;
+var hasAnyKey = function (keys, obj) {
+    return keys.reduce(function (acc, key) { return acc || core_1.isDefined(obj[key]); }, false);
+};
+/**
+ * This is a [[StateBuilder.builder]] function for angular1 `views`.
+ *
+ * When the [[StateBuilder]] builds a [[StateObject]] object from a raw [[StateDeclaration]], this builder
+ * handles the `views` property with logic specific to @uirouter/angularjs (ng1).
+ *
+ * If no `views: {}` property exists on the [[StateDeclaration]], then it creates the `views` object
+ * and applies the state-level configuration to a view named `$default`.
+ */
+function ng1ViewsBuilder(state) {
+    // Do not process root state
+    if (!state.parent)
+        return {};
+    var tplKeys = ['templateProvider', 'templateUrl', 'template', 'notify', 'async'], ctrlKeys = ['controller', 'controllerProvider', 'controllerAs', 'resolveAs'], compKeys = ['component', 'bindings', 'componentProvider'], nonCompKeys = tplKeys.concat(ctrlKeys), allViewKeys = compKeys.concat(nonCompKeys);
+    // Do not allow a state to have both state-level props and also a `views: {}` property.
+    // A state without a `views: {}` property can declare properties for the `$default` view as properties of the state.
+    // However, the `$default` approach should not be mixed with a separate `views: ` block.
+    if (core_1.isDefined(state.views) && hasAnyKey(allViewKeys, state)) {
+        throw new Error("State '" + state.name + "' has a 'views' object. " +
+            "It cannot also have \"view properties\" at the state level.  " +
+            "Move the following properties into a view (in the 'views' object): " +
+            (" " + allViewKeys.filter(function (key) { return core_1.isDefined(state[key]); }).join(", ")));
+    }
+    var views = {}, viewsObject = state.views || { "$default": core_1.pick(state, allViewKeys) };
+    core_1.forEach(viewsObject, function (config, name) {
+        // Account for views: { "": { template... } }
+        name = name || "$default";
+        // Account for views: { header: "headerComponent" }
+        if (core_1.isString(config))
+            config = { component: config };
+        // Make a shallow copy of the config object
+        config = core_1.extend({}, config);
+        // Do not allow a view to mix props for component-style view with props for template/controller-style view
+        if (hasAnyKey(compKeys, config) && hasAnyKey(nonCompKeys, config)) {
+            throw new Error("Cannot combine: " + compKeys.join("|") + " with: " + nonCompKeys.join("|") + " in stateview: '" + name + "@" + state.name + "'");
+        }
+        config.resolveAs = config.resolveAs || '$resolve';
+        config.$type = "ng1";
+        config.$context = state;
+        config.$name = name;
+        var normalized = core_1.ViewService.normalizeUIViewTarget(config.$context, config.$name);
+        config.$uiViewName = normalized.uiViewName;
+        config.$uiViewContextAnchor = normalized.uiViewContextAnchor;
+        views[name] = config;
+    });
+    return views;
+}
+exports.ng1ViewsBuilder = ng1ViewsBuilder;
+var id = 0;
+var Ng1ViewConfig = (function () {
+    function Ng1ViewConfig(path, viewDecl, factory) {
+        var _this = this;
+        this.path = path;
+        this.viewDecl = viewDecl;
+        this.factory = factory;
+        this.$id = id++;
+        this.loaded = false;
+        this.getTemplate = function (uiView, context) {
+            return _this.component ? _this.factory.makeComponentTemplate(uiView, context, _this.component, _this.viewDecl.bindings) : _this.template;
+        };
+    }
+    Ng1ViewConfig.prototype.load = function () {
+        var _this = this;
+        var $q = core_1.services.$q;
+        var context = new core_1.ResolveContext(this.path);
+        var params = this.path.reduce(function (acc, node) { return core_1.extend(acc, node.paramValues); }, {});
+        var promises = {
+            template: $q.when(this.factory.fromConfig(this.viewDecl, params, context)),
+            controller: $q.when(this.getController(context))
+        };
+        return $q.all(promises).then(function (results) {
+            core_1.trace.traceViewServiceEvent("Loaded", _this);
+            _this.controller = results.controller;
+            core_1.extend(_this, results.template); // Either { template: "tpl" } or { component: "cmpName" }
+            return _this;
+        });
+    };
+    /**
+     * Gets the controller for a view configuration.
+     *
+     * @returns {Function|Promise.<Function>} Returns a controller, or a promise that resolves to a controller.
+     */
+    Ng1ViewConfig.prototype.getController = function (context) {
+        var provider = this.viewDecl.controllerProvider;
+        if (!core_1.isInjectable(provider))
+            return this.viewDecl.controller;
+        var deps = core_1.services.$injector.annotate(provider);
+        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
+        var resolvable = new core_1.Resolvable("", providerFn, deps);
+        return resolvable.get(context);
+    };
+    return Ng1ViewConfig;
+}());
+exports.Ng1ViewConfig = Ng1ViewConfig;
+
+},{"@uirouter/core":21}],88:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @module view */
+/** for typedoc */
+var angular_1 = require("./angular");
+var core_1 = require("@uirouter/core");
+/**
+ * Service which manages loading of templates from a ViewConfig.
+ */
+var TemplateFactory = (function () {
+    function TemplateFactory() {
+        var _this = this;
+        /** @hidden */ this._useHttp = angular_1.ng.version.minor < 3;
+        /** @hidden */ this.$get = ['$http', '$templateCache', '$injector', function ($http, $templateCache, $injector) {
+                _this.$templateRequest = $injector.has && $injector.has('$templateRequest') && $injector.get('$templateRequest');
+                _this.$http = $http;
+                _this.$templateCache = $templateCache;
+                return _this;
+            }];
+    }
+    /** @hidden */
+    TemplateFactory.prototype.useHttpService = function (value) {
+        this._useHttp = value;
+    };
+    ;
+    /**
+     * Creates a template from a configuration object.
+     *
+     * @param config Configuration object for which to load a template.
+     * The following properties are search in the specified order, and the first one
+     * that is defined is used to create the template:
+     *
+     * @param params  Parameters to pass to the template function.
+     * @param context The resolve context associated with the template's view
+     *
+     * @return {string|object}  The template html as a string, or a promise for
+     * that string,or `null` if no template is configured.
+     */
+    TemplateFactory.prototype.fromConfig = function (config, params, context) {
+        var defaultTemplate = "<ui-view></ui-view>";
+        var asTemplate = function (result) { return core_1.services.$q.when(result).then(function (str) { return ({ template: str }); }); };
+        var asComponent = function (result) { return core_1.services.$q.when(result).then(function (str) { return ({ component: str }); }); };
+        return (core_1.isDefined(config.template) ? asTemplate(this.fromString(config.template, params)) :
+            core_1.isDefined(config.templateUrl) ? asTemplate(this.fromUrl(config.templateUrl, params)) :
+                core_1.isDefined(config.templateProvider) ? asTemplate(this.fromProvider(config.templateProvider, params, context)) :
+                    core_1.isDefined(config.component) ? asComponent(config.component) :
+                        core_1.isDefined(config.componentProvider) ? asComponent(this.fromComponentProvider(config.componentProvider, params, context)) :
+                            asTemplate(defaultTemplate));
+    };
+    ;
+    /**
+     * Creates a template from a string or a function returning a string.
+     *
+     * @param template html template as a string or function that returns an html template as a string.
+     * @param params Parameters to pass to the template function.
+     *
+     * @return {string|object} The template html as a string, or a promise for that
+     * string.
+     */
+    TemplateFactory.prototype.fromString = function (template, params) {
+        return core_1.isFunction(template) ? template(params) : template;
+    };
+    ;
+    /**
+     * Loads a template from the a URL via `$http` and `$templateCache`.
+     *
+     * @param {string|Function} url url of the template to load, or a function
+     * that returns a url.
+     * @param {Object} params Parameters to pass to the url function.
+     * @return {string|Promise.<string>} The template html as a string, or a promise
+     * for that string.
+     */
+    TemplateFactory.prototype.fromUrl = function (url, params) {
+        if (core_1.isFunction(url))
+            url = url(params);
+        if (url == null)
+            return null;
+        if (this._useHttp) {
+            return this.$http.get(url, { cache: this.$templateCache, headers: { Accept: 'text/html' } })
+                .then(function (response) {
+                return response.data;
+            });
+        }
+        return this.$templateRequest(url);
+    };
+    ;
+    /**
+     * Creates a template by invoking an injectable provider function.
+     *
+     * @param provider Function to invoke via `locals`
+     * @param {Function} injectFn a function used to invoke the template provider
+     * @return {string|Promise.<string>} The template html as a string, or a promise
+     * for that string.
+     */
+    TemplateFactory.prototype.fromProvider = function (provider, params, context) {
+        var deps = core_1.services.$injector.annotate(provider);
+        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
+        var resolvable = new core_1.Resolvable("", providerFn, deps);
+        return resolvable.get(context);
+    };
+    ;
+    /**
+     * Creates a component's template by invoking an injectable provider function.
+     *
+     * @param provider Function to invoke via `locals`
+     * @param {Function} injectFn a function used to invoke the template provider
+     * @return {string} The template html as a string: "<component-name input1='::$resolve.foo'></component-name>".
+     */
+    TemplateFactory.prototype.fromComponentProvider = function (provider, params, context) {
+        var deps = core_1.services.$injector.annotate(provider);
+        var providerFn = core_1.isArray(provider) ? core_1.tail(provider) : provider;
+        var resolvable = new core_1.Resolvable("", providerFn, deps);
+        return resolvable.get(context);
+    };
+    ;
+    /**
+     * Creates a template from a component's name
+     *
+     * This implements route-to-component.
+     * It works by retrieving the component (directive) metadata from the injector.
+     * It analyses the component's bindings, then constructs a template that instantiates the component.
+     * The template wires input and output bindings to resolves or from the parent component.
+     *
+     * @param uiView {object} The parent ui-view (for binding outputs to callbacks)
+     * @param context The ResolveContext (for binding outputs to callbacks returned from resolves)
+     * @param component {string} Component's name in camel case.
+     * @param bindings An object defining the component's bindings: {foo: '<'}
+     * @return {string} The template as a string: "<component-name input1='::$resolve.foo'></component-name>".
+     */
+    TemplateFactory.prototype.makeComponentTemplate = function (uiView, context, component, bindings) {
+        bindings = bindings || {};
+        // Bind once prefix
+        var prefix = angular_1.ng.version.minor >= 3 ? "::" : "";
+        // Convert to kebob name. Add x- prefix if the string starts with `x-` or `data-`
+        var kebob = function (camelCase) {
+            var kebobed = core_1.kebobString(camelCase);
+            return /^(x|data)-/.exec(kebobed) ? "x-" + kebobed : kebobed;
+        };
+        var attributeTpl = function (input) {
+            var name = input.name, type = input.type;
+            var attrName = kebob(name);
+            // If the ui-view has an attribute which matches a binding on the routed component
+            // then pass that attribute through to the routed component template.
+            // Prefer ui-view wired mappings to resolve data, unless the resolve was explicitly bound using `bindings:`
+            if (uiView.attr(attrName) && !bindings[name])
+                return attrName + "='" + uiView.attr(attrName) + "'";
+            var resolveName = bindings[name] || name;
+            // Pre-evaluate the expression for "@" bindings by enclosing in {{ }}
+            // some-attr="{{ ::$resolve.someResolveName }}"
+            if (type === '@')
+                return attrName + "='{{" + prefix + "$resolve." + resolveName + "}}'";
+            // Wire "&" callbacks to resolves that return a callback function
+            // Get the result of the resolve (should be a function) and annotate it to get its arguments.
+            // some-attr="$resolve.someResolveResultName(foo, bar)"
+            if (type === '&') {
+                var res = context.getResolvable(resolveName);
+                var fn = res && res.data;
+                var args = fn && core_1.services.$injector.annotate(fn) || [];
+                // account for array style injection, i.e., ['foo', function(foo) {}]
+                var arrayIdxStr = core_1.isArray(fn) ? "[" + (fn.length - 1) + "]" : '';
+                return attrName + "='$resolve." + resolveName + arrayIdxStr + "(" + args.join(",") + ")'";
+            }
+            // some-attr="::$resolve.someResolveName"
+            return attrName + "='" + prefix + "$resolve." + resolveName + "'";
+        };
+        var attrs = getComponentBindings(component).map(attributeTpl).join(" ");
+        var kebobName = kebob(component);
+        return "<" + kebobName + " " + attrs + "></" + kebobName + ">";
+    };
+    ;
+    return TemplateFactory;
+}());
+exports.TemplateFactory = TemplateFactory;
+// Gets all the directive(s)' inputs ('@', '=', and '<') and outputs ('&')
+function getComponentBindings(name) {
+    var cmpDefs = core_1.services.$injector.get(name + "Directive"); // could be multiple
+    if (!cmpDefs || !cmpDefs.length)
+        throw new Error("Unable to find component named '" + name + "'");
+    return cmpDefs.map(getBindings).reduce(core_1.unnestR, []);
+}
+// Given a directive definition, find its object input attributes
+// Use different properties, depending on the type of directive (component, bindToController, normal)
+var getBindings = function (def) {
+    if (core_1.isObject(def.bindToController))
+        return scopeBindings(def.bindToController);
+    return scopeBindings(def.scope);
+};
+// for ng 1.2 style, process the scope: { input: "=foo" }
+// for ng 1.3 through ng 1.5, process the component's bindToController: { input: "=foo" } object
+var scopeBindings = function (bindingsObj) { return Object.keys(bindingsObj || {})
+    .map(function (key) { return [key, /^([=<@&])[?]?(.*)/.exec(bindingsObj[key])]; })
+    .filter(function (tuple) { return core_1.isDefined(tuple) && core_1.isArray(tuple[1]); })
+    .map(function (tuple) { return ({ name: tuple[1][2] || tuple[0], type: tuple[1][1] }); }); };
+
+},{"./angular":77,"@uirouter/core":21}],89:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @module url */ /** */
+var core_1 = require("@uirouter/core");
+var core_2 = require("@uirouter/core");
+/**
+ * Manages rules for client-side URL
+ *
+ * ### Deprecation warning:
+ * This class is now considered to be an internal API
+ * Use the [[UrlService]] instead.
+ * For configuring URL rules, use the [[UrlRulesApi]] which can be found as [[UrlService.rules]].
+ *
+ * This class manages the router rules for what to do when the URL changes.
+ *
+ * This provider remains for backwards compatibility.
+ *
+ * @deprecated
+ */
+var UrlRouterProvider = (function () {
+    /** @hidden */
+    function UrlRouterProvider(router) {
+        this._router = router;
+        this._urlRouter = router.urlRouter;
+    }
+    /** @hidden */
+    UrlRouterProvider.prototype.$get = function () {
+        var urlRouter = this._urlRouter;
+        urlRouter.update(true);
+        if (!urlRouter.interceptDeferred)
+            urlRouter.listen();
+        return urlRouter;
+    };
+    /**
+     * Registers a url handler function.
+     *
+     * Registers a low level url handler (a `rule`).
+     * A rule detects specific URL patterns and returns a redirect, or performs some action.
+     *
+     * If a rule returns a string, the URL is replaced with the string, and all rules are fired again.
+     *
+     * #### Example:
+     * ```js
+     * var app = angular.module('app', ['ui.router.router']);
+     *
+     * app.config(function ($urlRouterProvider) {
+     *   // Here's an example of how you might allow case insensitive urls
+     *   $urlRouterProvider.rule(function ($injector, $location) {
+     *     var path = $location.path(),
+     *         normalized = path.toLowerCase();
+     *
+     *     if (path !== normalized) {
+     *       return normalized;
+     *     }
+     *   });
+     * });
+     * ```
+     *
+     * @param ruleFn
+     * Handler function that takes `$injector` and `$location` services as arguments.
+     * You can use them to detect a url and return a different url as a string.
+     *
+     * @return [[UrlRouterProvider]] (`this`)
+     */
+    UrlRouterProvider.prototype.rule = function (ruleFn) {
+        var _this = this;
+        if (!core_2.isFunction(ruleFn))
+            throw new Error("'rule' must be a function");
+        var match = function () {
+            return ruleFn(core_2.services.$injector, _this._router.locationService);
+        };
+        var rule = new core_1.BaseUrlRule(match, core_2.identity);
+        this._urlRouter.rule(rule);
+        return this;
+    };
+    ;
+    /**
+     * Defines the path or behavior to use when no url can be matched.
+     *
+     * #### Example:
+     * ```js
+     * var app = angular.module('app', ['ui.router.router']);
+     *
+     * app.config(function ($urlRouterProvider) {
+     *   // if the path doesn't match any of the urls you configured
+     *   // otherwise will take care of routing the user to the
+     *   // specified url
+     *   $urlRouterProvider.otherwise('/index');
+     *
+     *   // Example of using function rule as param
+     *   $urlRouterProvider.otherwise(function ($injector, $location) {
+     *     return '/a/valid/url';
+     *   });
+     * });
+     * ```
+     *
+     * @param rule
+     * The url path you want to redirect to or a function rule that returns the url path or performs a `$state.go()`.
+     * The function version is passed two params: `$injector` and `$location` services, and should return a url string.
+     *
+     * @return {object} `$urlRouterProvider` - `$urlRouterProvider` instance
+     */
+    UrlRouterProvider.prototype.otherwise = function (rule) {
+        var _this = this;
+        var urlRouter = this._urlRouter;
+        if (core_2.isString(rule)) {
+            urlRouter.otherwise(rule);
+        }
+        else if (core_2.isFunction(rule)) {
+            urlRouter.otherwise(function () { return rule(core_2.services.$injector, _this._router.locationService); });
+        }
+        else {
+            throw new Error("'rule' must be a string or function");
+        }
+        return this;
+    };
+    ;
+    /**
+     * Registers a handler for a given url matching.
+     *
+     * If the handler is a string, it is
+     * treated as a redirect, and is interpolated according to the syntax of match
+     * (i.e. like `String.replace()` for `RegExp`, or like a `UrlMatcher` pattern otherwise).
+     *
+     * If the handler is a function, it is injectable.
+     * It gets invoked if `$location` matches.
+     * You have the option of inject the match object as `$match`.
+     *
+     * The handler can return
+     *
+     * - **falsy** to indicate that the rule didn't match after all, then `$urlRouter`
+     *   will continue trying to find another one that matches.
+     * - **string** which is treated as a redirect and passed to `$location.url()`
+     * - **void** or any **truthy** value tells `$urlRouter` that the url was handled.
+     *
+     * #### Example:
+     * ```js
+     * var app = angular.module('app', ['ui.router.router']);
+     *
+     * app.config(function ($urlRouterProvider) {
+     *   $urlRouterProvider.when($state.url, function ($match, $stateParams) {
+     *     if ($state.$current.navigable !== state ||
+     *         !equalForKeys($match, $stateParams) {
+     *      $state.transitionTo(state, $match, false);
+     *     }
+     *   });
+     * });
+     * ```
+     *
+     * @param what A pattern string to match, compiled as a [[UrlMatcher]].
+     * @param handler The path (or function that returns a path) that you want to redirect your user to.
+     * @param ruleCallback [optional] A callback that receives the `rule` registered with [[UrlMatcher.rule]]
+     *
+     * Note: the handler may also invoke arbitrary code, such as `$state.go()`
+     */
+    UrlRouterProvider.prototype.when = function (what, handler) {
+        if (core_2.isArray(handler) || core_2.isFunction(handler)) {
+            handler = UrlRouterProvider.injectableHandler(this._router, handler);
+        }
+        this._urlRouter.when(what, handler);
+        return this;
+    };
+    ;
+    UrlRouterProvider.injectableHandler = function (router, handler) {
+        return function (match) {
+            return core_2.services.$injector.invoke(handler, null, { $match: match, $stateParams: router.globals.params });
+        };
+    };
+    /**
+     * Disables monitoring of the URL.
+     *
+     * Call this method before UI-Router has bootstrapped.
+     * It will stop UI-Router from performing the initial url sync.
+     *
+     * This can be useful to perform some asynchronous initialization before the router starts.
+     * Once the initialization is complete, call [[listen]] to tell UI-Router to start watching and synchronizing the URL.
+     *
+     * #### Example:
+     * ```js
+     * var app = angular.module('app', ['ui.router']);
+     *
+     * app.config(function ($urlRouterProvider) {
+     *   // Prevent $urlRouter from automatically intercepting URL changes;
+     *   $urlRouterProvider.deferIntercept();
+     * })
+     *
+     * app.run(function (MyService, $urlRouter, $http) {
+     *   $http.get("/stuff").then(function(resp) {
+     *     MyService.doStuff(resp.data);
+     *     $urlRouter.listen();
+     *     $urlRouter.sync();
+     *   });
+     * });
+     * ```
+     *
+     * @param defer Indicates whether to defer location change interception.
+     *        Passing no parameter is equivalent to `true`.
+     */
+    UrlRouterProvider.prototype.deferIntercept = function (defer) {
+        this._urlRouter.deferIntercept(defer);
+    };
+    ;
+    return UrlRouterProvider;
+}());
+exports.UrlRouterProvider = UrlRouterProvider;
+
+},{"@uirouter/core":21}],90:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** @module ng1 */ /** */
+var angular_1 = require("./angular");
+/** @hidden */
+function $ViewScrollProvider() {
+    var useAnchorScroll = false;
+    this.useAnchorScroll = function () {
+        useAnchorScroll = true;
+    };
+    this.$get = ['$anchorScroll', '$timeout', function ($anchorScroll, $timeout) {
+            if (useAnchorScroll) {
+                return $anchorScroll;
+            }
+            return function ($element) {
+                return $timeout(function () {
+                    $element[0].scrollIntoView();
+                }, 0, false);
+            };
+        }];
+}
+angular_1.ng.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider);
+
+},{"./angular":77}],91:[function(require,module,exports){
 /**
  * @license AngularJS v1.6.9
  * (c) 2010-2018 Google, Inc. http://angularjs.org
@@ -45312,11 +46119,11 @@ $provide.value("$locale", {
 })(window);
 
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
-},{}],90:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 require('./angular');
 module.exports = angular;
 
-},{"./angular":89}],91:[function(require,module,exports){
+},{"./angular":91}],93:[function(require,module,exports){
 (function (root, factory) {
   'use strict';
 
@@ -45555,10 +46362,9427 @@ module.exports = angular;
 
 }));
 
-},{"angular":90}],92:[function(require,module,exports){
+},{"angular":92}],94:[function(require,module,exports){
+/**
+ * Rangy, a cross-browser JavaScript range and selection library
+ * https://github.com/timdown/rangy
+ *
+ * Copyright 2015, Tim Down
+ * Licensed under the MIT license.
+ * Version: 1.3.0
+ * Build date: 10 May 2015
+ */
+
+(function(factory, root) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(factory);
+    } else if (typeof module != "undefined" && typeof exports == "object") {
+        // Node/CommonJS style
+        module.exports = factory();
+    } else {
+        // No AMD or CommonJS support so we place Rangy in (probably) the global variable
+        root.rangy = factory();
+    }
+})(function() {
+
+    var OBJECT = "object", FUNCTION = "function", UNDEFINED = "undefined";
+
+    // Minimal set of properties required for DOM Level 2 Range compliance. Comparison constants such as START_TO_START
+    // are omitted because ranges in KHTML do not have them but otherwise work perfectly well. See issue 113.
+    var domRangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
+        "commonAncestorContainer"];
+
+    // Minimal set of methods required for DOM Level 2 Range compliance
+    var domRangeMethods = ["setStart", "setStartBefore", "setStartAfter", "setEnd", "setEndBefore",
+        "setEndAfter", "collapse", "selectNode", "selectNodeContents", "compareBoundaryPoints", "deleteContents",
+        "extractContents", "cloneContents", "insertNode", "surroundContents", "cloneRange", "toString", "detach"];
+
+    var textRangeProperties = ["boundingHeight", "boundingLeft", "boundingTop", "boundingWidth", "htmlText", "text"];
+
+    // Subset of TextRange's full set of methods that we're interested in
+    var textRangeMethods = ["collapse", "compareEndPoints", "duplicate", "moveToElementText", "parentElement", "select",
+        "setEndPoint", "getBoundingClientRect"];
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Trio of functions taken from Peter Michaux's article:
+    // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
+    function isHostMethod(o, p) {
+        var t = typeof o[p];
+        return t == FUNCTION || (!!(t == OBJECT && o[p])) || t == "unknown";
+    }
+
+    function isHostObject(o, p) {
+        return !!(typeof o[p] == OBJECT && o[p]);
+    }
+
+    function isHostProperty(o, p) {
+        return typeof o[p] != UNDEFINED;
+    }
+
+    // Creates a convenience function to save verbose repeated calls to tests functions
+    function createMultiplePropertyTest(testFunc) {
+        return function(o, props) {
+            var i = props.length;
+            while (i--) {
+                if (!testFunc(o, props[i])) {
+                    return false;
+                }
+            }
+            return true;
+        };
+    }
+
+    // Next trio of functions are a convenience to save verbose repeated calls to previous two functions
+    var areHostMethods = createMultiplePropertyTest(isHostMethod);
+    var areHostObjects = createMultiplePropertyTest(isHostObject);
+    var areHostProperties = createMultiplePropertyTest(isHostProperty);
+
+    function isTextRange(range) {
+        return range && areHostMethods(range, textRangeMethods) && areHostProperties(range, textRangeProperties);
+    }
+
+    function getBody(doc) {
+        return isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
+    }
+
+    var forEach = [].forEach ?
+        function(arr, func) {
+            arr.forEach(func);
+        } :
+        function(arr, func) {
+            for (var i = 0, len = arr.length; i < len; ++i) {
+                func(arr[i], i);
+            }
+        };
+
+    var modules = {};
+
+    var isBrowser = (typeof window != UNDEFINED && typeof document != UNDEFINED);
+
+    var util = {
+        isHostMethod: isHostMethod,
+        isHostObject: isHostObject,
+        isHostProperty: isHostProperty,
+        areHostMethods: areHostMethods,
+        areHostObjects: areHostObjects,
+        areHostProperties: areHostProperties,
+        isTextRange: isTextRange,
+        getBody: getBody,
+        forEach: forEach
+    };
+
+    var api = {
+        version: "1.3.0",
+        initialized: false,
+        isBrowser: isBrowser,
+        supported: true,
+        util: util,
+        features: {},
+        modules: modules,
+        config: {
+            alertOnFail: false,
+            alertOnWarn: false,
+            preferTextRange: false,
+            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? true : rangyAutoInitialize
+        }
+    };
+
+    function consoleLog(msg) {
+        if (typeof console != UNDEFINED && isHostMethod(console, "log")) {
+            console.log(msg);
+        }
+    }
+
+    function alertOrLog(msg, shouldAlert) {
+        if (isBrowser && shouldAlert) {
+            alert(msg);
+        } else  {
+            consoleLog(msg);
+        }
+    }
+
+    function fail(reason) {
+        api.initialized = true;
+        api.supported = false;
+        alertOrLog("Rangy is not supported in this environment. Reason: " + reason, api.config.alertOnFail);
+    }
+
+    api.fail = fail;
+
+    function warn(msg) {
+        alertOrLog("Rangy warning: " + msg, api.config.alertOnWarn);
+    }
+
+    api.warn = warn;
+
+    // Add utility extend() method
+    var extend;
+    if ({}.hasOwnProperty) {
+        util.extend = extend = function(obj, props, deep) {
+            var o, p;
+            for (var i in props) {
+                if (props.hasOwnProperty(i)) {
+                    o = obj[i];
+                    p = props[i];
+                    if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
+                        extend(o, p, true);
+                    }
+                    obj[i] = p;
+                }
+            }
+            // Special case for toString, which does not show up in for...in loops in IE <= 8
+            if (props.hasOwnProperty("toString")) {
+                obj.toString = props.toString;
+            }
+            return obj;
+        };
+
+        util.createOptions = function(optionsParam, defaults) {
+            var options = {};
+            extend(options, defaults);
+            if (optionsParam) {
+                extend(options, optionsParam);
+            }
+            return options;
+        };
+    } else {
+        fail("hasOwnProperty not supported");
+    }
+
+    // Test whether we're in a browser and bail out if not
+    if (!isBrowser) {
+        fail("Rangy can only run in a browser");
+    }
+
+    // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
+    (function() {
+        var toArray;
+
+        if (isBrowser) {
+            var el = document.createElement("div");
+            el.appendChild(document.createElement("span"));
+            var slice = [].slice;
+            try {
+                if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                    toArray = function(arrayLike) {
+                        return slice.call(arrayLike, 0);
+                    };
+                }
+            } catch (e) {}
+        }
+
+        if (!toArray) {
+            toArray = function(arrayLike) {
+                var arr = [];
+                for (var i = 0, len = arrayLike.length; i < len; ++i) {
+                    arr[i] = arrayLike[i];
+                }
+                return arr;
+            };
+        }
+
+        util.toArray = toArray;
+    })();
+
+    // Very simple event handler wrapper function that doesn't attempt to solve issues such as "this" handling or
+    // normalization of event properties
+    var addListener;
+    if (isBrowser) {
+        if (isHostMethod(document, "addEventListener")) {
+            addListener = function(obj, eventType, listener) {
+                obj.addEventListener(eventType, listener, false);
+            };
+        } else if (isHostMethod(document, "attachEvent")) {
+            addListener = function(obj, eventType, listener) {
+                obj.attachEvent("on" + eventType, listener);
+            };
+        } else {
+            fail("Document does not have required addEventListener or attachEvent method");
+        }
+
+        util.addListener = addListener;
+    }
+
+    var initListeners = [];
+
+    function getErrorDesc(ex) {
+        return ex.message || ex.description || String(ex);
+    }
+
+    // Initialization
+    function init() {
+        if (!isBrowser || api.initialized) {
+            return;
+        }
+        var testRange;
+        var implementsDomRange = false, implementsTextRange = false;
+
+        // First, perform basic feature tests
+
+        if (isHostMethod(document, "createRange")) {
+            testRange = document.createRange();
+            if (areHostMethods(testRange, domRangeMethods) && areHostProperties(testRange, domRangeProperties)) {
+                implementsDomRange = true;
+            }
+        }
+
+        var body = getBody(document);
+        if (!body || body.nodeName.toLowerCase() != "body") {
+            fail("No body element found");
+            return;
+        }
+
+        if (body && isHostMethod(body, "createTextRange")) {
+            testRange = body.createTextRange();
+            if (isTextRange(testRange)) {
+                implementsTextRange = true;
+            }
+        }
+
+        if (!implementsDomRange && !implementsTextRange) {
+            fail("Neither Range nor TextRange are available");
+            return;
+        }
+
+        api.initialized = true;
+        api.features = {
+            implementsDomRange: implementsDomRange,
+            implementsTextRange: implementsTextRange
+        };
+
+        // Initialize modules
+        var module, errorMessage;
+        for (var moduleName in modules) {
+            if ( (module = modules[moduleName]) instanceof Module ) {
+                module.init(module, api);
+            }
+        }
+
+        // Call init listeners
+        for (var i = 0, len = initListeners.length; i < len; ++i) {
+            try {
+                initListeners[i](api);
+            } catch (ex) {
+                errorMessage = "Rangy init listener threw an exception. Continuing. Detail: " + getErrorDesc(ex);
+                consoleLog(errorMessage);
+            }
+        }
+    }
+
+    function deprecationNotice(deprecated, replacement, module) {
+        if (module) {
+            deprecated += " in module " + module.name;
+        }
+        api.warn("DEPRECATED: " + deprecated + " is deprecated. Please use " +
+        replacement + " instead.");
+    }
+
+    function createAliasForDeprecatedMethod(owner, deprecated, replacement, module) {
+        owner[deprecated] = function() {
+            deprecationNotice(deprecated, replacement, module);
+            return owner[replacement].apply(owner, util.toArray(arguments));
+        };
+    }
+
+    util.deprecationNotice = deprecationNotice;
+    util.createAliasForDeprecatedMethod = createAliasForDeprecatedMethod;
+
+    // Allow external scripts to initialize this library in case it's loaded after the document has loaded
+    api.init = init;
+
+    // Execute listener immediately if already initialized
+    api.addInitListener = function(listener) {
+        if (api.initialized) {
+            listener(api);
+        } else {
+            initListeners.push(listener);
+        }
+    };
+
+    var shimListeners = [];
+
+    api.addShimListener = function(listener) {
+        shimListeners.push(listener);
+    };
+
+    function shim(win) {
+        win = win || window;
+        init();
+
+        // Notify listeners
+        for (var i = 0, len = shimListeners.length; i < len; ++i) {
+            shimListeners[i](win);
+        }
+    }
+
+    if (isBrowser) {
+        api.shim = api.createMissingNativeApi = shim;
+        createAliasForDeprecatedMethod(api, "createMissingNativeApi", "shim");
+    }
+
+    function Module(name, dependencies, initializer) {
+        this.name = name;
+        this.dependencies = dependencies;
+        this.initialized = false;
+        this.supported = false;
+        this.initializer = initializer;
+    }
+
+    Module.prototype = {
+        init: function() {
+            var requiredModuleNames = this.dependencies || [];
+            for (var i = 0, len = requiredModuleNames.length, requiredModule, moduleName; i < len; ++i) {
+                moduleName = requiredModuleNames[i];
+
+                requiredModule = modules[moduleName];
+                if (!requiredModule || !(requiredModule instanceof Module)) {
+                    throw new Error("required module '" + moduleName + "' not found");
+                }
+
+                requiredModule.init();
+
+                if (!requiredModule.supported) {
+                    throw new Error("required module '" + moduleName + "' not supported");
+                }
+            }
+
+            // Now run initializer
+            this.initializer(this);
+        },
+
+        fail: function(reason) {
+            this.initialized = true;
+            this.supported = false;
+            throw new Error(reason);
+        },
+
+        warn: function(msg) {
+            api.warn("Module " + this.name + ": " + msg);
+        },
+
+        deprecationNotice: function(deprecated, replacement) {
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + " is deprecated. Please use " +
+                replacement + " instead");
+        },
+
+        createError: function(msg) {
+            return new Error("Error in Rangy " + this.name + " module: " + msg);
+        }
+    };
+
+    function createModule(name, dependencies, initFunc) {
+        var newModule = new Module(name, dependencies, function(module) {
+            if (!module.initialized) {
+                module.initialized = true;
+                try {
+                    initFunc(api, module);
+                    module.supported = true;
+                } catch (ex) {
+                    var errorMessage = "Module '" + name + "' failed to load: " + getErrorDesc(ex);
+                    consoleLog(errorMessage);
+                    if (ex.stack) {
+                        consoleLog(ex.stack);
+                    }
+                }
+            }
+        });
+        modules[name] = newModule;
+        return newModule;
+    }
+
+    api.createModule = function(name) {
+        // Allow 2 or 3 arguments (second argument is an optional array of dependencies)
+        var initFunc, dependencies;
+        if (arguments.length == 2) {
+            initFunc = arguments[1];
+            dependencies = [];
+        } else {
+            initFunc = arguments[2];
+            dependencies = arguments[1];
+        }
+
+        var module = createModule(name, dependencies, initFunc);
+
+        // Initialize the module immediately if the core is already initialized
+        if (api.initialized && api.supported) {
+            module.init();
+        }
+    };
+
+    api.createCoreModule = function(name, dependencies, initFunc) {
+        createModule(name, dependencies, initFunc);
+    };
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Ensure rangy.rangePrototype and rangy.selectionPrototype are available immediately
+
+    function RangePrototype() {}
+    api.RangePrototype = RangePrototype;
+    api.rangePrototype = new RangePrototype();
+
+    function SelectionPrototype() {}
+    api.selectionPrototype = new SelectionPrototype();
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // DOM utility methods used by Rangy
+    api.createCoreModule("DomUtil", [], function(api, module) {
+        var UNDEF = "undefined";
+        var util = api.util;
+        var getBody = util.getBody;
+
+        // Perform feature tests
+        if (!util.areHostMethods(document, ["createDocumentFragment", "createElement", "createTextNode"])) {
+            module.fail("document missing a Node creation method");
+        }
+
+        if (!util.isHostMethod(document, "getElementsByTagName")) {
+            module.fail("document missing getElementsByTagName method");
+        }
+
+        var el = document.createElement("div");
+        if (!util.areHostMethods(el, ["insertBefore", "appendChild", "cloneNode"] ||
+                !util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]))) {
+            module.fail("Incomplete Element implementation");
+        }
+
+        // innerHTML is required for Range's createContextualFragment method
+        if (!util.isHostProperty(el, "innerHTML")) {
+            module.fail("Element is missing innerHTML property");
+        }
+
+        var textNode = document.createTextNode("test");
+        if (!util.areHostMethods(textNode, ["splitText", "deleteData", "insertData", "appendData", "cloneNode"] ||
+                !util.areHostObjects(el, ["previousSibling", "nextSibling", "childNodes", "parentNode"]) ||
+                !util.areHostProperties(textNode, ["data"]))) {
+            module.fail("Incomplete Text Node implementation");
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Removed use of indexOf because of a bizarre bug in Opera that is thrown in one of the Acid3 tests. I haven't been
+        // able to replicate it outside of the test. The bug is that indexOf returns -1 when called on an Array that
+        // contains just the document as a single element and the value searched for is the document.
+        var arrayContains = /*Array.prototype.indexOf ?
+            function(arr, val) {
+                return arr.indexOf(val) > -1;
+            }:*/
+
+            function(arr, val) {
+                var i = arr.length;
+                while (i--) {
+                    if (arr[i] === val) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+        // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
+        function isHtmlNamespace(node) {
+            var ns;
+            return typeof node.namespaceURI == UNDEF || ((ns = node.namespaceURI) === null || ns == "http://www.w3.org/1999/xhtml");
+        }
+
+        function parentElement(node) {
+            var parent = node.parentNode;
+            return (parent.nodeType == 1) ? parent : null;
+        }
+
+        function getNodeIndex(node) {
+            var i = 0;
+            while( (node = node.previousSibling) ) {
+                ++i;
+            }
+            return i;
+        }
+
+        function getNodeLength(node) {
+            switch (node.nodeType) {
+                case 7:
+                case 10:
+                    return 0;
+                case 3:
+                case 8:
+                    return node.length;
+                default:
+                    return node.childNodes.length;
+            }
+        }
+
+        function getCommonAncestor(node1, node2) {
+            var ancestors = [], n;
+            for (n = node1; n; n = n.parentNode) {
+                ancestors.push(n);
+            }
+
+            for (n = node2; n; n = n.parentNode) {
+                if (arrayContains(ancestors, n)) {
+                    return n;
+                }
+            }
+
+            return null;
+        }
+
+        function isAncestorOf(ancestor, descendant, selfIsAncestor) {
+            var n = selfIsAncestor ? descendant : descendant.parentNode;
+            while (n) {
+                if (n === ancestor) {
+                    return true;
+                } else {
+                    n = n.parentNode;
+                }
+            }
+            return false;
+        }
+
+        function isOrIsAncestorOf(ancestor, descendant) {
+            return isAncestorOf(ancestor, descendant, true);
+        }
+
+        function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
+            var p, n = selfIsAncestor ? node : node.parentNode;
+            while (n) {
+                p = n.parentNode;
+                if (p === ancestor) {
+                    return n;
+                }
+                n = p;
+            }
+            return null;
+        }
+
+        function isCharacterDataNode(node) {
+            var t = node.nodeType;
+            return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
+        }
+
+        function isTextOrCommentNode(node) {
+            if (!node) {
+                return false;
+            }
+            var t = node.nodeType;
+            return t == 3 || t == 8 ; // Text or Comment
+        }
+
+        function insertAfter(node, precedingNode) {
+            var nextNode = precedingNode.nextSibling, parent = precedingNode.parentNode;
+            if (nextNode) {
+                parent.insertBefore(node, nextNode);
+            } else {
+                parent.appendChild(node);
+            }
+            return node;
+        }
+
+        // Note that we cannot use splitText() because it is bugridden in IE 9.
+        function splitDataNode(node, index, positionsToPreserve) {
+            var newNode = node.cloneNode(false);
+            newNode.deleteData(0, index);
+            node.deleteData(index, node.length - index);
+            insertAfter(newNode, node);
+
+            // Preserve positions
+            if (positionsToPreserve) {
+                for (var i = 0, position; position = positionsToPreserve[i++]; ) {
+                    // Handle case where position was inside the portion of node after the split point
+                    if (position.node == node && position.offset > index) {
+                        position.node = newNode;
+                        position.offset -= index;
+                    }
+                    // Handle the case where the position is a node offset within node's parent
+                    else if (position.node == node.parentNode && position.offset > getNodeIndex(node)) {
+                        ++position.offset;
+                    }
+                }
+            }
+            return newNode;
+        }
+
+        function getDocument(node) {
+            if (node.nodeType == 9) {
+                return node;
+            } else if (typeof node.ownerDocument != UNDEF) {
+                return node.ownerDocument;
+            } else if (typeof node.document != UNDEF) {
+                return node.document;
+            } else if (node.parentNode) {
+                return getDocument(node.parentNode);
+            } else {
+                throw module.createError("getDocument: no document found for node");
+            }
+        }
+
+        function getWindow(node) {
+            var doc = getDocument(node);
+            if (typeof doc.defaultView != UNDEF) {
+                return doc.defaultView;
+            } else if (typeof doc.parentWindow != UNDEF) {
+                return doc.parentWindow;
+            } else {
+                throw module.createError("Cannot get a window object for node");
+            }
+        }
+
+        function getIframeDocument(iframeEl) {
+            if (typeof iframeEl.contentDocument != UNDEF) {
+                return iframeEl.contentDocument;
+            } else if (typeof iframeEl.contentWindow != UNDEF) {
+                return iframeEl.contentWindow.document;
+            } else {
+                throw module.createError("getIframeDocument: No Document object found for iframe element");
+            }
+        }
+
+        function getIframeWindow(iframeEl) {
+            if (typeof iframeEl.contentWindow != UNDEF) {
+                return iframeEl.contentWindow;
+            } else if (typeof iframeEl.contentDocument != UNDEF) {
+                return iframeEl.contentDocument.defaultView;
+            } else {
+                throw module.createError("getIframeWindow: No Window object found for iframe element");
+            }
+        }
+
+        // This looks bad. Is it worth it?
+        function isWindow(obj) {
+            return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
+        }
+
+        function getContentDocument(obj, module, methodName) {
+            var doc;
+
+            if (!obj) {
+                doc = document;
+            }
+
+            // Test if a DOM node has been passed and obtain a document object for it if so
+            else if (util.isHostProperty(obj, "nodeType")) {
+                doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe") ?
+                    getIframeDocument(obj) : getDocument(obj);
+            }
+
+            // Test if the doc parameter appears to be a Window object
+            else if (isWindow(obj)) {
+                doc = obj.document;
+            }
+
+            if (!doc) {
+                throw module.createError(methodName + "(): Parameter must be a Window object or DOM node");
+            }
+
+            return doc;
+        }
+
+        function getRootContainer(node) {
+            var parent;
+            while ( (parent = node.parentNode) ) {
+                node = parent;
+            }
+            return node;
+        }
+
+        function comparePoints(nodeA, offsetA, nodeB, offsetB) {
+            // See http://www.w3.org/TR/DOM-Level-2-Traversal-Range/ranges.html#Level-2-Range-Comparing
+            var nodeC, root, childA, childB, n;
+            if (nodeA == nodeB) {
+                // Case 1: nodes are the same
+                return offsetA === offsetB ? 0 : (offsetA < offsetB) ? -1 : 1;
+            } else if ( (nodeC = getClosestAncestorIn(nodeB, nodeA, true)) ) {
+                // Case 2: node C (container B or an ancestor) is a child node of A
+                return offsetA <= getNodeIndex(nodeC) ? -1 : 1;
+            } else if ( (nodeC = getClosestAncestorIn(nodeA, nodeB, true)) ) {
+                // Case 3: node C (container A or an ancestor) is a child node of B
+                return getNodeIndex(nodeC) < offsetB  ? -1 : 1;
+            } else {
+                root = getCommonAncestor(nodeA, nodeB);
+                if (!root) {
+                    throw new Error("comparePoints error: nodes have no common ancestor");
+                }
+
+                // Case 4: containers are siblings or descendants of siblings
+                childA = (nodeA === root) ? root : getClosestAncestorIn(nodeA, root, true);
+                childB = (nodeB === root) ? root : getClosestAncestorIn(nodeB, root, true);
+
+                if (childA === childB) {
+                    // This shouldn't be possible
+                    throw module.createError("comparePoints got to case 4 and childA and childB are the same!");
+                } else {
+                    n = root.firstChild;
+                    while (n) {
+                        if (n === childA) {
+                            return -1;
+                        } else if (n === childB) {
+                            return 1;
+                        }
+                        n = n.nextSibling;
+                    }
+                }
+            }
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Test for IE's crash (IE 6/7) or exception (IE >= 8) when a reference to garbage-collected text node is queried
+        var crashyTextNodes = false;
+
+        function isBrokenNode(node) {
+            var n;
+            try {
+                n = node.parentNode;
+                return false;
+            } catch (e) {
+                return true;
+            }
+        }
+
+        (function() {
+            var el = document.createElement("b");
+            el.innerHTML = "1";
+            var textNode = el.firstChild;
+            el.innerHTML = "<br />";
+            crashyTextNodes = isBrokenNode(textNode);
+
+            api.features.crashyTextNodes = crashyTextNodes;
+        })();
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        function inspectNode(node) {
+            if (!node) {
+                return "[No node]";
+            }
+            if (crashyTextNodes && isBrokenNode(node)) {
+                return "[Broken node]";
+            }
+            if (isCharacterDataNode(node)) {
+                return '"' + node.data + '"';
+            }
+            if (node.nodeType == 1) {
+                var idAttr = node.id ? ' id="' + node.id + '"' : "";
+                return "<" + node.nodeName + idAttr + ">[index:" + getNodeIndex(node) + ",length:" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
+            }
+            return node.nodeName;
+        }
+
+        function fragmentFromNodeChildren(node) {
+            var fragment = getDocument(node).createDocumentFragment(), child;
+            while ( (child = node.firstChild) ) {
+                fragment.appendChild(child);
+            }
+            return fragment;
+        }
+
+        var getComputedStyleProperty;
+        if (typeof window.getComputedStyle != UNDEF) {
+            getComputedStyleProperty = function(el, propName) {
+                return getWindow(el).getComputedStyle(el, null)[propName];
+            };
+        } else if (typeof document.documentElement.currentStyle != UNDEF) {
+            getComputedStyleProperty = function(el, propName) {
+                return el.currentStyle ? el.currentStyle[propName] : "";
+            };
+        } else {
+            module.fail("No means of obtaining computed style properties found");
+        }
+
+        function createTestElement(doc, html, contentEditable) {
+            var body = getBody(doc);
+            var el = doc.createElement("div");
+            el.contentEditable = "" + !!contentEditable;
+            if (html) {
+                el.innerHTML = html;
+            }
+
+            // Insert the test element at the start of the body to prevent scrolling to the bottom in iOS (issue #292)
+            var bodyFirstChild = body.firstChild;
+            if (bodyFirstChild) {
+                body.insertBefore(el, bodyFirstChild);
+            } else {
+                body.appendChild(el);
+            }
+
+            return el;
+        }
+
+        function removeNode(node) {
+            return node.parentNode.removeChild(node);
+        }
+
+        function NodeIterator(root) {
+            this.root = root;
+            this._next = root;
+        }
+
+        NodeIterator.prototype = {
+            _current: null,
+
+            hasNext: function() {
+                return !!this._next;
+            },
+
+            next: function() {
+                var n = this._current = this._next;
+                var child, next;
+                if (this._current) {
+                    child = n.firstChild;
+                    if (child) {
+                        this._next = child;
+                    } else {
+                        next = null;
+                        while ((n !== this.root) && !(next = n.nextSibling)) {
+                            n = n.parentNode;
+                        }
+                        this._next = next;
+                    }
+                }
+                return this._current;
+            },
+
+            detach: function() {
+                this._current = this._next = this.root = null;
+            }
+        };
+
+        function createIterator(root) {
+            return new NodeIterator(root);
+        }
+
+        function DomPosition(node, offset) {
+            this.node = node;
+            this.offset = offset;
+        }
+
+        DomPosition.prototype = {
+            equals: function(pos) {
+                return !!pos && this.node === pos.node && this.offset == pos.offset;
+            },
+
+            inspect: function() {
+                return "[DomPosition(" + inspectNode(this.node) + ":" + this.offset + ")]";
+            },
+
+            toString: function() {
+                return this.inspect();
+            }
+        };
+
+        function DOMException(codeName) {
+            this.code = this[codeName];
+            this.codeName = codeName;
+            this.message = "DOMException: " + this.codeName;
+        }
+
+        DOMException.prototype = {
+            INDEX_SIZE_ERR: 1,
+            HIERARCHY_REQUEST_ERR: 3,
+            WRONG_DOCUMENT_ERR: 4,
+            NO_MODIFICATION_ALLOWED_ERR: 7,
+            NOT_FOUND_ERR: 8,
+            NOT_SUPPORTED_ERR: 9,
+            INVALID_STATE_ERR: 11,
+            INVALID_NODE_TYPE_ERR: 24
+        };
+
+        DOMException.prototype.toString = function() {
+            return this.message;
+        };
+
+        api.dom = {
+            arrayContains: arrayContains,
+            isHtmlNamespace: isHtmlNamespace,
+            parentElement: parentElement,
+            getNodeIndex: getNodeIndex,
+            getNodeLength: getNodeLength,
+            getCommonAncestor: getCommonAncestor,
+            isAncestorOf: isAncestorOf,
+            isOrIsAncestorOf: isOrIsAncestorOf,
+            getClosestAncestorIn: getClosestAncestorIn,
+            isCharacterDataNode: isCharacterDataNode,
+            isTextOrCommentNode: isTextOrCommentNode,
+            insertAfter: insertAfter,
+            splitDataNode: splitDataNode,
+            getDocument: getDocument,
+            getWindow: getWindow,
+            getIframeWindow: getIframeWindow,
+            getIframeDocument: getIframeDocument,
+            getBody: getBody,
+            isWindow: isWindow,
+            getContentDocument: getContentDocument,
+            getRootContainer: getRootContainer,
+            comparePoints: comparePoints,
+            isBrokenNode: isBrokenNode,
+            inspectNode: inspectNode,
+            getComputedStyleProperty: getComputedStyleProperty,
+            createTestElement: createTestElement,
+            removeNode: removeNode,
+            fragmentFromNodeChildren: fragmentFromNodeChildren,
+            createIterator: createIterator,
+            DomPosition: DomPosition
+        };
+
+        api.DOMException = DOMException;
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Pure JavaScript implementation of DOM Range
+    api.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
+        var dom = api.dom;
+        var util = api.util;
+        var DomPosition = dom.DomPosition;
+        var DOMException = api.DOMException;
+
+        var isCharacterDataNode = dom.isCharacterDataNode;
+        var getNodeIndex = dom.getNodeIndex;
+        var isOrIsAncestorOf = dom.isOrIsAncestorOf;
+        var getDocument = dom.getDocument;
+        var comparePoints = dom.comparePoints;
+        var splitDataNode = dom.splitDataNode;
+        var getClosestAncestorIn = dom.getClosestAncestorIn;
+        var getNodeLength = dom.getNodeLength;
+        var arrayContains = dom.arrayContains;
+        var getRootContainer = dom.getRootContainer;
+        var crashyTextNodes = api.features.crashyTextNodes;
+
+        var removeNode = dom.removeNode;
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Utility functions
+
+        function isNonTextPartiallySelected(node, range) {
+            return (node.nodeType != 3) &&
+                   (isOrIsAncestorOf(node, range.startContainer) || isOrIsAncestorOf(node, range.endContainer));
+        }
+
+        function getRangeDocument(range) {
+            return range.document || getDocument(range.startContainer);
+        }
+
+        function getRangeRoot(range) {
+            return getRootContainer(range.startContainer);
+        }
+
+        function getBoundaryBeforeNode(node) {
+            return new DomPosition(node.parentNode, getNodeIndex(node));
+        }
+
+        function getBoundaryAfterNode(node) {
+            return new DomPosition(node.parentNode, getNodeIndex(node) + 1);
+        }
+
+        function insertNodeAtPosition(node, n, o) {
+            var firstNodeInserted = node.nodeType == 11 ? node.firstChild : node;
+            if (isCharacterDataNode(n)) {
+                if (o == n.length) {
+                    dom.insertAfter(node, n);
+                } else {
+                    n.parentNode.insertBefore(node, o == 0 ? n : splitDataNode(n, o));
+                }
+            } else if (o >= n.childNodes.length) {
+                n.appendChild(node);
+            } else {
+                n.insertBefore(node, n.childNodes[o]);
+            }
+            return firstNodeInserted;
+        }
+
+        function rangesIntersect(rangeA, rangeB, touchingIsIntersecting) {
+            assertRangeValid(rangeA);
+            assertRangeValid(rangeB);
+
+            if (getRangeDocument(rangeB) != getRangeDocument(rangeA)) {
+                throw new DOMException("WRONG_DOCUMENT_ERR");
+            }
+
+            var startComparison = comparePoints(rangeA.startContainer, rangeA.startOffset, rangeB.endContainer, rangeB.endOffset),
+                endComparison = comparePoints(rangeA.endContainer, rangeA.endOffset, rangeB.startContainer, rangeB.startOffset);
+
+            return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+        }
+
+        function cloneSubtree(iterator) {
+            var partiallySelected;
+            for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
+                partiallySelected = iterator.isPartiallySelectedSubtree();
+                node = node.cloneNode(!partiallySelected);
+                if (partiallySelected) {
+                    subIterator = iterator.getSubtreeIterator();
+                    node.appendChild(cloneSubtree(subIterator));
+                    subIterator.detach();
+                }
+
+                if (node.nodeType == 10) { // DocumentType
+                    throw new DOMException("HIERARCHY_REQUEST_ERR");
+                }
+                frag.appendChild(node);
+            }
+            return frag;
+        }
+
+        function iterateSubtree(rangeIterator, func, iteratorState) {
+            var it, n;
+            iteratorState = iteratorState || { stop: false };
+            for (var node, subRangeIterator; node = rangeIterator.next(); ) {
+                if (rangeIterator.isPartiallySelectedSubtree()) {
+                    if (func(node) === false) {
+                        iteratorState.stop = true;
+                        return;
+                    } else {
+                        // The node is partially selected by the Range, so we can use a new RangeIterator on the portion of
+                        // the node selected by the Range.
+                        subRangeIterator = rangeIterator.getSubtreeIterator();
+                        iterateSubtree(subRangeIterator, func, iteratorState);
+                        subRangeIterator.detach();
+                        if (iteratorState.stop) {
+                            return;
+                        }
+                    }
+                } else {
+                    // The whole node is selected, so we can use efficient DOM iteration to iterate over the node and its
+                    // descendants
+                    it = dom.createIterator(node);
+                    while ( (n = it.next()) ) {
+                        if (func(n) === false) {
+                            iteratorState.stop = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function deleteSubtree(iterator) {
+            var subIterator;
+            while (iterator.next()) {
+                if (iterator.isPartiallySelectedSubtree()) {
+                    subIterator = iterator.getSubtreeIterator();
+                    deleteSubtree(subIterator);
+                    subIterator.detach();
+                } else {
+                    iterator.remove();
+                }
+            }
+        }
+
+        function extractSubtree(iterator) {
+            for (var node, frag = getRangeDocument(iterator.range).createDocumentFragment(), subIterator; node = iterator.next(); ) {
+
+                if (iterator.isPartiallySelectedSubtree()) {
+                    node = node.cloneNode(false);
+                    subIterator = iterator.getSubtreeIterator();
+                    node.appendChild(extractSubtree(subIterator));
+                    subIterator.detach();
+                } else {
+                    iterator.remove();
+                }
+                if (node.nodeType == 10) { // DocumentType
+                    throw new DOMException("HIERARCHY_REQUEST_ERR");
+                }
+                frag.appendChild(node);
+            }
+            return frag;
+        }
+
+        function getNodesInRange(range, nodeTypes, filter) {
+            var filterNodeTypes = !!(nodeTypes && nodeTypes.length), regex;
+            var filterExists = !!filter;
+            if (filterNodeTypes) {
+                regex = new RegExp("^(" + nodeTypes.join("|") + ")$");
+            }
+
+            var nodes = [];
+            iterateSubtree(new RangeIterator(range, false), function(node) {
+                if (filterNodeTypes && !regex.test(node.nodeType)) {
+                    return;
+                }
+                if (filterExists && !filter(node)) {
+                    return;
+                }
+                // Don't include a boundary container if it is a character data node and the range does not contain any
+                // of its character data. See issue 190.
+                var sc = range.startContainer;
+                if (node == sc && isCharacterDataNode(sc) && range.startOffset == sc.length) {
+                    return;
+                }
+
+                var ec = range.endContainer;
+                if (node == ec && isCharacterDataNode(ec) && range.endOffset == 0) {
+                    return;
+                }
+
+                nodes.push(node);
+            });
+            return nodes;
+        }
+
+        function inspect(range) {
+            var name = (typeof range.getName == "undefined") ? "Range" : range.getName();
+            return "[" + name + "(" + dom.inspectNode(range.startContainer) + ":" + range.startOffset + ", " +
+                    dom.inspectNode(range.endContainer) + ":" + range.endOffset + ")]";
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // RangeIterator code partially borrows from IERange by Tim Ryan (http://github.com/timcameronryan/IERange)
+
+        function RangeIterator(range, clonePartiallySelectedTextNodes) {
+            this.range = range;
+            this.clonePartiallySelectedTextNodes = clonePartiallySelectedTextNodes;
+
+
+            if (!range.collapsed) {
+                this.sc = range.startContainer;
+                this.so = range.startOffset;
+                this.ec = range.endContainer;
+                this.eo = range.endOffset;
+                var root = range.commonAncestorContainer;
+
+                if (this.sc === this.ec && isCharacterDataNode(this.sc)) {
+                    this.isSingleCharacterDataNode = true;
+                    this._first = this._last = this._next = this.sc;
+                } else {
+                    this._first = this._next = (this.sc === root && !isCharacterDataNode(this.sc)) ?
+                        this.sc.childNodes[this.so] : getClosestAncestorIn(this.sc, root, true);
+                    this._last = (this.ec === root && !isCharacterDataNode(this.ec)) ?
+                        this.ec.childNodes[this.eo - 1] : getClosestAncestorIn(this.ec, root, true);
+                }
+            }
+        }
+
+        RangeIterator.prototype = {
+            _current: null,
+            _next: null,
+            _first: null,
+            _last: null,
+            isSingleCharacterDataNode: false,
+
+            reset: function() {
+                this._current = null;
+                this._next = this._first;
+            },
+
+            hasNext: function() {
+                return !!this._next;
+            },
+
+            next: function() {
+                // Move to next node
+                var current = this._current = this._next;
+                if (current) {
+                    this._next = (current !== this._last) ? current.nextSibling : null;
+
+                    // Check for partially selected text nodes
+                    if (isCharacterDataNode(current) && this.clonePartiallySelectedTextNodes) {
+                        if (current === this.ec) {
+                            (current = current.cloneNode(true)).deleteData(this.eo, current.length - this.eo);
+                        }
+                        if (this._current === this.sc) {
+                            (current = current.cloneNode(true)).deleteData(0, this.so);
+                        }
+                    }
+                }
+
+                return current;
+            },
+
+            remove: function() {
+                var current = this._current, start, end;
+
+                if (isCharacterDataNode(current) && (current === this.sc || current === this.ec)) {
+                    start = (current === this.sc) ? this.so : 0;
+                    end = (current === this.ec) ? this.eo : current.length;
+                    if (start != end) {
+                        current.deleteData(start, end - start);
+                    }
+                } else {
+                    if (current.parentNode) {
+                        removeNode(current);
+                    } else {
+                    }
+                }
+            },
+
+            // Checks if the current node is partially selected
+            isPartiallySelectedSubtree: function() {
+                var current = this._current;
+                return isNonTextPartiallySelected(current, this.range);
+            },
+
+            getSubtreeIterator: function() {
+                var subRange;
+                if (this.isSingleCharacterDataNode) {
+                    subRange = this.range.cloneRange();
+                    subRange.collapse(false);
+                } else {
+                    subRange = new Range(getRangeDocument(this.range));
+                    var current = this._current;
+                    var startContainer = current, startOffset = 0, endContainer = current, endOffset = getNodeLength(current);
+
+                    if (isOrIsAncestorOf(current, this.sc)) {
+                        startContainer = this.sc;
+                        startOffset = this.so;
+                    }
+                    if (isOrIsAncestorOf(current, this.ec)) {
+                        endContainer = this.ec;
+                        endOffset = this.eo;
+                    }
+
+                    updateBoundaries(subRange, startContainer, startOffset, endContainer, endOffset);
+                }
+                return new RangeIterator(subRange, this.clonePartiallySelectedTextNodes);
+            },
+
+            detach: function() {
+                this.range = this._current = this._next = this._first = this._last = this.sc = this.so = this.ec = this.eo = null;
+            }
+        };
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        var beforeAfterNodeTypes = [1, 3, 4, 5, 7, 8, 10];
+        var rootContainerNodeTypes = [2, 9, 11];
+        var readonlyNodeTypes = [5, 6, 10, 12];
+        var insertableNodeTypes = [1, 3, 4, 5, 7, 8, 10, 11];
+        var surroundNodeTypes = [1, 3, 4, 5, 7, 8];
+
+        function createAncestorFinder(nodeTypes) {
+            return function(node, selfIsAncestor) {
+                var t, n = selfIsAncestor ? node : node.parentNode;
+                while (n) {
+                    t = n.nodeType;
+                    if (arrayContains(nodeTypes, t)) {
+                        return n;
+                    }
+                    n = n.parentNode;
+                }
+                return null;
+            };
+        }
+
+        var getDocumentOrFragmentContainer = createAncestorFinder( [9, 11] );
+        var getReadonlyAncestor = createAncestorFinder(readonlyNodeTypes);
+        var getDocTypeNotationEntityAncestor = createAncestorFinder( [6, 10, 12] );
+
+        function assertNoDocTypeNotationEntityAncestor(node, allowSelf) {
+            if (getDocTypeNotationEntityAncestor(node, allowSelf)) {
+                throw new DOMException("INVALID_NODE_TYPE_ERR");
+            }
+        }
+
+        function assertValidNodeType(node, invalidTypes) {
+            if (!arrayContains(invalidTypes, node.nodeType)) {
+                throw new DOMException("INVALID_NODE_TYPE_ERR");
+            }
+        }
+
+        function assertValidOffset(node, offset) {
+            if (offset < 0 || offset > (isCharacterDataNode(node) ? node.length : node.childNodes.length)) {
+                throw new DOMException("INDEX_SIZE_ERR");
+            }
+        }
+
+        function assertSameDocumentOrFragment(node1, node2) {
+            if (getDocumentOrFragmentContainer(node1, true) !== getDocumentOrFragmentContainer(node2, true)) {
+                throw new DOMException("WRONG_DOCUMENT_ERR");
+            }
+        }
+
+        function assertNodeNotReadOnly(node) {
+            if (getReadonlyAncestor(node, true)) {
+                throw new DOMException("NO_MODIFICATION_ALLOWED_ERR");
+            }
+        }
+
+        function assertNode(node, codeName) {
+            if (!node) {
+                throw new DOMException(codeName);
+            }
+        }
+
+        function isValidOffset(node, offset) {
+            return offset <= (isCharacterDataNode(node) ? node.length : node.childNodes.length);
+        }
+
+        function isRangeValid(range) {
+            return (!!range.startContainer && !!range.endContainer &&
+                    !(crashyTextNodes && (dom.isBrokenNode(range.startContainer) || dom.isBrokenNode(range.endContainer))) &&
+                    getRootContainer(range.startContainer) == getRootContainer(range.endContainer) &&
+                    isValidOffset(range.startContainer, range.startOffset) &&
+                    isValidOffset(range.endContainer, range.endOffset));
+        }
+
+        function assertRangeValid(range) {
+            if (!isRangeValid(range)) {
+                throw new Error("Range error: Range is not valid. This usually happens after DOM mutation. Range: (" + range.inspect() + ")");
+            }
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Test the browser's innerHTML support to decide how to implement createContextualFragment
+        var styleEl = document.createElement("style");
+        var htmlParsingConforms = false;
+        try {
+            styleEl.innerHTML = "<b>x</b>";
+            htmlParsingConforms = (styleEl.firstChild.nodeType == 3); // Opera incorrectly creates an element node
+        } catch (e) {
+            // IE 6 and 7 throw
+        }
+
+        api.features.htmlParsingConforms = htmlParsingConforms;
+
+        var createContextualFragment = htmlParsingConforms ?
+
+            // Implementation as per HTML parsing spec, trusting in the browser's implementation of innerHTML. See
+            // discussion and base code for this implementation at issue 67.
+            // Spec: http://html5.org/specs/dom-parsing.html#extensions-to-the-range-interface
+            // Thanks to Aleks Williams.
+            function(fragmentStr) {
+                // "Let node the context object's start's node."
+                var node = this.startContainer;
+                var doc = getDocument(node);
+
+                // "If the context object's start's node is null, raise an INVALID_STATE_ERR
+                // exception and abort these steps."
+                if (!node) {
+                    throw new DOMException("INVALID_STATE_ERR");
+                }
+
+                // "Let element be as follows, depending on node's interface:"
+                // Document, Document Fragment: null
+                var el = null;
+
+                // "Element: node"
+                if (node.nodeType == 1) {
+                    el = node;
+
+                // "Text, Comment: node's parentElement"
+                } else if (isCharacterDataNode(node)) {
+                    el = dom.parentElement(node);
+                }
+
+                // "If either element is null or element's ownerDocument is an HTML document
+                // and element's local name is "html" and element's namespace is the HTML
+                // namespace"
+                if (el === null || (
+                    el.nodeName == "HTML" &&
+                    dom.isHtmlNamespace(getDocument(el).documentElement) &&
+                    dom.isHtmlNamespace(el)
+                )) {
+
+                // "let element be a new Element with "body" as its local name and the HTML
+                // namespace as its namespace.""
+                    el = doc.createElement("body");
+                } else {
+                    el = el.cloneNode(false);
+                }
+
+                // "If the node's document is an HTML document: Invoke the HTML fragment parsing algorithm."
+                // "If the node's document is an XML document: Invoke the XML fragment parsing algorithm."
+                // "In either case, the algorithm must be invoked with fragment as the input
+                // and element as the context element."
+                el.innerHTML = fragmentStr;
+
+                // "If this raises an exception, then abort these steps. Otherwise, let new
+                // children be the nodes returned."
+
+                // "Let fragment be a new DocumentFragment."
+                // "Append all new children to fragment."
+                // "Return fragment."
+                return dom.fragmentFromNodeChildren(el);
+            } :
+
+            // In this case, innerHTML cannot be trusted, so fall back to a simpler, non-conformant implementation that
+            // previous versions of Rangy used (with the exception of using a body element rather than a div)
+            function(fragmentStr) {
+                var doc = getRangeDocument(this);
+                var el = doc.createElement("body");
+                el.innerHTML = fragmentStr;
+
+                return dom.fragmentFromNodeChildren(el);
+            };
+
+        function splitRangeBoundaries(range, positionsToPreserve) {
+            assertRangeValid(range);
+
+            var sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
+            var startEndSame = (sc === ec);
+
+            if (isCharacterDataNode(ec) && eo > 0 && eo < ec.length) {
+                splitDataNode(ec, eo, positionsToPreserve);
+            }
+
+            if (isCharacterDataNode(sc) && so > 0 && so < sc.length) {
+                sc = splitDataNode(sc, so, positionsToPreserve);
+                if (startEndSame) {
+                    eo -= so;
+                    ec = sc;
+                } else if (ec == sc.parentNode && eo >= getNodeIndex(sc)) {
+                    eo++;
+                }
+                so = 0;
+            }
+            range.setStartAndEnd(sc, so, ec, eo);
+        }
+
+        function rangeToHtml(range) {
+            assertRangeValid(range);
+            var container = range.commonAncestorContainer.parentNode.cloneNode(false);
+            container.appendChild( range.cloneContents() );
+            return container.innerHTML;
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        var rangeProperties = ["startContainer", "startOffset", "endContainer", "endOffset", "collapsed",
+            "commonAncestorContainer"];
+
+        var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
+        var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
+
+        util.extend(api.rangePrototype, {
+            compareBoundaryPoints: function(how, range) {
+                assertRangeValid(this);
+                assertSameDocumentOrFragment(this.startContainer, range.startContainer);
+
+                var nodeA, offsetA, nodeB, offsetB;
+                var prefixA = (how == e2s || how == s2s) ? "start" : "end";
+                var prefixB = (how == s2e || how == s2s) ? "start" : "end";
+                nodeA = this[prefixA + "Container"];
+                offsetA = this[prefixA + "Offset"];
+                nodeB = range[prefixB + "Container"];
+                offsetB = range[prefixB + "Offset"];
+                return comparePoints(nodeA, offsetA, nodeB, offsetB);
+            },
+
+            insertNode: function(node) {
+                assertRangeValid(this);
+                assertValidNodeType(node, insertableNodeTypes);
+                assertNodeNotReadOnly(this.startContainer);
+
+                if (isOrIsAncestorOf(node, this.startContainer)) {
+                    throw new DOMException("HIERARCHY_REQUEST_ERR");
+                }
+
+                // No check for whether the container of the start of the Range is of a type that does not allow
+                // children of the type of node: the browser's DOM implementation should do this for us when we attempt
+                // to add the node
+
+                var firstNodeInserted = insertNodeAtPosition(node, this.startContainer, this.startOffset);
+                this.setStartBefore(firstNodeInserted);
+            },
+
+            cloneContents: function() {
+                assertRangeValid(this);
+
+                var clone, frag;
+                if (this.collapsed) {
+                    return getRangeDocument(this).createDocumentFragment();
+                } else {
+                    if (this.startContainer === this.endContainer && isCharacterDataNode(this.startContainer)) {
+                        clone = this.startContainer.cloneNode(true);
+                        clone.data = clone.data.slice(this.startOffset, this.endOffset);
+                        frag = getRangeDocument(this).createDocumentFragment();
+                        frag.appendChild(clone);
+                        return frag;
+                    } else {
+                        var iterator = new RangeIterator(this, true);
+                        clone = cloneSubtree(iterator);
+                        iterator.detach();
+                    }
+                    return clone;
+                }
+            },
+
+            canSurroundContents: function() {
+                assertRangeValid(this);
+                assertNodeNotReadOnly(this.startContainer);
+                assertNodeNotReadOnly(this.endContainer);
+
+                // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
+                // no non-text nodes.
+                var iterator = new RangeIterator(this, true);
+                var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                        (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
+                iterator.detach();
+                return !boundariesInvalid;
+            },
+
+            surroundContents: function(node) {
+                assertValidNodeType(node, surroundNodeTypes);
+
+                if (!this.canSurroundContents()) {
+                    throw new DOMException("INVALID_STATE_ERR");
+                }
+
+                // Extract the contents
+                var content = this.extractContents();
+
+                // Clear the children of the node
+                if (node.hasChildNodes()) {
+                    while (node.lastChild) {
+                        node.removeChild(node.lastChild);
+                    }
+                }
+
+                // Insert the new node and add the extracted contents
+                insertNodeAtPosition(node, this.startContainer, this.startOffset);
+                node.appendChild(content);
+
+                this.selectNode(node);
+            },
+
+            cloneRange: function() {
+                assertRangeValid(this);
+                var range = new Range(getRangeDocument(this));
+                var i = rangeProperties.length, prop;
+                while (i--) {
+                    prop = rangeProperties[i];
+                    range[prop] = this[prop];
+                }
+                return range;
+            },
+
+            toString: function() {
+                assertRangeValid(this);
+                var sc = this.startContainer;
+                if (sc === this.endContainer && isCharacterDataNode(sc)) {
+                    return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
+                } else {
+                    var textParts = [], iterator = new RangeIterator(this, true);
+                    iterateSubtree(iterator, function(node) {
+                        // Accept only text or CDATA nodes, not comments
+                        if (node.nodeType == 3 || node.nodeType == 4) {
+                            textParts.push(node.data);
+                        }
+                    });
+                    iterator.detach();
+                    return textParts.join("");
+                }
+            },
+
+            // The methods below are all non-standard. The following batch were introduced by Mozilla but have since
+            // been removed from Mozilla.
+
+            compareNode: function(node) {
+                assertRangeValid(this);
+
+                var parent = node.parentNode;
+                var nodeIndex = getNodeIndex(node);
+
+                if (!parent) {
+                    throw new DOMException("NOT_FOUND_ERR");
+                }
+
+                var startComparison = this.comparePoint(parent, nodeIndex),
+                    endComparison = this.comparePoint(parent, nodeIndex + 1);
+
+                if (startComparison < 0) { // Node starts before
+                    return (endComparison > 0) ? n_b_a : n_b;
+                } else {
+                    return (endComparison > 0) ? n_a : n_i;
+                }
+            },
+
+            comparePoint: function(node, offset) {
+                assertRangeValid(this);
+                assertNode(node, "HIERARCHY_REQUEST_ERR");
+                assertSameDocumentOrFragment(node, this.startContainer);
+
+                if (comparePoints(node, offset, this.startContainer, this.startOffset) < 0) {
+                    return -1;
+                } else if (comparePoints(node, offset, this.endContainer, this.endOffset) > 0) {
+                    return 1;
+                }
+                return 0;
+            },
+
+            createContextualFragment: createContextualFragment,
+
+            toHtml: function() {
+                return rangeToHtml(this);
+            },
+
+            // touchingIsIntersecting determines whether this method considers a node that borders a range intersects
+            // with it (as in WebKit) or not (as in Gecko pre-1.9, and the default)
+            intersectsNode: function(node, touchingIsIntersecting) {
+                assertRangeValid(this);
+                if (getRootContainer(node) != getRangeRoot(this)) {
+                    return false;
+                }
+
+                var parent = node.parentNode, offset = getNodeIndex(node);
+                if (!parent) {
+                    return true;
+                }
+
+                var startComparison = comparePoints(parent, offset, this.endContainer, this.endOffset),
+                    endComparison = comparePoints(parent, offset + 1, this.startContainer, this.startOffset);
+
+                return touchingIsIntersecting ? startComparison <= 0 && endComparison >= 0 : startComparison < 0 && endComparison > 0;
+            },
+
+            isPointInRange: function(node, offset) {
+                assertRangeValid(this);
+                assertNode(node, "HIERARCHY_REQUEST_ERR");
+                assertSameDocumentOrFragment(node, this.startContainer);
+
+                return (comparePoints(node, offset, this.startContainer, this.startOffset) >= 0) &&
+                       (comparePoints(node, offset, this.endContainer, this.endOffset) <= 0);
+            },
+
+            // The methods below are non-standard and invented by me.
+
+            // Sharing a boundary start-to-end or end-to-start does not count as intersection.
+            intersectsRange: function(range) {
+                return rangesIntersect(this, range, false);
+            },
+
+            // Sharing a boundary start-to-end or end-to-start does count as intersection.
+            intersectsOrTouchesRange: function(range) {
+                return rangesIntersect(this, range, true);
+            },
+
+            intersection: function(range) {
+                if (this.intersectsRange(range)) {
+                    var startComparison = comparePoints(this.startContainer, this.startOffset, range.startContainer, range.startOffset),
+                        endComparison = comparePoints(this.endContainer, this.endOffset, range.endContainer, range.endOffset);
+
+                    var intersectionRange = this.cloneRange();
+                    if (startComparison == -1) {
+                        intersectionRange.setStart(range.startContainer, range.startOffset);
+                    }
+                    if (endComparison == 1) {
+                        intersectionRange.setEnd(range.endContainer, range.endOffset);
+                    }
+                    return intersectionRange;
+                }
+                return null;
+            },
+
+            union: function(range) {
+                if (this.intersectsOrTouchesRange(range)) {
+                    var unionRange = this.cloneRange();
+                    if (comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
+                        unionRange.setStart(range.startContainer, range.startOffset);
+                    }
+                    if (comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) == 1) {
+                        unionRange.setEnd(range.endContainer, range.endOffset);
+                    }
+                    return unionRange;
+                } else {
+                    throw new DOMException("Ranges do not intersect");
+                }
+            },
+
+            containsNode: function(node, allowPartial) {
+                if (allowPartial) {
+                    return this.intersectsNode(node, false);
+                } else {
+                    return this.compareNode(node) == n_i;
+                }
+            },
+
+            containsNodeContents: function(node) {
+                return this.comparePoint(node, 0) >= 0 && this.comparePoint(node, getNodeLength(node)) <= 0;
+            },
+
+            containsRange: function(range) {
+                var intersection = this.intersection(range);
+                return intersection !== null && range.equals(intersection);
+            },
+
+            containsNodeText: function(node) {
+                var nodeRange = this.cloneRange();
+                nodeRange.selectNode(node);
+                var textNodes = nodeRange.getNodes([3]);
+                if (textNodes.length > 0) {
+                    nodeRange.setStart(textNodes[0], 0);
+                    var lastTextNode = textNodes.pop();
+                    nodeRange.setEnd(lastTextNode, lastTextNode.length);
+                    return this.containsRange(nodeRange);
+                } else {
+                    return this.containsNodeContents(node);
+                }
+            },
+
+            getNodes: function(nodeTypes, filter) {
+                assertRangeValid(this);
+                return getNodesInRange(this, nodeTypes, filter);
+            },
+
+            getDocument: function() {
+                return getRangeDocument(this);
+            },
+
+            collapseBefore: function(node) {
+                this.setEndBefore(node);
+                this.collapse(false);
+            },
+
+            collapseAfter: function(node) {
+                this.setStartAfter(node);
+                this.collapse(true);
+            },
+
+            getBookmark: function(containerNode) {
+                var doc = getRangeDocument(this);
+                var preSelectionRange = api.createRange(doc);
+                containerNode = containerNode || dom.getBody(doc);
+                preSelectionRange.selectNodeContents(containerNode);
+                var range = this.intersection(preSelectionRange);
+                var start = 0, end = 0;
+                if (range) {
+                    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+                    start = preSelectionRange.toString().length;
+                    end = start + range.toString().length;
+                }
+
+                return {
+                    start: start,
+                    end: end,
+                    containerNode: containerNode
+                };
+            },
+
+            moveToBookmark: function(bookmark) {
+                var containerNode = bookmark.containerNode;
+                var charIndex = 0;
+                this.setStart(containerNode, 0);
+                this.collapse(true);
+                var nodeStack = [containerNode], node, foundStart = false, stop = false;
+                var nextCharIndex, i, childNodes;
+
+                while (!stop && (node = nodeStack.pop())) {
+                    if (node.nodeType == 3) {
+                        nextCharIndex = charIndex + node.length;
+                        if (!foundStart && bookmark.start >= charIndex && bookmark.start <= nextCharIndex) {
+                            this.setStart(node, bookmark.start - charIndex);
+                            foundStart = true;
+                        }
+                        if (foundStart && bookmark.end >= charIndex && bookmark.end <= nextCharIndex) {
+                            this.setEnd(node, bookmark.end - charIndex);
+                            stop = true;
+                        }
+                        charIndex = nextCharIndex;
+                    } else {
+                        childNodes = node.childNodes;
+                        i = childNodes.length;
+                        while (i--) {
+                            nodeStack.push(childNodes[i]);
+                        }
+                    }
+                }
+            },
+
+            getName: function() {
+                return "DomRange";
+            },
+
+            equals: function(range) {
+                return Range.rangesEqual(this, range);
+            },
+
+            isValid: function() {
+                return isRangeValid(this);
+            },
+
+            inspect: function() {
+                return inspect(this);
+            },
+
+            detach: function() {
+                // In DOM4, detach() is now a no-op.
+            }
+        });
+
+        function copyComparisonConstantsToObject(obj) {
+            obj.START_TO_START = s2s;
+            obj.START_TO_END = s2e;
+            obj.END_TO_END = e2e;
+            obj.END_TO_START = e2s;
+
+            obj.NODE_BEFORE = n_b;
+            obj.NODE_AFTER = n_a;
+            obj.NODE_BEFORE_AND_AFTER = n_b_a;
+            obj.NODE_INSIDE = n_i;
+        }
+
+        function copyComparisonConstants(constructor) {
+            copyComparisonConstantsToObject(constructor);
+            copyComparisonConstantsToObject(constructor.prototype);
+        }
+
+        function createRangeContentRemover(remover, boundaryUpdater) {
+            return function() {
+                assertRangeValid(this);
+
+                var sc = this.startContainer, so = this.startOffset, root = this.commonAncestorContainer;
+
+                var iterator = new RangeIterator(this, true);
+
+                // Work out where to position the range after content removal
+                var node, boundary;
+                if (sc !== root) {
+                    node = getClosestAncestorIn(sc, root, true);
+                    boundary = getBoundaryAfterNode(node);
+                    sc = boundary.node;
+                    so = boundary.offset;
+                }
+
+                // Check none of the range is read-only
+                iterateSubtree(iterator, assertNodeNotReadOnly);
+
+                iterator.reset();
+
+                // Remove the content
+                var returnValue = remover(iterator);
+                iterator.detach();
+
+                // Move to the new position
+                boundaryUpdater(this, sc, so, sc, so);
+
+                return returnValue;
+            };
+        }
+
+        function createPrototypeRange(constructor, boundaryUpdater) {
+            function createBeforeAfterNodeSetter(isBefore, isStart) {
+                return function(node) {
+                    assertValidNodeType(node, beforeAfterNodeTypes);
+                    assertValidNodeType(getRootContainer(node), rootContainerNodeTypes);
+
+                    var boundary = (isBefore ? getBoundaryBeforeNode : getBoundaryAfterNode)(node);
+                    (isStart ? setRangeStart : setRangeEnd)(this, boundary.node, boundary.offset);
+                };
+            }
+
+            function setRangeStart(range, node, offset) {
+                var ec = range.endContainer, eo = range.endOffset;
+                if (node !== range.startContainer || offset !== range.startOffset) {
+                    // Check the root containers of the range and the new boundary, and also check whether the new boundary
+                    // is after the current end. In either case, collapse the range to the new position
+                    if (getRootContainer(node) != getRootContainer(ec) || comparePoints(node, offset, ec, eo) == 1) {
+                        ec = node;
+                        eo = offset;
+                    }
+                    boundaryUpdater(range, node, offset, ec, eo);
+                }
+            }
+
+            function setRangeEnd(range, node, offset) {
+                var sc = range.startContainer, so = range.startOffset;
+                if (node !== range.endContainer || offset !== range.endOffset) {
+                    // Check the root containers of the range and the new boundary, and also check whether the new boundary
+                    // is after the current end. In either case, collapse the range to the new position
+                    if (getRootContainer(node) != getRootContainer(sc) || comparePoints(node, offset, sc, so) == -1) {
+                        sc = node;
+                        so = offset;
+                    }
+                    boundaryUpdater(range, sc, so, node, offset);
+                }
+            }
+
+            // Set up inheritance
+            var F = function() {};
+            F.prototype = api.rangePrototype;
+            constructor.prototype = new F();
+
+            util.extend(constructor.prototype, {
+                setStart: function(node, offset) {
+                    assertNoDocTypeNotationEntityAncestor(node, true);
+                    assertValidOffset(node, offset);
+
+                    setRangeStart(this, node, offset);
+                },
+
+                setEnd: function(node, offset) {
+                    assertNoDocTypeNotationEntityAncestor(node, true);
+                    assertValidOffset(node, offset);
+
+                    setRangeEnd(this, node, offset);
+                },
+
+                /**
+                 * Convenience method to set a range's start and end boundaries. Overloaded as follows:
+                 * - Two parameters (node, offset) creates a collapsed range at that position
+                 * - Three parameters (node, startOffset, endOffset) creates a range contained with node starting at
+                 *   startOffset and ending at endOffset
+                 * - Four parameters (startNode, startOffset, endNode, endOffset) creates a range starting at startOffset in
+                 *   startNode and ending at endOffset in endNode
+                 */
+                setStartAndEnd: function() {
+                    var args = arguments;
+                    var sc = args[0], so = args[1], ec = sc, eo = so;
+
+                    switch (args.length) {
+                        case 3:
+                            eo = args[2];
+                            break;
+                        case 4:
+                            ec = args[2];
+                            eo = args[3];
+                            break;
+                    }
+
+                    boundaryUpdater(this, sc, so, ec, eo);
+                },
+
+                setBoundary: function(node, offset, isStart) {
+                    this["set" + (isStart ? "Start" : "End")](node, offset);
+                },
+
+                setStartBefore: createBeforeAfterNodeSetter(true, true),
+                setStartAfter: createBeforeAfterNodeSetter(false, true),
+                setEndBefore: createBeforeAfterNodeSetter(true, false),
+                setEndAfter: createBeforeAfterNodeSetter(false, false),
+
+                collapse: function(isStart) {
+                    assertRangeValid(this);
+                    if (isStart) {
+                        boundaryUpdater(this, this.startContainer, this.startOffset, this.startContainer, this.startOffset);
+                    } else {
+                        boundaryUpdater(this, this.endContainer, this.endOffset, this.endContainer, this.endOffset);
+                    }
+                },
+
+                selectNodeContents: function(node) {
+                    assertNoDocTypeNotationEntityAncestor(node, true);
+
+                    boundaryUpdater(this, node, 0, node, getNodeLength(node));
+                },
+
+                selectNode: function(node) {
+                    assertNoDocTypeNotationEntityAncestor(node, false);
+                    assertValidNodeType(node, beforeAfterNodeTypes);
+
+                    var start = getBoundaryBeforeNode(node), end = getBoundaryAfterNode(node);
+                    boundaryUpdater(this, start.node, start.offset, end.node, end.offset);
+                },
+
+                extractContents: createRangeContentRemover(extractSubtree, boundaryUpdater),
+
+                deleteContents: createRangeContentRemover(deleteSubtree, boundaryUpdater),
+
+                canSurroundContents: function() {
+                    assertRangeValid(this);
+                    assertNodeNotReadOnly(this.startContainer);
+                    assertNodeNotReadOnly(this.endContainer);
+
+                    // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
+                    // no non-text nodes.
+                    var iterator = new RangeIterator(this, true);
+                    var boundariesInvalid = (iterator._first && isNonTextPartiallySelected(iterator._first, this) ||
+                            (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
+                    iterator.detach();
+                    return !boundariesInvalid;
+                },
+
+                splitBoundaries: function() {
+                    splitRangeBoundaries(this);
+                },
+
+                splitBoundariesPreservingPositions: function(positionsToPreserve) {
+                    splitRangeBoundaries(this, positionsToPreserve);
+                },
+
+                normalizeBoundaries: function() {
+                    assertRangeValid(this);
+
+                    var sc = this.startContainer, so = this.startOffset, ec = this.endContainer, eo = this.endOffset;
+
+                    var mergeForward = function(node) {
+                        var sibling = node.nextSibling;
+                        if (sibling && sibling.nodeType == node.nodeType) {
+                            ec = node;
+                            eo = node.length;
+                            node.appendData(sibling.data);
+                            removeNode(sibling);
+                        }
+                    };
+
+                    var mergeBackward = function(node) {
+                        var sibling = node.previousSibling;
+                        if (sibling && sibling.nodeType == node.nodeType) {
+                            sc = node;
+                            var nodeLength = node.length;
+                            so = sibling.length;
+                            node.insertData(0, sibling.data);
+                            removeNode(sibling);
+                            if (sc == ec) {
+                                eo += so;
+                                ec = sc;
+                            } else if (ec == node.parentNode) {
+                                var nodeIndex = getNodeIndex(node);
+                                if (eo == nodeIndex) {
+                                    ec = node;
+                                    eo = nodeLength;
+                                } else if (eo > nodeIndex) {
+                                    eo--;
+                                }
+                            }
+                        }
+                    };
+
+                    var normalizeStart = true;
+                    var sibling;
+
+                    if (isCharacterDataNode(ec)) {
+                        if (eo == ec.length) {
+                            mergeForward(ec);
+                        } else if (eo == 0) {
+                            sibling = ec.previousSibling;
+                            if (sibling && sibling.nodeType == ec.nodeType) {
+                                eo = sibling.length;
+                                if (sc == ec) {
+                                    normalizeStart = false;
+                                }
+                                sibling.appendData(ec.data);
+                                removeNode(ec);
+                                ec = sibling;
+                            }
+                        }
+                    } else {
+                        if (eo > 0) {
+                            var endNode = ec.childNodes[eo - 1];
+                            if (endNode && isCharacterDataNode(endNode)) {
+                                mergeForward(endNode);
+                            }
+                        }
+                        normalizeStart = !this.collapsed;
+                    }
+
+                    if (normalizeStart) {
+                        if (isCharacterDataNode(sc)) {
+                            if (so == 0) {
+                                mergeBackward(sc);
+                            } else if (so == sc.length) {
+                                sibling = sc.nextSibling;
+                                if (sibling && sibling.nodeType == sc.nodeType) {
+                                    if (ec == sibling) {
+                                        ec = sc;
+                                        eo += sc.length;
+                                    }
+                                    sc.appendData(sibling.data);
+                                    removeNode(sibling);
+                                }
+                            }
+                        } else {
+                            if (so < sc.childNodes.length) {
+                                var startNode = sc.childNodes[so];
+                                if (startNode && isCharacterDataNode(startNode)) {
+                                    mergeBackward(startNode);
+                                }
+                            }
+                        }
+                    } else {
+                        sc = ec;
+                        so = eo;
+                    }
+
+                    boundaryUpdater(this, sc, so, ec, eo);
+                },
+
+                collapseToPoint: function(node, offset) {
+                    assertNoDocTypeNotationEntityAncestor(node, true);
+                    assertValidOffset(node, offset);
+                    this.setStartAndEnd(node, offset);
+                }
+            });
+
+            copyComparisonConstants(constructor);
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Updates commonAncestorContainer and collapsed after boundary change
+        function updateCollapsedAndCommonAncestor(range) {
+            range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
+            range.commonAncestorContainer = range.collapsed ?
+                range.startContainer : dom.getCommonAncestor(range.startContainer, range.endContainer);
+        }
+
+        function updateBoundaries(range, startContainer, startOffset, endContainer, endOffset) {
+            range.startContainer = startContainer;
+            range.startOffset = startOffset;
+            range.endContainer = endContainer;
+            range.endOffset = endOffset;
+            range.document = dom.getDocument(startContainer);
+
+            updateCollapsedAndCommonAncestor(range);
+        }
+
+        function Range(doc) {
+            this.startContainer = doc;
+            this.startOffset = 0;
+            this.endContainer = doc;
+            this.endOffset = 0;
+            this.document = doc;
+            updateCollapsedAndCommonAncestor(this);
+        }
+
+        createPrototypeRange(Range, updateBoundaries);
+
+        util.extend(Range, {
+            rangeProperties: rangeProperties,
+            RangeIterator: RangeIterator,
+            copyComparisonConstants: copyComparisonConstants,
+            createPrototypeRange: createPrototypeRange,
+            inspect: inspect,
+            toHtml: rangeToHtml,
+            getRangeDocument: getRangeDocument,
+            rangesEqual: function(r1, r2) {
+                return r1.startContainer === r2.startContainer &&
+                    r1.startOffset === r2.startOffset &&
+                    r1.endContainer === r2.endContainer &&
+                    r1.endOffset === r2.endOffset;
+            }
+        });
+
+        api.DomRange = Range;
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Wrappers for the browser's native DOM Range and/or TextRange implementation
+    api.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
+        var WrappedRange, WrappedTextRange;
+        var dom = api.dom;
+        var util = api.util;
+        var DomPosition = dom.DomPosition;
+        var DomRange = api.DomRange;
+        var getBody = dom.getBody;
+        var getContentDocument = dom.getContentDocument;
+        var isCharacterDataNode = dom.isCharacterDataNode;
+
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        if (api.features.implementsDomRange) {
+            // This is a wrapper around the browser's native DOM Range. It has two aims:
+            // - Provide workarounds for specific browser bugs
+            // - provide convenient extensions, which are inherited from Rangy's DomRange
+
+            (function() {
+                var rangeProto;
+                var rangeProperties = DomRange.rangeProperties;
+
+                function updateRangeProperties(range) {
+                    var i = rangeProperties.length, prop;
+                    while (i--) {
+                        prop = rangeProperties[i];
+                        range[prop] = range.nativeRange[prop];
+                    }
+                    // Fix for broken collapsed property in IE 9.
+                    range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
+                }
+
+                function updateNativeRange(range, startContainer, startOffset, endContainer, endOffset) {
+                    var startMoved = (range.startContainer !== startContainer || range.startOffset != startOffset);
+                    var endMoved = (range.endContainer !== endContainer || range.endOffset != endOffset);
+                    var nativeRangeDifferent = !range.equals(range.nativeRange);
+
+                    // Always set both boundaries for the benefit of IE9 (see issue 35)
+                    if (startMoved || endMoved || nativeRangeDifferent) {
+                        range.setEnd(endContainer, endOffset);
+                        range.setStart(startContainer, startOffset);
+                    }
+                }
+
+                var createBeforeAfterNodeSetter;
+
+                WrappedRange = function(range) {
+                    if (!range) {
+                        throw module.createError("WrappedRange: Range must be specified");
+                    }
+                    this.nativeRange = range;
+                    updateRangeProperties(this);
+                };
+
+                DomRange.createPrototypeRange(WrappedRange, updateNativeRange);
+
+                rangeProto = WrappedRange.prototype;
+
+                rangeProto.selectNode = function(node) {
+                    this.nativeRange.selectNode(node);
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.cloneContents = function() {
+                    return this.nativeRange.cloneContents();
+                };
+
+                // Due to a long-standing Firefox bug that I have not been able to find a reliable way to detect,
+                // insertNode() is never delegated to the native range.
+
+                rangeProto.surroundContents = function(node) {
+                    this.nativeRange.surroundContents(node);
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.collapse = function(isStart) {
+                    this.nativeRange.collapse(isStart);
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.cloneRange = function() {
+                    return new WrappedRange(this.nativeRange.cloneRange());
+                };
+
+                rangeProto.refresh = function() {
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.toString = function() {
+                    return this.nativeRange.toString();
+                };
+
+                // Create test range and node for feature detection
+
+                var testTextNode = document.createTextNode("test");
+                getBody(document).appendChild(testTextNode);
+                var range = document.createRange();
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Test for Firefox 2 bug that prevents moving the start of a Range to a point after its current end and
+                // correct for it
+
+                range.setStart(testTextNode, 0);
+                range.setEnd(testTextNode, 0);
+
+                try {
+                    range.setStart(testTextNode, 1);
+
+                    rangeProto.setStart = function(node, offset) {
+                        this.nativeRange.setStart(node, offset);
+                        updateRangeProperties(this);
+                    };
+
+                    rangeProto.setEnd = function(node, offset) {
+                        this.nativeRange.setEnd(node, offset);
+                        updateRangeProperties(this);
+                    };
+
+                    createBeforeAfterNodeSetter = function(name) {
+                        return function(node) {
+                            this.nativeRange[name](node);
+                            updateRangeProperties(this);
+                        };
+                    };
+
+                } catch(ex) {
+
+                    rangeProto.setStart = function(node, offset) {
+                        try {
+                            this.nativeRange.setStart(node, offset);
+                        } catch (ex) {
+                            this.nativeRange.setEnd(node, offset);
+                            this.nativeRange.setStart(node, offset);
+                        }
+                        updateRangeProperties(this);
+                    };
+
+                    rangeProto.setEnd = function(node, offset) {
+                        try {
+                            this.nativeRange.setEnd(node, offset);
+                        } catch (ex) {
+                            this.nativeRange.setStart(node, offset);
+                            this.nativeRange.setEnd(node, offset);
+                        }
+                        updateRangeProperties(this);
+                    };
+
+                    createBeforeAfterNodeSetter = function(name, oppositeName) {
+                        return function(node) {
+                            try {
+                                this.nativeRange[name](node);
+                            } catch (ex) {
+                                this.nativeRange[oppositeName](node);
+                                this.nativeRange[name](node);
+                            }
+                            updateRangeProperties(this);
+                        };
+                    };
+                }
+
+                rangeProto.setStartBefore = createBeforeAfterNodeSetter("setStartBefore", "setEndBefore");
+                rangeProto.setStartAfter = createBeforeAfterNodeSetter("setStartAfter", "setEndAfter");
+                rangeProto.setEndBefore = createBeforeAfterNodeSetter("setEndBefore", "setStartBefore");
+                rangeProto.setEndAfter = createBeforeAfterNodeSetter("setEndAfter", "setStartAfter");
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Always use DOM4-compliant selectNodeContents implementation: it's simpler and less code than testing
+                // whether the native implementation can be trusted
+                rangeProto.selectNodeContents = function(node) {
+                    this.setStartAndEnd(node, 0, dom.getNodeLength(node));
+                };
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Test for and correct WebKit bug that has the behaviour of compareBoundaryPoints round the wrong way for
+                // constants START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
+
+                range.selectNodeContents(testTextNode);
+                range.setEnd(testTextNode, 3);
+
+                var range2 = document.createRange();
+                range2.selectNodeContents(testTextNode);
+                range2.setEnd(testTextNode, 4);
+                range2.setStart(testTextNode, 2);
+
+                if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &&
+                        range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
+                    // This is the wrong way round, so correct for it
+
+                    rangeProto.compareBoundaryPoints = function(type, range) {
+                        range = range.nativeRange || range;
+                        if (type == range.START_TO_END) {
+                            type = range.END_TO_START;
+                        } else if (type == range.END_TO_START) {
+                            type = range.START_TO_END;
+                        }
+                        return this.nativeRange.compareBoundaryPoints(type, range);
+                    };
+                } else {
+                    rangeProto.compareBoundaryPoints = function(type, range) {
+                        return this.nativeRange.compareBoundaryPoints(type, range.nativeRange || range);
+                    };
+                }
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Test for IE deleteContents() and extractContents() bug and correct it. See issue 107.
+
+                var el = document.createElement("div");
+                el.innerHTML = "123";
+                var textNode = el.firstChild;
+                var body = getBody(document);
+                body.appendChild(el);
+
+                range.setStart(textNode, 1);
+                range.setEnd(textNode, 2);
+                range.deleteContents();
+
+                if (textNode.data == "13") {
+                    // Behaviour is correct per DOM4 Range so wrap the browser's implementation of deleteContents() and
+                    // extractContents()
+                    rangeProto.deleteContents = function() {
+                        this.nativeRange.deleteContents();
+                        updateRangeProperties(this);
+                    };
+
+                    rangeProto.extractContents = function() {
+                        var frag = this.nativeRange.extractContents();
+                        updateRangeProperties(this);
+                        return frag;
+                    };
+                } else {
+                }
+
+                body.removeChild(el);
+                body = null;
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Test for existence of createContextualFragment and delegate to it if it exists
+                if (util.isHostMethod(range, "createContextualFragment")) {
+                    rangeProto.createContextualFragment = function(fragmentStr) {
+                        return this.nativeRange.createContextualFragment(fragmentStr);
+                    };
+                }
+
+                /*--------------------------------------------------------------------------------------------------------*/
+
+                // Clean up
+                getBody(document).removeChild(testTextNode);
+
+                rangeProto.getName = function() {
+                    return "WrappedRange";
+                };
+
+                api.WrappedRange = WrappedRange;
+
+                api.createNativeRange = function(doc) {
+                    doc = getContentDocument(doc, module, "createNativeRange");
+                    return doc.createRange();
+                };
+            })();
+        }
+
+        if (api.features.implementsTextRange) {
+            /*
+            This is a workaround for a bug where IE returns the wrong container element from the TextRange's parentElement()
+            method. For example, in the following (where pipes denote the selection boundaries):
+
+            <ul id="ul"><li id="a">| a </li><li id="b"> b |</li></ul>
+
+            var range = document.selection.createRange();
+            alert(range.parentElement().id); // Should alert "ul" but alerts "b"
+
+            This method returns the common ancestor node of the following:
+            - the parentElement() of the textRange
+            - the parentElement() of the textRange after calling collapse(true)
+            - the parentElement() of the textRange after calling collapse(false)
+            */
+            var getTextRangeContainerElement = function(textRange) {
+                var parentEl = textRange.parentElement();
+                var range = textRange.duplicate();
+                range.collapse(true);
+                var startEl = range.parentElement();
+                range = textRange.duplicate();
+                range.collapse(false);
+                var endEl = range.parentElement();
+                var startEndContainer = (startEl == endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
+
+                return startEndContainer == parentEl ? startEndContainer : dom.getCommonAncestor(parentEl, startEndContainer);
+            };
+
+            var textRangeIsCollapsed = function(textRange) {
+                return textRange.compareEndPoints("StartToEnd", textRange) == 0;
+            };
+
+            // Gets the boundary of a TextRange expressed as a node and an offset within that node. This function started
+            // out as an improved version of code found in Tim Cameron Ryan's IERange (http://code.google.com/p/ierange/)
+            // but has grown, fixing problems with line breaks in preformatted text, adding workaround for IE TextRange
+            // bugs, handling for inputs and images, plus optimizations.
+            var getTextRangeBoundaryPosition = function(textRange, wholeRangeContainerElement, isStart, isCollapsed, startInfo) {
+                var workingRange = textRange.duplicate();
+                workingRange.collapse(isStart);
+                var containerElement = workingRange.parentElement();
+
+                // Sometimes collapsing a TextRange that's at the start of a text node can move it into the previous node, so
+                // check for that
+                if (!dom.isOrIsAncestorOf(wholeRangeContainerElement, containerElement)) {
+                    containerElement = wholeRangeContainerElement;
+                }
+
+
+                // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
+                // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
+                if (!containerElement.canHaveHTML) {
+                    var pos = new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
+                    return {
+                        boundaryPosition: pos,
+                        nodeInfo: {
+                            nodeIndex: pos.offset,
+                            containerElement: pos.node
+                        }
+                    };
+                }
+
+                var workingNode = dom.getDocument(containerElement).createElement("span");
+
+                // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML5
+                // Shiv issue 64: https://github.com/aFarkas/html5shiv/issues/64
+                if (workingNode.parentNode) {
+                    dom.removeNode(workingNode);
+                }
+
+                var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
+                var previousNode, nextNode, boundaryPosition, boundaryNode;
+                var start = (startInfo && startInfo.containerElement == containerElement) ? startInfo.nodeIndex : 0;
+                var childNodeCount = containerElement.childNodes.length;
+                var end = childNodeCount;
+
+                // Check end first. Code within the loop assumes that the endth child node of the container is definitely
+                // after the range boundary.
+                var nodeIndex = end;
+
+                while (true) {
+                    if (nodeIndex == childNodeCount) {
+                        containerElement.appendChild(workingNode);
+                    } else {
+                        containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
+                    }
+                    workingRange.moveToElementText(workingNode);
+                    comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
+                    if (comparison == 0 || start == end) {
+                        break;
+                    } else if (comparison == -1) {
+                        if (end == start + 1) {
+                            // We know the endth child node is after the range boundary, so we must be done.
+                            break;
+                        } else {
+                            start = nodeIndex;
+                        }
+                    } else {
+                        end = (end == start + 1) ? start : nodeIndex;
+                    }
+                    nodeIndex = Math.floor((start + end) / 2);
+                    containerElement.removeChild(workingNode);
+                }
+
+
+                // We've now reached or gone past the boundary of the text range we're interested in
+                // so have identified the node we want
+                boundaryNode = workingNode.nextSibling;
+
+                if (comparison == -1 && boundaryNode && isCharacterDataNode(boundaryNode)) {
+                    // This is a character data node (text, comment, cdata). The working range is collapsed at the start of
+                    // the node containing the text range's boundary, so we move the end of the working range to the
+                    // boundary point and measure the length of its text to get the boundary's offset within the node.
+                    workingRange.setEndPoint(isStart ? "EndToStart" : "EndToEnd", textRange);
+
+                    var offset;
+
+                    if (/[\r\n]/.test(boundaryNode.data)) {
+                        /*
+                        For the particular case of a boundary within a text node containing rendered line breaks (within a
+                        <pre> element, for example), we need a slightly complicated approach to get the boundary's offset in
+                        IE. The facts:
+
+                        - Each line break is represented as \r in the text node's data/nodeValue properties
+                        - Each line break is represented as \r\n in the TextRange's 'text' property
+                        - The 'text' property of the TextRange does not contain trailing line breaks
+
+                        To get round the problem presented by the final fact above, we can use the fact that TextRange's
+                        moveStart() and moveEnd() methods return the actual number of characters moved, which is not
+                        necessarily the same as the number of characters it was instructed to move. The simplest approach is
+                        to use this to store the characters moved when moving both the start and end of the range to the
+                        start of the document body and subtracting the start offset from the end offset (the
+                        "move-negative-gazillion" method). However, this is extremely slow when the document is large and
+                        the range is near the end of it. Clearly doing the mirror image (i.e. moving the range boundaries to
+                        the end of the document) has the same problem.
+
+                        Another approach that works is to use moveStart() to move the start boundary of the range up to the
+                        end boundary one character at a time and incrementing a counter with the value returned by the
+                        moveStart() call. However, the check for whether the start boundary has reached the end boundary is
+                        expensive, so this method is slow (although unlike "move-negative-gazillion" is largely unaffected
+                        by the location of the range within the document).
+
+                        The approach used below is a hybrid of the two methods above. It uses the fact that a string
+                        containing the TextRange's 'text' property with each \r\n converted to a single \r character cannot
+                        be longer than the text of the TextRange, so the start of the range is moved that length initially
+                        and then a character at a time to make up for any trailing line breaks not contained in the 'text'
+                        property. This has good performance in most situations compared to the previous two methods.
+                        */
+                        var tempRange = workingRange.duplicate();
+                        var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
+
+                        offset = tempRange.moveStart("character", rangeLength);
+                        while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
+                            offset++;
+                            tempRange.moveStart("character", 1);
+                        }
+                    } else {
+                        offset = workingRange.text.length;
+                    }
+                    boundaryPosition = new DomPosition(boundaryNode, offset);
+                } else {
+
+                    // If the boundary immediately follows a character data node and this is the end boundary, we should favour
+                    // a position within that, and likewise for a start boundary preceding a character data node
+                    previousNode = (isCollapsed || !isStart) && workingNode.previousSibling;
+                    nextNode = (isCollapsed || isStart) && workingNode.nextSibling;
+                    if (nextNode && isCharacterDataNode(nextNode)) {
+                        boundaryPosition = new DomPosition(nextNode, 0);
+                    } else if (previousNode && isCharacterDataNode(previousNode)) {
+                        boundaryPosition = new DomPosition(previousNode, previousNode.data.length);
+                    } else {
+                        boundaryPosition = new DomPosition(containerElement, dom.getNodeIndex(workingNode));
+                    }
+                }
+
+                // Clean up
+                dom.removeNode(workingNode);
+
+                return {
+                    boundaryPosition: boundaryPosition,
+                    nodeInfo: {
+                        nodeIndex: nodeIndex,
+                        containerElement: containerElement
+                    }
+                };
+            };
+
+            // Returns a TextRange representing the boundary of a TextRange expressed as a node and an offset within that
+            // node. This function started out as an optimized version of code found in Tim Cameron Ryan's IERange
+            // (http://code.google.com/p/ierange/)
+            var createBoundaryTextRange = function(boundaryPosition, isStart) {
+                var boundaryNode, boundaryParent, boundaryOffset = boundaryPosition.offset;
+                var doc = dom.getDocument(boundaryPosition.node);
+                var workingNode, childNodes, workingRange = getBody(doc).createTextRange();
+                var nodeIsDataNode = isCharacterDataNode(boundaryPosition.node);
+
+                if (nodeIsDataNode) {
+                    boundaryNode = boundaryPosition.node;
+                    boundaryParent = boundaryNode.parentNode;
+                } else {
+                    childNodes = boundaryPosition.node.childNodes;
+                    boundaryNode = (boundaryOffset < childNodes.length) ? childNodes[boundaryOffset] : null;
+                    boundaryParent = boundaryPosition.node;
+                }
+
+                // Position the range immediately before the node containing the boundary
+                workingNode = doc.createElement("span");
+
+                // Making the working element non-empty element persuades IE to consider the TextRange boundary to be within
+                // the element rather than immediately before or after it
+                workingNode.innerHTML = "&#feff;";
+
+                // insertBefore is supposed to work like appendChild if the second parameter is null. However, a bug report
+                // for IERange suggests that it can crash the browser: http://code.google.com/p/ierange/issues/detail?id=12
+                if (boundaryNode) {
+                    boundaryParent.insertBefore(workingNode, boundaryNode);
+                } else {
+                    boundaryParent.appendChild(workingNode);
+                }
+
+                workingRange.moveToElementText(workingNode);
+                workingRange.collapse(!isStart);
+
+                // Clean up
+                boundaryParent.removeChild(workingNode);
+
+                // Move the working range to the text offset, if required
+                if (nodeIsDataNode) {
+                    workingRange[isStart ? "moveStart" : "moveEnd"]("character", boundaryOffset);
+                }
+
+                return workingRange;
+            };
+
+            /*------------------------------------------------------------------------------------------------------------*/
+
+            // This is a wrapper around a TextRange, providing full DOM Range functionality using rangy's DomRange as a
+            // prototype
+
+            WrappedTextRange = function(textRange) {
+                this.textRange = textRange;
+                this.refresh();
+            };
+
+            WrappedTextRange.prototype = new DomRange(document);
+
+            WrappedTextRange.prototype.refresh = function() {
+                var start, end, startBoundary;
+
+                // TextRange's parentElement() method cannot be trusted. getTextRangeContainerElement() works around that.
+                var rangeContainerElement = getTextRangeContainerElement(this.textRange);
+
+                if (textRangeIsCollapsed(this.textRange)) {
+                    end = start = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true,
+                        true).boundaryPosition;
+                } else {
+                    startBoundary = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
+                    start = startBoundary.boundaryPosition;
+
+                    // An optimization used here is that if the start and end boundaries have the same parent element, the
+                    // search scope for the end boundary can be limited to exclude the portion of the element that precedes
+                    // the start boundary
+                    end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false,
+                        startBoundary.nodeInfo).boundaryPosition;
+                }
+
+                this.setStart(start.node, start.offset);
+                this.setEnd(end.node, end.offset);
+            };
+
+            WrappedTextRange.prototype.getName = function() {
+                return "WrappedTextRange";
+            };
+
+            DomRange.copyComparisonConstants(WrappedTextRange);
+
+            var rangeToTextRange = function(range) {
+                if (range.collapsed) {
+                    return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                } else {
+                    var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                    var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
+                    var textRange = getBody( DomRange.getRangeDocument(range) ).createTextRange();
+                    textRange.setEndPoint("StartToStart", startRange);
+                    textRange.setEndPoint("EndToEnd", endRange);
+                    return textRange;
+                }
+            };
+
+            WrappedTextRange.rangeToTextRange = rangeToTextRange;
+
+            WrappedTextRange.prototype.toTextRange = function() {
+                return rangeToTextRange(this);
+            };
+
+            api.WrappedTextRange = WrappedTextRange;
+
+            // IE 9 and above have both implementations and Rangy makes both available. The next few lines sets which
+            // implementation to use by default.
+            if (!api.features.implementsDomRange || api.config.preferTextRange) {
+                // Add WrappedTextRange as the Range property of the global object to allow expression like Range.END_TO_END to work
+                var globalObj = (function(f) { return f("return this;")(); })(Function);
+                if (typeof globalObj.Range == "undefined") {
+                    globalObj.Range = WrappedTextRange;
+                }
+
+                api.createNativeRange = function(doc) {
+                    doc = getContentDocument(doc, module, "createNativeRange");
+                    return getBody(doc).createTextRange();
+                };
+
+                api.WrappedRange = WrappedTextRange;
+            }
+        }
+
+        api.createRange = function(doc) {
+            doc = getContentDocument(doc, module, "createRange");
+            return new api.WrappedRange(api.createNativeRange(doc));
+        };
+
+        api.createRangyRange = function(doc) {
+            doc = getContentDocument(doc, module, "createRangyRange");
+            return new DomRange(doc);
+        };
+
+        util.createAliasForDeprecatedMethod(api, "createIframeRange", "createRange");
+        util.createAliasForDeprecatedMethod(api, "createIframeRangyRange", "createRangyRange");
+
+        api.addShimListener(function(win) {
+            var doc = win.document;
+            if (typeof doc.createRange == "undefined") {
+                doc.createRange = function() {
+                    return api.createRange(doc);
+                };
+            }
+            doc = win = null;
+        });
+    });
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
+    // in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
+    api.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], function(api, module) {
+        api.config.checkSelectionRanges = true;
+
+        var BOOLEAN = "boolean";
+        var NUMBER = "number";
+        var dom = api.dom;
+        var util = api.util;
+        var isHostMethod = util.isHostMethod;
+        var DomRange = api.DomRange;
+        var WrappedRange = api.WrappedRange;
+        var DOMException = api.DOMException;
+        var DomPosition = dom.DomPosition;
+        var getNativeSelection;
+        var selectionIsCollapsed;
+        var features = api.features;
+        var CONTROL = "Control";
+        var getDocument = dom.getDocument;
+        var getBody = dom.getBody;
+        var rangesEqual = DomRange.rangesEqual;
+
+
+        // Utility function to support direction parameters in the API that may be a string ("backward", "backwards",
+        // "forward" or "forwards") or a Boolean (true for backwards).
+        function isDirectionBackward(dir) {
+            return (typeof dir == "string") ? /^backward(s)?$/i.test(dir) : !!dir;
+        }
+
+        function getWindow(win, methodName) {
+            if (!win) {
+                return window;
+            } else if (dom.isWindow(win)) {
+                return win;
+            } else if (win instanceof WrappedSelection) {
+                return win.win;
+            } else {
+                var doc = dom.getContentDocument(win, module, methodName);
+                return dom.getWindow(doc);
+            }
+        }
+
+        function getWinSelection(winParam) {
+            return getWindow(winParam, "getWinSelection").getSelection();
+        }
+
+        function getDocSelection(winParam) {
+            return getWindow(winParam, "getDocSelection").document.selection;
+        }
+
+        function winSelectionIsBackward(sel) {
+            var backward = false;
+            if (sel.anchorNode) {
+                backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
+            }
+            return backward;
+        }
+
+        // Test for the Range/TextRange and Selection features required
+        // Test for ability to retrieve selection
+        var implementsWinGetSelection = isHostMethod(window, "getSelection"),
+            implementsDocSelection = util.isHostObject(document, "selection");
+
+        features.implementsWinGetSelection = implementsWinGetSelection;
+        features.implementsDocSelection = implementsDocSelection;
+
+        var useDocumentSelection = implementsDocSelection && (!implementsWinGetSelection || api.config.preferTextRange);
+
+        if (useDocumentSelection) {
+            getNativeSelection = getDocSelection;
+            api.isSelectionValid = function(winParam) {
+                var doc = getWindow(winParam, "isSelectionValid").document, nativeSel = doc.selection;
+
+                // Check whether the selection TextRange is actually contained within the correct document
+                return (nativeSel.type != "None" || getDocument(nativeSel.createRange().parentElement()) == doc);
+            };
+        } else if (implementsWinGetSelection) {
+            getNativeSelection = getWinSelection;
+            api.isSelectionValid = function() {
+                return true;
+            };
+        } else {
+            module.fail("Neither document.selection or window.getSelection() detected.");
+            return false;
+        }
+
+        api.getNativeSelection = getNativeSelection;
+
+        var testSelection = getNativeSelection();
+
+        // In Firefox, the selection is null in an iframe with display: none. See issue #138.
+        if (!testSelection) {
+            module.fail("Native selection was null (possibly issue 138?)");
+            return false;
+        }
+
+        var testRange = api.createNativeRange(document);
+        var body = getBody(document);
+
+        // Obtaining a range from a selection
+        var selectionHasAnchorAndFocus = util.areHostProperties(testSelection,
+            ["anchorNode", "focusNode", "anchorOffset", "focusOffset"]);
+
+        features.selectionHasAnchorAndFocus = selectionHasAnchorAndFocus;
+
+        // Test for existence of native selection extend() method
+        var selectionHasExtend = isHostMethod(testSelection, "extend");
+        features.selectionHasExtend = selectionHasExtend;
+
+        // Test if rangeCount exists
+        var selectionHasRangeCount = (typeof testSelection.rangeCount == NUMBER);
+        features.selectionHasRangeCount = selectionHasRangeCount;
+
+        var selectionSupportsMultipleRanges = false;
+        var collapsedNonEditableSelectionsSupported = true;
+
+        var addRangeBackwardToNative = selectionHasExtend ?
+            function(nativeSelection, range) {
+                var doc = DomRange.getRangeDocument(range);
+                var endRange = api.createRange(doc);
+                endRange.collapseToPoint(range.endContainer, range.endOffset);
+                nativeSelection.addRange(getNativeRange(endRange));
+                nativeSelection.extend(range.startContainer, range.startOffset);
+            } : null;
+
+        if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
+                typeof testSelection.rangeCount == NUMBER && features.implementsDomRange) {
+
+            (function() {
+                // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
+                // performed on the current document's selection. See issue 109.
+
+                // Note also that if a selection previously existed, it is wiped and later restored by these tests. This
+                // will result in the selection direction begin reversed if the original selection was backwards and the
+                // browser does not support setting backwards selections (Internet Explorer, I'm looking at you).
+                var sel = window.getSelection();
+                if (sel) {
+                    // Store the current selection
+                    var originalSelectionRangeCount = sel.rangeCount;
+                    var selectionHasMultipleRanges = (originalSelectionRangeCount > 1);
+                    var originalSelectionRanges = [];
+                    var originalSelectionBackward = winSelectionIsBackward(sel);
+                    for (var i = 0; i < originalSelectionRangeCount; ++i) {
+                        originalSelectionRanges[i] = sel.getRangeAt(i);
+                    }
+
+                    // Create some test elements
+                    var testEl = dom.createTestElement(document, "", false);
+                    var textNode = testEl.appendChild( document.createTextNode("\u00a0\u00a0\u00a0") );
+
+                    // Test whether the native selection will allow a collapsed selection within a non-editable element
+                    var r1 = document.createRange();
+
+                    r1.setStart(textNode, 1);
+                    r1.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(r1);
+                    collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
+                    sel.removeAllRanges();
+
+                    // Test whether the native selection is capable of supporting multiple ranges.
+                    if (!selectionHasMultipleRanges) {
+                        // Doing the original feature test here in Chrome 36 (and presumably later versions) prints a
+                        // console error of "Discontiguous selection is not supported." that cannot be suppressed. There's
+                        // nothing we can do about this while retaining the feature test so we have to resort to a browser
+                        // sniff. I'm not happy about it. See
+                        // https://code.google.com/p/chromium/issues/detail?id=399791
+                        var chromeMatch = window.navigator.appVersion.match(/Chrome\/(.*?) /);
+                        if (chromeMatch && parseInt(chromeMatch[1]) >= 36) {
+                            selectionSupportsMultipleRanges = false;
+                        } else {
+                            var r2 = r1.cloneRange();
+                            r1.setStart(textNode, 0);
+                            r2.setEnd(textNode, 3);
+                            r2.setStart(textNode, 2);
+                            sel.addRange(r1);
+                            sel.addRange(r2);
+                            selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                        }
+                    }
+
+                    // Clean up
+                    dom.removeNode(testEl);
+                    sel.removeAllRanges();
+
+                    for (i = 0; i < originalSelectionRangeCount; ++i) {
+                        if (i == 0 && originalSelectionBackward) {
+                            if (addRangeBackwardToNative) {
+                                addRangeBackwardToNative(sel, originalSelectionRanges[i]);
+                            } else {
+                                api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because the browser does not support Selection.extend");
+                                sel.addRange(originalSelectionRanges[i]);
+                            }
+                        } else {
+                            sel.addRange(originalSelectionRanges[i]);
+                        }
+                    }
+                }
+            })();
+        }
+
+        features.selectionSupportsMultipleRanges = selectionSupportsMultipleRanges;
+        features.collapsedNonEditableSelectionsSupported = collapsedNonEditableSelectionsSupported;
+
+        // ControlRanges
+        var implementsControlRange = false, testControlRange;
+
+        if (body && isHostMethod(body, "createControlRange")) {
+            testControlRange = body.createControlRange();
+            if (util.areHostProperties(testControlRange, ["item", "add"])) {
+                implementsControlRange = true;
+            }
+        }
+        features.implementsControlRange = implementsControlRange;
+
+        // Selection collapsedness
+        if (selectionHasAnchorAndFocus) {
+            selectionIsCollapsed = function(sel) {
+                return sel.anchorNode === sel.focusNode && sel.anchorOffset === sel.focusOffset;
+            };
+        } else {
+            selectionIsCollapsed = function(sel) {
+                return sel.rangeCount ? sel.getRangeAt(sel.rangeCount - 1).collapsed : false;
+            };
+        }
+
+        function updateAnchorAndFocusFromRange(sel, range, backward) {
+            var anchorPrefix = backward ? "end" : "start", focusPrefix = backward ? "start" : "end";
+            sel.anchorNode = range[anchorPrefix + "Container"];
+            sel.anchorOffset = range[anchorPrefix + "Offset"];
+            sel.focusNode = range[focusPrefix + "Container"];
+            sel.focusOffset = range[focusPrefix + "Offset"];
+        }
+
+        function updateAnchorAndFocusFromNativeSelection(sel) {
+            var nativeSel = sel.nativeSelection;
+            sel.anchorNode = nativeSel.anchorNode;
+            sel.anchorOffset = nativeSel.anchorOffset;
+            sel.focusNode = nativeSel.focusNode;
+            sel.focusOffset = nativeSel.focusOffset;
+        }
+
+        function updateEmptySelection(sel) {
+            sel.anchorNode = sel.focusNode = null;
+            sel.anchorOffset = sel.focusOffset = 0;
+            sel.rangeCount = 0;
+            sel.isCollapsed = true;
+            sel._ranges.length = 0;
+        }
+
+        function getNativeRange(range) {
+            var nativeRange;
+            if (range instanceof DomRange) {
+                nativeRange = api.createNativeRange(range.getDocument());
+                nativeRange.setEnd(range.endContainer, range.endOffset);
+                nativeRange.setStart(range.startContainer, range.startOffset);
+            } else if (range instanceof WrappedRange) {
+                nativeRange = range.nativeRange;
+            } else if (features.implementsDomRange && (range instanceof dom.getWindow(range.startContainer).Range)) {
+                nativeRange = range;
+            }
+            return nativeRange;
+        }
+
+        function rangeContainsSingleElement(rangeNodes) {
+            if (!rangeNodes.length || rangeNodes[0].nodeType != 1) {
+                return false;
+            }
+            for (var i = 1, len = rangeNodes.length; i < len; ++i) {
+                if (!dom.isAncestorOf(rangeNodes[0], rangeNodes[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function getSingleElementFromRange(range) {
+            var nodes = range.getNodes();
+            if (!rangeContainsSingleElement(nodes)) {
+                throw module.createError("getSingleElementFromRange: range " + range.inspect() + " did not consist of a single element");
+            }
+            return nodes[0];
+        }
+
+        // Simple, quick test which only needs to distinguish between a TextRange and a ControlRange
+        function isTextRange(range) {
+            return !!range && typeof range.text != "undefined";
+        }
+
+        function updateFromTextRange(sel, range) {
+            // Create a Range from the selected TextRange
+            var wrappedRange = new WrappedRange(range);
+            sel._ranges = [wrappedRange];
+
+            updateAnchorAndFocusFromRange(sel, wrappedRange, false);
+            sel.rangeCount = 1;
+            sel.isCollapsed = wrappedRange.collapsed;
+        }
+
+        function updateControlSelection(sel) {
+            // Update the wrapped selection based on what's now in the native selection
+            sel._ranges.length = 0;
+            if (sel.docSelection.type == "None") {
+                updateEmptySelection(sel);
+            } else {
+                var controlRange = sel.docSelection.createRange();
+                if (isTextRange(controlRange)) {
+                    // This case (where the selection type is "Control" and calling createRange() on the selection returns
+                    // a TextRange) can happen in IE 9. It happens, for example, when all elements in the selected
+                    // ControlRange have been removed from the ControlRange and removed from the document.
+                    updateFromTextRange(sel, controlRange);
+                } else {
+                    sel.rangeCount = controlRange.length;
+                    var range, doc = getDocument(controlRange.item(0));
+                    for (var i = 0; i < sel.rangeCount; ++i) {
+                        range = api.createRange(doc);
+                        range.selectNode(controlRange.item(i));
+                        sel._ranges.push(range);
+                    }
+                    sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
+                    updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
+                }
+            }
+        }
+
+        function addRangeToControlSelection(sel, range) {
+            var controlRange = sel.docSelection.createRange();
+            var rangeElement = getSingleElementFromRange(range);
+
+            // Create a new ControlRange containing all the elements in the selected ControlRange plus the element
+            // contained by the supplied range
+            var doc = getDocument(controlRange.item(0));
+            var newControlRange = getBody(doc).createControlRange();
+            for (var i = 0, len = controlRange.length; i < len; ++i) {
+                newControlRange.add(controlRange.item(i));
+            }
+            try {
+                newControlRange.add(rangeElement);
+            } catch (ex) {
+                throw module.createError("addRange(): Element within the specified Range could not be added to control selection (does it have layout?)");
+            }
+            newControlRange.select();
+
+            // Update the wrapped selection based on what's now in the native selection
+            updateControlSelection(sel);
+        }
+
+        var getSelectionRangeAt;
+
+        if (isHostMethod(testSelection, "getRangeAt")) {
+            // try/catch is present because getRangeAt() must have thrown an error in some browser and some situation.
+            // Unfortunately, I didn't write a comment about the specifics and am now scared to take it out. Let that be a
+            // lesson to us all, especially me.
+            getSelectionRangeAt = function(sel, index) {
+                try {
+                    return sel.getRangeAt(index);
+                } catch (ex) {
+                    return null;
+                }
+            };
+        } else if (selectionHasAnchorAndFocus) {
+            getSelectionRangeAt = function(sel) {
+                var doc = getDocument(sel.anchorNode);
+                var range = api.createRange(doc);
+                range.setStartAndEnd(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset);
+
+                // Handle the case when the selection was selected backwards (from the end to the start in the
+                // document)
+                if (range.collapsed !== this.isCollapsed) {
+                    range.setStartAndEnd(sel.focusNode, sel.focusOffset, sel.anchorNode, sel.anchorOffset);
+                }
+
+                return range;
+            };
+        }
+
+        function WrappedSelection(selection, docSelection, win) {
+            this.nativeSelection = selection;
+            this.docSelection = docSelection;
+            this._ranges = [];
+            this.win = win;
+            this.refresh();
+        }
+
+        WrappedSelection.prototype = api.selectionPrototype;
+
+        function deleteProperties(sel) {
+            sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
+            sel.rangeCount = sel.anchorOffset = sel.focusOffset = 0;
+            sel.detached = true;
+        }
+
+        var cachedRangySelections = [];
+
+        function actOnCachedSelection(win, action) {
+            var i = cachedRangySelections.length, cached, sel;
+            while (i--) {
+                cached = cachedRangySelections[i];
+                sel = cached.selection;
+                if (action == "deleteAll") {
+                    deleteProperties(sel);
+                } else if (cached.win == win) {
+                    if (action == "delete") {
+                        cachedRangySelections.splice(i, 1);
+                        return true;
+                    } else {
+                        return sel;
+                    }
+                }
+            }
+            if (action == "deleteAll") {
+                cachedRangySelections.length = 0;
+            }
+            return null;
+        }
+
+        var getSelection = function(win) {
+            // Check if the parameter is a Rangy Selection object
+            if (win && win instanceof WrappedSelection) {
+                win.refresh();
+                return win;
+            }
+
+            win = getWindow(win, "getNativeSelection");
+
+            var sel = actOnCachedSelection(win);
+            var nativeSel = getNativeSelection(win), docSel = implementsDocSelection ? getDocSelection(win) : null;
+            if (sel) {
+                sel.nativeSelection = nativeSel;
+                sel.docSelection = docSel;
+                sel.refresh();
+            } else {
+                sel = new WrappedSelection(nativeSel, docSel, win);
+                cachedRangySelections.push( { win: win, selection: sel } );
+            }
+            return sel;
+        };
+
+        api.getSelection = getSelection;
+
+        util.createAliasForDeprecatedMethod(api, "getIframeSelection", "getSelection");
+
+        var selProto = WrappedSelection.prototype;
+
+        function createControlSelection(sel, ranges) {
+            // Ensure that the selection becomes of type "Control"
+            var doc = getDocument(ranges[0].startContainer);
+            var controlRange = getBody(doc).createControlRange();
+            for (var i = 0, el, len = ranges.length; i < len; ++i) {
+                el = getSingleElementFromRange(ranges[i]);
+                try {
+                    controlRange.add(el);
+                } catch (ex) {
+                    throw module.createError("setRanges(): Element within one of the specified Ranges could not be added to control selection (does it have layout?)");
+                }
+            }
+            controlRange.select();
+
+            // Update the wrapped selection based on what's now in the native selection
+            updateControlSelection(sel);
+        }
+
+        // Selecting a range
+        if (!useDocumentSelection && selectionHasAnchorAndFocus && util.areHostMethods(testSelection, ["removeAllRanges", "addRange"])) {
+            selProto.removeAllRanges = function() {
+                this.nativeSelection.removeAllRanges();
+                updateEmptySelection(this);
+            };
+
+            var addRangeBackward = function(sel, range) {
+                addRangeBackwardToNative(sel.nativeSelection, range);
+                sel.refresh();
+            };
+
+            if (selectionHasRangeCount) {
+                selProto.addRange = function(range, direction) {
+                    if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+                        addRangeToControlSelection(this, range);
+                    } else {
+                        if (isDirectionBackward(direction) && selectionHasExtend) {
+                            addRangeBackward(this, range);
+                        } else {
+                            var previousRangeCount;
+                            if (selectionSupportsMultipleRanges) {
+                                previousRangeCount = this.rangeCount;
+                            } else {
+                                this.removeAllRanges();
+                                previousRangeCount = 0;
+                            }
+                            // Clone the native range so that changing the selected range does not affect the selection.
+                            // This is contrary to the spec but is the only way to achieve consistency between browsers. See
+                            // issue 80.
+                            var clonedNativeRange = getNativeRange(range).cloneRange();
+                            try {
+                                this.nativeSelection.addRange(clonedNativeRange);
+                            } catch (ex) {
+                            }
+
+                            // Check whether adding the range was successful
+                            this.rangeCount = this.nativeSelection.rangeCount;
+
+                            if (this.rangeCount == previousRangeCount + 1) {
+                                // The range was added successfully
+
+                                // Check whether the range that we added to the selection is reflected in the last range extracted from
+                                // the selection
+                                if (api.config.checkSelectionRanges) {
+                                    var nativeRange = getSelectionRangeAt(this.nativeSelection, this.rangeCount - 1);
+                                    if (nativeRange && !rangesEqual(nativeRange, range)) {
+                                        // Happens in WebKit with, for example, a selection placed at the start of a text node
+                                        range = new WrappedRange(nativeRange);
+                                    }
+                                }
+                                this._ranges[this.rangeCount - 1] = range;
+                                updateAnchorAndFocusFromRange(this, range, selectionIsBackward(this.nativeSelection));
+                                this.isCollapsed = selectionIsCollapsed(this);
+                            } else {
+                                // The range was not added successfully. The simplest thing is to refresh
+                                this.refresh();
+                            }
+                        }
+                    }
+                };
+            } else {
+                selProto.addRange = function(range, direction) {
+                    if (isDirectionBackward(direction) && selectionHasExtend) {
+                        addRangeBackward(this, range);
+                    } else {
+                        this.nativeSelection.addRange(getNativeRange(range));
+                        this.refresh();
+                    }
+                };
+            }
+
+            selProto.setRanges = function(ranges) {
+                if (implementsControlRange && implementsDocSelection && ranges.length > 1) {
+                    createControlSelection(this, ranges);
+                } else {
+                    this.removeAllRanges();
+                    for (var i = 0, len = ranges.length; i < len; ++i) {
+                        this.addRange(ranges[i]);
+                    }
+                }
+            };
+        } else if (isHostMethod(testSelection, "empty") && isHostMethod(testRange, "select") &&
+                   implementsControlRange && useDocumentSelection) {
+
+            selProto.removeAllRanges = function() {
+                // Added try/catch as fix for issue #21
+                try {
+                    this.docSelection.empty();
+
+                    // Check for empty() not working (issue #24)
+                    if (this.docSelection.type != "None") {
+                        // Work around failure to empty a control selection by instead selecting a TextRange and then
+                        // calling empty()
+                        var doc;
+                        if (this.anchorNode) {
+                            doc = getDocument(this.anchorNode);
+                        } else if (this.docSelection.type == CONTROL) {
+                            var controlRange = this.docSelection.createRange();
+                            if (controlRange.length) {
+                                doc = getDocument( controlRange.item(0) );
+                            }
+                        }
+                        if (doc) {
+                            var textRange = getBody(doc).createTextRange();
+                            textRange.select();
+                            this.docSelection.empty();
+                        }
+                    }
+                } catch(ex) {}
+                updateEmptySelection(this);
+            };
+
+            selProto.addRange = function(range) {
+                if (this.docSelection.type == CONTROL) {
+                    addRangeToControlSelection(this, range);
+                } else {
+                    api.WrappedTextRange.rangeToTextRange(range).select();
+                    this._ranges[0] = range;
+                    this.rangeCount = 1;
+                    this.isCollapsed = this._ranges[0].collapsed;
+                    updateAnchorAndFocusFromRange(this, range, false);
+                }
+            };
+
+            selProto.setRanges = function(ranges) {
+                this.removeAllRanges();
+                var rangeCount = ranges.length;
+                if (rangeCount > 1) {
+                    createControlSelection(this, ranges);
+                } else if (rangeCount) {
+                    this.addRange(ranges[0]);
+                }
+            };
+        } else {
+            module.fail("No means of selecting a Range or TextRange was found");
+            return false;
+        }
+
+        selProto.getRangeAt = function(index) {
+            if (index < 0 || index >= this.rangeCount) {
+                throw new DOMException("INDEX_SIZE_ERR");
+            } else {
+                // Clone the range to preserve selection-range independence. See issue 80.
+                return this._ranges[index].cloneRange();
+            }
+        };
+
+        var refreshSelection;
+
+        if (useDocumentSelection) {
+            refreshSelection = function(sel) {
+                var range;
+                if (api.isSelectionValid(sel.win)) {
+                    range = sel.docSelection.createRange();
+                } else {
+                    range = getBody(sel.win.document).createTextRange();
+                    range.collapse(true);
+                }
+
+                if (sel.docSelection.type == CONTROL) {
+                    updateControlSelection(sel);
+                } else if (isTextRange(range)) {
+                    updateFromTextRange(sel, range);
+                } else {
+                    updateEmptySelection(sel);
+                }
+            };
+        } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == NUMBER) {
+            refreshSelection = function(sel) {
+                if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
+                    updateControlSelection(sel);
+                } else {
+                    sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
+                    if (sel.rangeCount) {
+                        for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                            sel._ranges[i] = new api.WrappedRange(sel.nativeSelection.getRangeAt(i));
+                        }
+                        updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], selectionIsBackward(sel.nativeSelection));
+                        sel.isCollapsed = selectionIsCollapsed(sel);
+                    } else {
+                        updateEmptySelection(sel);
+                    }
+                }
+            };
+        } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && features.implementsDomRange) {
+            refreshSelection = function(sel) {
+                var range, nativeSel = sel.nativeSelection;
+                if (nativeSel.anchorNode) {
+                    range = getSelectionRangeAt(nativeSel, 0);
+                    sel._ranges = [range];
+                    sel.rangeCount = 1;
+                    updateAnchorAndFocusFromNativeSelection(sel);
+                    sel.isCollapsed = selectionIsCollapsed(sel);
+                } else {
+                    updateEmptySelection(sel);
+                }
+            };
+        } else {
+            module.fail("No means of obtaining a Range or TextRange from the user's selection was found");
+            return false;
+        }
+
+        selProto.refresh = function(checkForChanges) {
+            var oldRanges = checkForChanges ? this._ranges.slice(0) : null;
+            var oldAnchorNode = this.anchorNode, oldAnchorOffset = this.anchorOffset;
+
+            refreshSelection(this);
+            if (checkForChanges) {
+                // Check the range count first
+                var i = oldRanges.length;
+                if (i != this._ranges.length) {
+                    return true;
+                }
+
+                // Now check the direction. Checking the anchor position is the same is enough since we're checking all the
+                // ranges after this
+                if (this.anchorNode != oldAnchorNode || this.anchorOffset != oldAnchorOffset) {
+                    return true;
+                }
+
+                // Finally, compare each range in turn
+                while (i--) {
+                    if (!rangesEqual(oldRanges[i], this._ranges[i])) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        };
+
+        // Removal of a single range
+        var removeRangeManually = function(sel, range) {
+            var ranges = sel.getAllRanges();
+            sel.removeAllRanges();
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                if (!rangesEqual(range, ranges[i])) {
+                    sel.addRange(ranges[i]);
+                }
+            }
+            if (!sel.rangeCount) {
+                updateEmptySelection(sel);
+            }
+        };
+
+        if (implementsControlRange && implementsDocSelection) {
+            selProto.removeRange = function(range) {
+                if (this.docSelection.type == CONTROL) {
+                    var controlRange = this.docSelection.createRange();
+                    var rangeElement = getSingleElementFromRange(range);
+
+                    // Create a new ControlRange containing all the elements in the selected ControlRange minus the
+                    // element contained by the supplied range
+                    var doc = getDocument(controlRange.item(0));
+                    var newControlRange = getBody(doc).createControlRange();
+                    var el, removed = false;
+                    for (var i = 0, len = controlRange.length; i < len; ++i) {
+                        el = controlRange.item(i);
+                        if (el !== rangeElement || removed) {
+                            newControlRange.add(controlRange.item(i));
+                        } else {
+                            removed = true;
+                        }
+                    }
+                    newControlRange.select();
+
+                    // Update the wrapped selection based on what's now in the native selection
+                    updateControlSelection(this);
+                } else {
+                    removeRangeManually(this, range);
+                }
+            };
+        } else {
+            selProto.removeRange = function(range) {
+                removeRangeManually(this, range);
+            };
+        }
+
+        // Detecting if a selection is backward
+        var selectionIsBackward;
+        if (!useDocumentSelection && selectionHasAnchorAndFocus && features.implementsDomRange) {
+            selectionIsBackward = winSelectionIsBackward;
+
+            selProto.isBackward = function() {
+                return selectionIsBackward(this);
+            };
+        } else {
+            selectionIsBackward = selProto.isBackward = function() {
+                return false;
+            };
+        }
+
+        // Create an alias for backwards compatibility. From 1.3, everything is "backward" rather than "backwards"
+        selProto.isBackwards = selProto.isBackward;
+
+        // Selection stringifier
+        // This is conformant to the old HTML5 selections draft spec but differs from WebKit and Mozilla's implementation.
+        // The current spec does not yet define this method.
+        selProto.toString = function() {
+            var rangeTexts = [];
+            for (var i = 0, len = this.rangeCount; i < len; ++i) {
+                rangeTexts[i] = "" + this._ranges[i];
+            }
+            return rangeTexts.join("");
+        };
+
+        function assertNodeInSameDocument(sel, node) {
+            if (sel.win.document != getDocument(node)) {
+                throw new DOMException("WRONG_DOCUMENT_ERR");
+            }
+        }
+
+        // No current browser conforms fully to the spec for this method, so Rangy's own method is always used
+        selProto.collapse = function(node, offset) {
+            assertNodeInSameDocument(this, node);
+            var range = api.createRange(node);
+            range.collapseToPoint(node, offset);
+            this.setSingleRange(range);
+            this.isCollapsed = true;
+        };
+
+        selProto.collapseToStart = function() {
+            if (this.rangeCount) {
+                var range = this._ranges[0];
+                this.collapse(range.startContainer, range.startOffset);
+            } else {
+                throw new DOMException("INVALID_STATE_ERR");
+            }
+        };
+
+        selProto.collapseToEnd = function() {
+            if (this.rangeCount) {
+                var range = this._ranges[this.rangeCount - 1];
+                this.collapse(range.endContainer, range.endOffset);
+            } else {
+                throw new DOMException("INVALID_STATE_ERR");
+            }
+        };
+
+        // The spec is very specific on how selectAllChildren should be implemented and not all browsers implement it as
+        // specified so the native implementation is never used by Rangy.
+        selProto.selectAllChildren = function(node) {
+            assertNodeInSameDocument(this, node);
+            var range = api.createRange(node);
+            range.selectNodeContents(node);
+            this.setSingleRange(range);
+        };
+
+        selProto.deleteFromDocument = function() {
+            // Sepcial behaviour required for IE's control selections
+            if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+                var controlRange = this.docSelection.createRange();
+                var element;
+                while (controlRange.length) {
+                    element = controlRange.item(0);
+                    controlRange.remove(element);
+                    dom.removeNode(element);
+                }
+                this.refresh();
+            } else if (this.rangeCount) {
+                var ranges = this.getAllRanges();
+                if (ranges.length) {
+                    this.removeAllRanges();
+                    for (var i = 0, len = ranges.length; i < len; ++i) {
+                        ranges[i].deleteContents();
+                    }
+                    // The spec says nothing about what the selection should contain after calling deleteContents on each
+                    // range. Firefox moves the selection to where the final selected range was, so we emulate that
+                    this.addRange(ranges[len - 1]);
+                }
+            }
+        };
+
+        // The following are non-standard extensions
+        selProto.eachRange = function(func, returnValue) {
+            for (var i = 0, len = this._ranges.length; i < len; ++i) {
+                if ( func( this.getRangeAt(i) ) ) {
+                    return returnValue;
+                }
+            }
+        };
+
+        selProto.getAllRanges = function() {
+            var ranges = [];
+            this.eachRange(function(range) {
+                ranges.push(range);
+            });
+            return ranges;
+        };
+
+        selProto.setSingleRange = function(range, direction) {
+            this.removeAllRanges();
+            this.addRange(range, direction);
+        };
+
+        selProto.callMethodOnEachRange = function(methodName, params) {
+            var results = [];
+            this.eachRange( function(range) {
+                results.push( range[methodName].apply(range, params || []) );
+            } );
+            return results;
+        };
+
+        function createStartOrEndSetter(isStart) {
+            return function(node, offset) {
+                var range;
+                if (this.rangeCount) {
+                    range = this.getRangeAt(0);
+                    range["set" + (isStart ? "Start" : "End")](node, offset);
+                } else {
+                    range = api.createRange(this.win.document);
+                    range.setStartAndEnd(node, offset);
+                }
+                this.setSingleRange(range, this.isBackward());
+            };
+        }
+
+        selProto.setStart = createStartOrEndSetter(true);
+        selProto.setEnd = createStartOrEndSetter(false);
+
+        // Add select() method to Range prototype. Any existing selection will be removed.
+        api.rangePrototype.select = function(direction) {
+            getSelection( this.getDocument() ).setSingleRange(this, direction);
+        };
+
+        selProto.changeEachRange = function(func) {
+            var ranges = [];
+            var backward = this.isBackward();
+
+            this.eachRange(function(range) {
+                func(range);
+                ranges.push(range);
+            });
+
+            this.removeAllRanges();
+            if (backward && ranges.length == 1) {
+                this.addRange(ranges[0], "backward");
+            } else {
+                this.setRanges(ranges);
+            }
+        };
+
+        selProto.containsNode = function(node, allowPartial) {
+            return this.eachRange( function(range) {
+                return range.containsNode(node, allowPartial);
+            }, true ) || false;
+        };
+
+        selProto.getBookmark = function(containerNode) {
+            return {
+                backward: this.isBackward(),
+                rangeBookmarks: this.callMethodOnEachRange("getBookmark", [containerNode])
+            };
+        };
+
+        selProto.moveToBookmark = function(bookmark) {
+            var selRanges = [];
+            for (var i = 0, rangeBookmark, range; rangeBookmark = bookmark.rangeBookmarks[i++]; ) {
+                range = api.createRange(this.win);
+                range.moveToBookmark(rangeBookmark);
+                selRanges.push(range);
+            }
+            if (bookmark.backward) {
+                this.setSingleRange(selRanges[0], "backward");
+            } else {
+                this.setRanges(selRanges);
+            }
+        };
+
+        selProto.saveRanges = function() {
+            return {
+                backward: this.isBackward(),
+                ranges: this.callMethodOnEachRange("cloneRange")
+            };
+        };
+
+        selProto.restoreRanges = function(selRanges) {
+            this.removeAllRanges();
+            for (var i = 0, range; range = selRanges.ranges[i]; ++i) {
+                this.addRange(range, (selRanges.backward && i == 0));
+            }
+        };
+
+        selProto.toHtml = function() {
+            var rangeHtmls = [];
+            this.eachRange(function(range) {
+                rangeHtmls.push( DomRange.toHtml(range) );
+            });
+            return rangeHtmls.join("");
+        };
+
+        if (features.implementsTextRange) {
+            selProto.getNativeTextRange = function() {
+                var sel, textRange;
+                if ( (sel = this.docSelection) ) {
+                    var range = sel.createRange();
+                    if (isTextRange(range)) {
+                        return range;
+                    } else {
+                        throw module.createError("getNativeTextRange: selection is a control selection");
+                    }
+                } else if (this.rangeCount > 0) {
+                    return api.WrappedTextRange.rangeToTextRange( this.getRangeAt(0) );
+                } else {
+                    throw module.createError("getNativeTextRange: selection contains no range");
+                }
+            };
+        }
+
+        function inspect(sel) {
+            var rangeInspects = [];
+            var anchor = new DomPosition(sel.anchorNode, sel.anchorOffset);
+            var focus = new DomPosition(sel.focusNode, sel.focusOffset);
+            var name = (typeof sel.getName == "function") ? sel.getName() : "Selection";
+
+            if (typeof sel.rangeCount != "undefined") {
+                for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                    rangeInspects[i] = DomRange.inspect(sel.getRangeAt(i));
+                }
+            }
+            return "[" + name + "(Ranges: " + rangeInspects.join(", ") +
+                    ")(anchor: " + anchor.inspect() + ", focus: " + focus.inspect() + "]";
+        }
+
+        selProto.getName = function() {
+            return "WrappedSelection";
+        };
+
+        selProto.inspect = function() {
+            return inspect(this);
+        };
+
+        selProto.detach = function() {
+            actOnCachedSelection(this.win, "delete");
+            deleteProperties(this);
+        };
+
+        WrappedSelection.detachAll = function() {
+            actOnCachedSelection(null, "deleteAll");
+        };
+
+        WrappedSelection.inspect = inspect;
+        WrappedSelection.isDirectionBackward = isDirectionBackward;
+
+        api.Selection = WrappedSelection;
+
+        api.selectionPrototype = selProto;
+
+        api.addShimListener(function(win) {
+            if (typeof win.getSelection == "undefined") {
+                win.getSelection = function() {
+                    return getSelection(win);
+                };
+            }
+            win = null;
+        });
+    });
+    
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    // Wait for document to load before initializing
+    var docReady = false;
+
+    var loadHandler = function(e) {
+        if (!docReady) {
+            docReady = true;
+            if (!api.initialized && api.config.autoInitialize) {
+                init();
+            }
+        }
+    };
+
+    if (isBrowser) {
+        // Test whether the document has already been loaded and initialize immediately if so
+        if (document.readyState == "complete") {
+            loadHandler();
+        } else {
+            if (isHostMethod(document, "addEventListener")) {
+                document.addEventListener("DOMContentLoaded", loadHandler, false);
+            }
+
+            // Add a fallback in case the DOMContentLoaded event isn't supported
+            addListener(window, "load", loadHandler);
+        }
+    }
+
+    return api;
+}, this);
+},{}],95:[function(require,module,exports){
+/**
+ * Selection save and restore module for Rangy.
+ * Saves and restores user selections using marker invisible elements in the DOM.
+ *
+ * Part of Rangy, a cross-browser JavaScript range and selection library
+ * https://github.com/timdown/rangy
+ *
+ * Depends on Rangy core.
+ *
+ * Copyright 2015, Tim Down
+ * Licensed under the MIT license.
+ * Version: 1.3.0
+ * Build date: 10 May 2015
+ */
+(function(factory, root) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module with a dependency on Rangy.
+        define(["./rangy-core"], factory);
+    } else if (typeof module != "undefined" && typeof exports == "object") {
+        // Node/CommonJS style
+        module.exports = factory( require("rangy") );
+    } else {
+        // No AMD or CommonJS support so we use the rangy property of root (probably the global variable)
+        factory(root.rangy);
+    }
+})(function(rangy) {
+    rangy.createModule("SaveRestore", ["WrappedRange"], function(api, module) {
+        var dom = api.dom;
+        var removeNode = dom.removeNode;
+        var isDirectionBackward = api.Selection.isDirectionBackward;
+        var markerTextChar = "\ufeff";
+
+        function gEBI(id, doc) {
+            return (doc || document).getElementById(id);
+        }
+
+        function insertRangeBoundaryMarker(range, atStart) {
+            var markerId = "selectionBoundary_" + (+new Date()) + "_" + ("" + Math.random()).slice(2);
+            var markerEl;
+            var doc = dom.getDocument(range.startContainer);
+
+            // Clone the Range and collapse to the appropriate boundary point
+            var boundaryRange = range.cloneRange();
+            boundaryRange.collapse(atStart);
+
+            // Create the marker element containing a single invisible character using DOM methods and insert it
+            markerEl = doc.createElement("span");
+            markerEl.id = markerId;
+            markerEl.style.lineHeight = "0";
+            markerEl.style.display = "none";
+            markerEl.className = "rangySelectionBoundary";
+            markerEl.appendChild(doc.createTextNode(markerTextChar));
+
+            boundaryRange.insertNode(markerEl);
+            return markerEl;
+        }
+
+        function setRangeBoundary(doc, range, markerId, atStart) {
+            var markerEl = gEBI(markerId, doc);
+            if (markerEl) {
+                range[atStart ? "setStartBefore" : "setEndBefore"](markerEl);
+                removeNode(markerEl);
+            } else {
+                module.warn("Marker element has been removed. Cannot restore selection.");
+            }
+        }
+
+        function compareRanges(r1, r2) {
+            return r2.compareBoundaryPoints(r1.START_TO_START, r1);
+        }
+
+        function saveRange(range, direction) {
+            var startEl, endEl, doc = api.DomRange.getRangeDocument(range), text = range.toString();
+            var backward = isDirectionBackward(direction);
+
+            if (range.collapsed) {
+                endEl = insertRangeBoundaryMarker(range, false);
+                return {
+                    document: doc,
+                    markerId: endEl.id,
+                    collapsed: true
+                };
+            } else {
+                endEl = insertRangeBoundaryMarker(range, false);
+                startEl = insertRangeBoundaryMarker(range, true);
+
+                return {
+                    document: doc,
+                    startMarkerId: startEl.id,
+                    endMarkerId: endEl.id,
+                    collapsed: false,
+                    backward: backward,
+                    toString: function() {
+                        return "original text: '" + text + "', new text: '" + range.toString() + "'";
+                    }
+                };
+            }
+        }
+
+        function restoreRange(rangeInfo, normalize) {
+            var doc = rangeInfo.document;
+            if (typeof normalize == "undefined") {
+                normalize = true;
+            }
+            var range = api.createRange(doc);
+            if (rangeInfo.collapsed) {
+                var markerEl = gEBI(rangeInfo.markerId, doc);
+                if (markerEl) {
+                    markerEl.style.display = "inline";
+                    var previousNode = markerEl.previousSibling;
+
+                    // Workaround for issue 17
+                    if (previousNode && previousNode.nodeType == 3) {
+                        removeNode(markerEl);
+                        range.collapseToPoint(previousNode, previousNode.length);
+                    } else {
+                        range.collapseBefore(markerEl);
+                        removeNode(markerEl);
+                    }
+                } else {
+                    module.warn("Marker element has been removed. Cannot restore selection.");
+                }
+            } else {
+                setRangeBoundary(doc, range, rangeInfo.startMarkerId, true);
+                setRangeBoundary(doc, range, rangeInfo.endMarkerId, false);
+            }
+
+            if (normalize) {
+                range.normalizeBoundaries();
+            }
+
+            return range;
+        }
+
+        function saveRanges(ranges, direction) {
+            var rangeInfos = [], range, doc;
+            var backward = isDirectionBackward(direction);
+
+            // Order the ranges by position within the DOM, latest first, cloning the array to leave the original untouched
+            ranges = ranges.slice(0);
+            ranges.sort(compareRanges);
+
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                rangeInfos[i] = saveRange(ranges[i], backward);
+            }
+
+            // Now that all the markers are in place and DOM manipulation over, adjust each range's boundaries to lie
+            // between its markers
+            for (i = len - 1; i >= 0; --i) {
+                range = ranges[i];
+                doc = api.DomRange.getRangeDocument(range);
+                if (range.collapsed) {
+                    range.collapseAfter(gEBI(rangeInfos[i].markerId, doc));
+                } else {
+                    range.setEndBefore(gEBI(rangeInfos[i].endMarkerId, doc));
+                    range.setStartAfter(gEBI(rangeInfos[i].startMarkerId, doc));
+                }
+            }
+
+            return rangeInfos;
+        }
+
+        function saveSelection(win) {
+            if (!api.isSelectionValid(win)) {
+                module.warn("Cannot save selection. This usually happens when the selection is collapsed and the selection document has lost focus.");
+                return null;
+            }
+            var sel = api.getSelection(win);
+            var ranges = sel.getAllRanges();
+            var backward = (ranges.length == 1 && sel.isBackward());
+
+            var rangeInfos = saveRanges(ranges, backward);
+
+            // Ensure current selection is unaffected
+            if (backward) {
+                sel.setSingleRange(ranges[0], backward);
+            } else {
+                sel.setRanges(ranges);
+            }
+
+            return {
+                win: win,
+                rangeInfos: rangeInfos,
+                restored: false
+            };
+        }
+
+        function restoreRanges(rangeInfos) {
+            var ranges = [];
+
+            // Ranges are in reverse order of appearance in the DOM. We want to restore earliest first to avoid
+            // normalization affecting previously restored ranges.
+            var rangeCount = rangeInfos.length;
+
+            for (var i = rangeCount - 1; i >= 0; i--) {
+                ranges[i] = restoreRange(rangeInfos[i], true);
+            }
+
+            return ranges;
+        }
+
+        function restoreSelection(savedSelection, preserveDirection) {
+            if (!savedSelection.restored) {
+                var rangeInfos = savedSelection.rangeInfos;
+                var sel = api.getSelection(savedSelection.win);
+                var ranges = restoreRanges(rangeInfos), rangeCount = rangeInfos.length;
+
+                if (rangeCount == 1 && preserveDirection && api.features.selectionHasExtend && rangeInfos[0].backward) {
+                    sel.removeAllRanges();
+                    sel.addRange(ranges[0], true);
+                } else {
+                    sel.setRanges(ranges);
+                }
+
+                savedSelection.restored = true;
+            }
+        }
+
+        function removeMarkerElement(doc, markerId) {
+            var markerEl = gEBI(markerId, doc);
+            if (markerEl) {
+                removeNode(markerEl);
+            }
+        }
+
+        function removeMarkers(savedSelection) {
+            var rangeInfos = savedSelection.rangeInfos;
+            for (var i = 0, len = rangeInfos.length, rangeInfo; i < len; ++i) {
+                rangeInfo = rangeInfos[i];
+                if (rangeInfo.collapsed) {
+                    removeMarkerElement(savedSelection.doc, rangeInfo.markerId);
+                } else {
+                    removeMarkerElement(savedSelection.doc, rangeInfo.startMarkerId);
+                    removeMarkerElement(savedSelection.doc, rangeInfo.endMarkerId);
+                }
+            }
+        }
+
+        api.util.extend(api, {
+            saveRange: saveRange,
+            restoreRange: restoreRange,
+            saveRanges: saveRanges,
+            restoreRanges: restoreRanges,
+            saveSelection: saveSelection,
+            restoreSelection: restoreSelection,
+            removeMarkerElement: removeMarkerElement,
+            removeMarkers: removeMarkers
+        });
+    });
+    
+    return rangy;
+}, this);
+},{"rangy":94}],96:[function(require,module,exports){
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module unless amdModuleId is set
+    define('textAngular', ["rangy","rangy/lib/rangy-selectionsaverestore"], function (a0,b1) {
+      return (root['textAngular.name'] = factory(a0,b1));
+    });
+  } else if (typeof exports === 'object') {
+    // Node. Does not work with strict CommonJS, but
+    // only CommonJS-like environments that support module.exports,
+    // like Node.
+    module.exports = factory(require("rangy"),require("rangy/lib/rangy-selectionsaverestore"));
+  } else {
+    root['textAngular'] = factory(rangy);
+  }
+}(this, function (rangy) {
+
+
+// tests against the current jqLite/jquery implementation if this can be an element
+function validElementString(string){
+    try{
+        return angular.element(string).length !== 0;
+    }catch(any){
+        return false;
+    }
+}
+// setup the global contstant functions for setting up the toolbar
+
+// all tool definitions
+var taTools = {};
+/*
+    A tool definition is an object with the following key/value parameters:
+        action: [function(deferred, restoreSelection)]
+                a function that is executed on clicking on the button - this will allways be executed using ng-click and will
+                overwrite any ng-click value in the display attribute.
+                The function is passed a deferred object ($q.defer()), if this is wanted to be used `return false;` from the action and
+                manually call `deferred.resolve();` elsewhere to notify the editor that the action has finished.
+                restoreSelection is only defined if the rangy library is included and it can be called as `restoreSelection()` to restore the users
+                selection in the WYSIWYG editor.
+        display: [string]?
+                Optional, an HTML element to be displayed as the button. The `scope` of the button is the tool definition object with some additional functions
+                If set this will cause buttontext and iconclass to be ignored
+        class: [string]?
+                Optional, if set will override the taOptions.classes.toolbarButton class.
+        buttontext: [string]?
+                if this is defined it will replace the contents of the element contained in the `display` element
+        iconclass: [string]?
+                if this is defined an icon (<i>) will be appended to the `display` element with this string as it's class
+        tooltiptext: [string]?
+                Optional, a plain text description of the action, used for the title attribute of the action button in the toolbar by default.
+        activestate: [function(commonElement)]?
+                this function is called on every caret movement, if it returns true then the class taOptions.classes.toolbarButtonActive
+                will be applied to the `display` element, else the class will be removed
+        disabled: [function()]?
+                if this function returns true then the tool will have the class taOptions.classes.disabled applied to it, else it will be removed
+    Other functions available on the scope are:
+        name: [string]
+                the name of the tool, this is the first parameter passed into taRegisterTool
+        isDisabled: [function()]
+                returns true if the tool is disabled, false if it isn't
+        displayActiveToolClass: [function(boolean)]
+                returns true if the tool is 'active' in the currently focussed toolbar
+        onElementSelect: [Object]
+                This object contains the following key/value pairs and is used to trigger the ta-element-select event
+                element: [String]
+                    an element name, will only trigger the onElementSelect action if the tagName of the element matches this string
+                filter: [function(element)]?
+                    an optional filter that returns a boolean, if true it will trigger the onElementSelect.
+                action: [function(event, element, editorScope)]
+                    the action that should be executed if the onElementSelect function runs
+*/
+// name and toolDefinition to add into the tools available to be added on the toolbar
+function registerTextAngularTool(name, toolDefinition){
+    if(!name || name === '' || taTools.hasOwnProperty(name)) throw('textAngular Error: A unique name is required for a Tool Definition');
+    if(
+        (toolDefinition.display && (toolDefinition.display === '' || !validElementString(toolDefinition.display))) ||
+        (!toolDefinition.display && !toolDefinition.buttontext && !toolDefinition.iconclass)
+    )
+        throw('textAngular Error: Tool Definition for "' + name + '" does not have a valid display/iconclass/buttontext value');
+    taTools[name] = toolDefinition;
+}
+
+angular.module('textAngularSetup', [])
+.constant('taRegisterTool', registerTextAngularTool)
+.value('taTools', taTools)
+// Here we set up the global display defaults, to set your own use a angular $provider#decorator.
+.value('taOptions',  {
+    //////////////////////////////////////////////////////////////////////////////////////
+    // forceTextAngularSanitize
+    // set false to allow the textAngular-sanitize provider to be replaced
+    // with angular-sanitize or a custom provider.
+    forceTextAngularSanitize: true,
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // keyMappings
+    // allow customizable keyMappings for specialized key boards or languages
+    //
+    // keyMappings provides key mappings that are attached to a given commandKeyCode.
+    // To modify a specific keyboard binding, simply provide function which returns true
+    // for the event you wish to map to.
+    // Or to disable a specific keyboard binding, provide a function which returns false.
+    // Note: 'RedoKey' and 'UndoKey' are internally bound to the redo and undo functionality.
+    // At present, the following commandKeyCodes are in use:
+    // 98, 'TabKey', 'ShiftTabKey', 105, 117, 'UndoKey', 'RedoKey'
+    //
+    // To map to an new commandKeyCode, add a new key mapping such as:
+    // {commandKeyCode: 'CustomKey', testForKey: function (event) {
+    //  if (event.keyCode=57 && event.ctrlKey && !event.shiftKey && !event.altKey) return true;
+    // } }
+    // to the keyMappings. This example maps ctrl+9 to 'CustomKey'
+    // Then where taRegisterTool(...) is called, add a commandKeyCode: 'CustomKey' and your
+    // tool will be bound to ctrl+9.
+    //
+    // To disble one of the already bound commandKeyCodes such as 'RedoKey' or 'UndoKey' add:
+    // {commandKeyCode: 'RedoKey', testForKey: function (event) { return false; } },
+    // {commandKeyCode: 'UndoKey', testForKey: function (event) { return false; } },
+    // to disable them.
+    //
+    keyMappings : [],
+    toolbar: [
+        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre', 'quote'],
+        ['bold', 'italics', 'underline', 'strikeThrough', 'ul', 'ol', 'redo', 'undo', 'clear'],
+        ['justifyLeft','justifyCenter','justifyRight','justifyFull','indent','outdent'],
+        ['html', 'insertImage', 'insertLink', 'insertVideo', 'wordcount', 'charcount']
+    ],
+    classes: {
+        focussed: "focussed",
+        toolbar: "btn-toolbar",
+        toolbarGroup: "btn-group",
+        toolbarButton: "btn btn-default",
+        toolbarButtonActive: "active",
+        disabled: "disabled",
+        textEditor: 'form-control',
+        htmlEditor: 'form-control'
+    },
+    defaultTagAttributes : {
+        a: {target:""}
+    },
+    setup: {
+        // wysiwyg mode
+        textEditorSetup: function($element){ /* Do some processing here */ },
+        // raw html
+        htmlEditorSetup: function($element){ /* Do some processing here */ }
+    },
+    defaultFileDropHandler:
+        /* istanbul ignore next: untestable image processing */
+        function(file, insertAction){
+            var reader = new FileReader();
+            if(file.type.substring(0, 5) === 'image'){
+                reader.onload = function() {
+                    if(reader.result !== '') insertAction('insertImage', reader.result, true);
+                };
+
+                reader.readAsDataURL(file);
+                // NOTE: For async procedures return a promise and resolve it when the editor should update the model.
+                return true;
+            }
+            return false;
+        }
+})
+
+// This is the element selector string that is used to catch click events within a taBind, prevents the default and $emits a 'ta-element-select' event
+// these are individually used in an angular.element().find() call. What can go here depends on whether you have full jQuery loaded or just jQLite with angularjs.
+// div is only used as div.ta-insert-video caught in filter.
+.value('taSelectableElements', ['a','img'])
+
+// This is an array of objects with the following options:
+//				selector: <string> a jqLite or jQuery selector string
+//				customAttribute: <string> an attribute to search for
+//				renderLogic: <function(element)>
+// Both or one of selector and customAttribute must be defined.
+.value('taCustomRenderers', [
+    {
+        // Parse back out: '<div class="ta-insert-video" ta-insert-video src="' + urlLink + '" allowfullscreen="true" width="300" frameborder="0" height="250"></div>'
+        // To correct video element. For now only support youtube
+        selector: 'img',
+        customAttribute: 'ta-insert-video',
+        renderLogic: function(element){
+            var iframe = angular.element('<iframe></iframe>');
+            var attributes = element.prop("attributes");
+            // loop through element attributes and apply them on iframe
+            angular.forEach(attributes, function(attr) {
+                iframe.attr(attr.name, attr.value);
+            });
+            iframe.attr('src', iframe.attr('ta-insert-video'));
+            element.replaceWith(iframe);
+        }
+    }
+])
+
+.value('taTranslations', {
+    // moved to sub-elements
+    //toggleHTML: "Toggle HTML",
+    //insertImage: "Please enter a image URL to insert",
+    //insertLink: "Please enter a URL to insert",
+    //insertVideo: "Please enter a youtube URL to embed",
+    html: {
+        tooltip: 'Toggle html / Rich Text'
+    },
+    // tooltip for heading - might be worth splitting
+    heading: {
+        tooltip: 'Heading '
+    },
+    p: {
+        tooltip: 'Paragraph'
+    },
+    pre: {
+        tooltip: 'Preformatted text'
+    },
+    ul: {
+        tooltip: 'Unordered List'
+    },
+    ol: {
+        tooltip: 'Ordered List'
+    },
+    quote: {
+        tooltip: 'Quote/unquote selection or paragraph'
+    },
+    undo: {
+        tooltip: 'Undo'
+    },
+    redo: {
+        tooltip: 'Redo'
+    },
+    bold: {
+        tooltip: 'Bold'
+    },
+    italic: {
+        tooltip: 'Italic'
+    },
+    underline: {
+        tooltip: 'Underline'
+    },
+    strikeThrough:{
+        tooltip: 'Strikethrough'
+    },
+    justifyLeft: {
+        tooltip: 'Align text left'
+    },
+    justifyRight: {
+        tooltip: 'Align text right'
+    },
+    justifyFull: {
+        tooltip: 'Justify text'
+    },
+    justifyCenter: {
+        tooltip: 'Center'
+    },
+    indent: {
+        tooltip: 'Increase indent'
+    },
+    outdent: {
+        tooltip: 'Decrease indent'
+    },
+    clear: {
+        tooltip: 'Clear formatting'
+    },
+    insertImage: {
+        dialogPrompt: 'Please enter an image URL to insert',
+        tooltip: 'Insert image',
+        hotkey: 'the - possibly language dependent hotkey ... for some future implementation'
+    },
+    insertVideo: {
+        tooltip: 'Insert video',
+        dialogPrompt: 'Please enter a youtube URL to embed'
+    },
+    insertLink: {
+        tooltip: 'Insert / edit link',
+        dialogPrompt: "Please enter a URL to insert"
+    },
+    editLink: {
+        reLinkButton: {
+            tooltip: "Relink"
+        },
+        unLinkButton: {
+            tooltip: "Unlink"
+        },
+        targetToggle: {
+            buttontext: "Open in New Window"
+        }
+    },
+    wordcount: {
+        tooltip: 'Display words Count'
+    },
+        charcount: {
+        tooltip: 'Display characters Count'
+    }
+})
+.factory('taToolFunctions', ['$window','taTranslations', function($window, taTranslations) {
+    return {
+        imgOnSelectAction: function(event, $element, editorScope){
+            // setup the editor toolbar
+            // Credit to the work at http://hackerwins.github.io/summernote/ for this editbar logic/display
+            var finishEdit = function(){
+                editorScope.updateTaBindtaTextElement();
+                editorScope.hidePopover();
+            };
+            event.preventDefault();
+            editorScope.displayElements.popover.css('width', '375px');
+            var container = editorScope.displayElements.popoverContainer;
+            container.empty();
+            var buttonGroup = angular.element('<div class="btn-group" style="padding-right: 6px;">');
+            var fullButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1">100% </button>');
+            fullButton.on('click', function(event){
+                event.preventDefault();
+                $element.css({
+                    'width': '100%',
+                    'height': ''
+                });
+                finishEdit();
+            });
+            var halfButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1">50% </button>');
+            halfButton.on('click', function(event){
+                event.preventDefault();
+                $element.css({
+                    'width': '50%',
+                    'height': ''
+                });
+                finishEdit();
+            });
+            var quartButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1">25% </button>');
+            quartButton.on('click', function(event){
+                event.preventDefault();
+                $element.css({
+                    'width': '25%',
+                    'height': ''
+                });
+                finishEdit();
+            });
+            var resetButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1">Reset</button>');
+            resetButton.on('click', function(event){
+                event.preventDefault();
+                $element.css({
+                    width: '',
+                    height: ''
+                });
+                finishEdit();
+            });
+            buttonGroup.append(fullButton);
+            buttonGroup.append(halfButton);
+            buttonGroup.append(quartButton);
+            buttonGroup.append(resetButton);
+            container.append(buttonGroup);
+
+            buttonGroup = angular.element('<div class="btn-group" style="padding-right: 6px;">');
+            var floatLeft = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1"><i class="fa fa-align-left"></i></button>');
+            floatLeft.on('click', function(event){
+                event.preventDefault();
+                // webkit
+                $element.css('float', 'left');
+                // firefox
+                $element.css('cssFloat', 'left');
+                // IE < 8
+                $element.css('styleFloat', 'left');
+                finishEdit();
+            });
+            var floatRight = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1"><i class="fa fa-align-right"></i></button>');
+            floatRight.on('click', function(event){
+                event.preventDefault();
+                // webkit
+                $element.css('float', 'right');
+                // firefox
+                $element.css('cssFloat', 'right');
+                // IE < 8
+                $element.css('styleFloat', 'right');
+                finishEdit();
+            });
+            var floatNone = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1"><i class="fa fa-align-justify"></i></button>');
+            floatNone.on('click', function(event){
+                event.preventDefault();
+                // webkit
+                $element.css('float', '');
+                // firefox
+                $element.css('cssFloat', '');
+                // IE < 8
+                $element.css('styleFloat', '');
+                finishEdit();
+            });
+            buttonGroup.append(floatLeft);
+            buttonGroup.append(floatNone);
+            buttonGroup.append(floatRight);
+            container.append(buttonGroup);
+
+            buttonGroup = angular.element('<div class="btn-group">');
+            var remove = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" unselectable="on" tabindex="-1"><i class="fa fa-trash-o"></i></button>');
+            remove.on('click', function(event){
+                event.preventDefault();
+                $element.remove();
+                finishEdit();
+            });
+            buttonGroup.append(remove);
+            container.append(buttonGroup);
+
+            editorScope.showPopover($element);
+            editorScope.showResizeOverlay($element);
+        },
+        aOnSelectAction: function(event, $element, editorScope){
+            // setup the editor toolbar
+            // Credit to the work at http://hackerwins.github.io/summernote/ for this editbar logic
+            event.preventDefault();
+            editorScope.displayElements.popover.css('width', '436px');
+            var container = editorScope.displayElements.popoverContainer;
+            container.empty();
+            container.css('line-height', '28px');
+            var link = angular.element('<a href="' + $element.attr('href') + '" target="_blank">' + $element.attr('href') + '</a>');
+            link.css({
+                'display': 'inline-block',
+                'max-width': '200px',
+                'overflow': 'hidden',
+                'text-overflow': 'ellipsis',
+                'white-space': 'nowrap',
+                'vertical-align': 'middle'
+            });
+            container.append(link);
+            var buttonGroup = angular.element('<div class="btn-group pull-right">');
+            var reLinkButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" tabindex="-1" unselectable="on" title="' + taTranslations.editLink.reLinkButton.tooltip + '"><i class="fa fa-edit icon-edit"></i></button>');
+            reLinkButton.on('click', function(event){
+                event.preventDefault();
+                var urlLink = $window.prompt(taTranslations.insertLink.dialogPrompt, $element.attr('href'));
+                if(urlLink && urlLink !== '' && urlLink !== 'http://'){
+                    $element.attr('href', urlLink);
+                    editorScope.updateTaBindtaTextElement();
+                }
+                editorScope.hidePopover();
+            });
+            buttonGroup.append(reLinkButton);
+            var unLinkButton = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" tabindex="-1" unselectable="on" title="' + taTranslations.editLink.unLinkButton.tooltip + '"><i class="fa fa-unlink icon-unlink"></i></button>');
+            // directly before this click event is fired a digest is fired off whereby the reference to $element is orphaned off
+            unLinkButton.on('click', function(event){
+                event.preventDefault();
+                $element.replaceWith($element.contents());
+                editorScope.updateTaBindtaTextElement();
+                editorScope.hidePopover();
+            });
+            buttonGroup.append(unLinkButton);
+            var targetToggle = angular.element('<button type="button" class="btn btn-default btn-sm btn-small" tabindex="-1" unselectable="on">' + taTranslations.editLink.targetToggle.buttontext + '</button>');
+            if($element.attr('target') === '_blank'){
+                targetToggle.addClass('active');
+            }
+            targetToggle.on('click', function(event){
+                event.preventDefault();
+                $element.attr('target', ($element.attr('target') === '_blank') ? '' : '_blank');
+                targetToggle.toggleClass('active');
+                editorScope.updateTaBindtaTextElement();
+            });
+            buttonGroup.append(targetToggle);
+            container.append(buttonGroup);
+            editorScope.showPopover($element);
+        },
+        extractYoutubeVideoId: function(url) {
+            var re = /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+            var match = url.match(re);
+            return (match && match[1]) || null;
+        }
+    };
+}])
+.run(['taRegisterTool', '$window', 'taTranslations', 'taSelection', 'taToolFunctions', '$sanitize', 'taOptions', '$log',
+    function(taRegisterTool, $window, taTranslations, taSelection, taToolFunctions, $sanitize, taOptions, $log){
+    // test for the version of $sanitize that is in use
+    // You can disable this check by setting taOptions.textAngularSanitize == false
+    var gv = {}; $sanitize('', gv);
+    /* istanbul ignore next, throws error */
+    if ((taOptions.forceTextAngularSanitize===true) && (gv.version !== 'taSanitize')) {
+        throw angular.$$minErr('textAngular')("textAngularSetup", "The textAngular-sanitize provider has been replaced by another -- have you included angular-sanitize by mistake?");
+    }
+    taRegisterTool("html", {
+        iconclass: 'fa fa-code',
+        tooltiptext: taTranslations.html.tooltip,
+        action: function(){
+            this.$editor().switchView();
+        },
+        activeState: function(){
+            return this.$editor().showHtml;
+        }
+    });
+    // add the Header tools
+    // convenience functions so that the loop works correctly
+    var _retActiveStateFunction = function(q){
+        return function(){ return this.$editor().queryFormatBlockState(q); };
+    };
+    var headerAction = function(){
+        return this.$editor().wrapSelection("formatBlock", "<" + this.name.toUpperCase() +">");
+    };
+    angular.forEach(['h1','h2','h3','h4','h5','h6'], function(h){
+        taRegisterTool(h.toLowerCase(), {
+            buttontext: h.toUpperCase(),
+            tooltiptext: taTranslations.heading.tooltip + h.charAt(1),
+            action: headerAction,
+            activeState: _retActiveStateFunction(h.toLowerCase())
+        });
+    });
+    taRegisterTool('p', {
+        buttontext: 'P',
+        tooltiptext: taTranslations.p.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("formatBlock", "<P>");
+        },
+        activeState: function(){ return this.$editor().queryFormatBlockState('p'); }
+    });
+    // key: pre -> taTranslations[key].tooltip, taTranslations[key].buttontext
+    taRegisterTool('pre', {
+        buttontext: 'pre',
+        tooltiptext: taTranslations.pre.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("formatBlock", "<PRE>");
+        },
+        activeState: function(){ return this.$editor().queryFormatBlockState('pre'); }
+    });
+    taRegisterTool('ul', {
+        iconclass: 'fa fa-list-ul',
+        tooltiptext: taTranslations.ul.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("insertUnorderedList", null);
+        },
+        activeState: function(){ return this.$editor().queryCommandState('insertUnorderedList'); }
+    });
+    taRegisterTool('ol', {
+        iconclass: 'fa fa-list-ol',
+        tooltiptext: taTranslations.ol.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("insertOrderedList", null);
+        },
+        activeState: function(){ return this.$editor().queryCommandState('insertOrderedList'); }
+    });
+    taRegisterTool('quote', {
+        iconclass: 'fa fa-quote-right',
+        tooltiptext: taTranslations.quote.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("formatBlock", "<BLOCKQUOTE>");
+        },
+        activeState: function(){ return this.$editor().queryFormatBlockState('blockquote'); }
+    });
+    taRegisterTool('undo', {
+        iconclass: 'fa fa-undo',
+        tooltiptext: taTranslations.undo.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("undo", null);
+        }
+    });
+    taRegisterTool('redo', {
+        iconclass: 'fa fa-repeat',
+        tooltiptext: taTranslations.redo.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("redo", null);
+        }
+    });
+    taRegisterTool('bold', {
+        iconclass: 'fa fa-bold',
+        tooltiptext: taTranslations.bold.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("bold", null);
+        },
+        activeState: function(){
+            return this.$editor().queryCommandState('bold');
+        },
+        commandKeyCode: 98
+    });
+    taRegisterTool('justifyLeft', {
+        iconclass: 'fa fa-align-left',
+        tooltiptext: taTranslations.justifyLeft.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("justifyLeft", null);
+        },
+        activeState: function(commonElement){
+            /* istanbul ignore next: */
+            if (commonElement && commonElement.nodeName === '#document') return false;
+            var result = false;
+            if (commonElement) {
+                // commonELement.css('text-align') can throw an error 'Cannot read property 'defaultView' of null' in rare conditions
+                // so we do try catch here...
+                try {
+                    result =
+                        commonElement.css('text-align') === 'left' ||
+                        commonElement.attr('align') === 'left' ||
+                        (
+                            commonElement.css('text-align') !== 'right' &&
+                            commonElement.css('text-align') !== 'center' &&
+                            commonElement.css('text-align') !== 'justify' && !this.$editor().queryCommandState('justifyRight') && !this.$editor().queryCommandState('justifyCenter')
+                        ) && !this.$editor().queryCommandState('justifyFull');
+                } catch(e) {
+                    /* istanbul ignore next: error handler */
+                    //console.log(e);
+                    result = false;
+                }
+            }
+            result = result || this.$editor().queryCommandState('justifyLeft');
+            return result;
+        }
+    });
+    taRegisterTool('justifyRight', {
+        iconclass: 'fa fa-align-right',
+        tooltiptext: taTranslations.justifyRight.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("justifyRight", null);
+        },
+        activeState: function(commonElement){
+            /* istanbul ignore next: */
+            if (commonElement && commonElement.nodeName === '#document') return false;
+            var result = false;
+            if(commonElement) {
+                // commonELement.css('text-align') can throw an error 'Cannot read property 'defaultView' of null' in rare conditions
+                // so we do try catch here...
+                try {
+                    result = commonElement.css('text-align') === 'right';
+                } catch(e) {
+                    /* istanbul ignore next: error handler */
+                    //console.log(e);
+                    result = false;
+                }
+            }
+            result = result || this.$editor().queryCommandState('justifyRight');
+            return result;
+        }
+    });
+    taRegisterTool('justifyFull', {
+        iconclass: 'fa fa-align-justify',
+        tooltiptext: taTranslations.justifyFull.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("justifyFull", null);
+        },
+        activeState: function(commonElement){
+            var result = false;
+            if(commonElement) {
+                // commonELement.css('text-align') can throw an error 'Cannot read property 'defaultView' of null' in rare conditions
+                // so we do try catch here...
+                try {
+                    result = commonElement.css('text-align') === 'justify';
+                } catch(e) {
+                    /* istanbul ignore next: error handler */
+                    //console.log(e);
+                    result = false;
+                }
+            }
+            result = result || this.$editor().queryCommandState('justifyFull');
+            return result;
+        }
+    });
+    taRegisterTool('justifyCenter', {
+        iconclass: 'fa fa-align-center',
+        tooltiptext: taTranslations.justifyCenter.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("justifyCenter", null);
+        },
+        activeState: function(commonElement){
+            /* istanbul ignore next: */
+            if (commonElement && commonElement.nodeName === '#document') return false;
+            var result = false;
+            if(commonElement) {
+                // commonELement.css('text-align') can throw an error 'Cannot read property 'defaultView' of null' in rare conditions
+                // so we do try catch here...
+                try {
+                    result = commonElement.css('text-align') === 'center';
+                } catch(e) {
+                    /* istanbul ignore next: error handler */
+                    //console.log(e);
+                    result = false;
+                }
+
+            }
+            result = result || this.$editor().queryCommandState('justifyCenter');
+            return result;
+        }
+    });
+    taRegisterTool('indent', {
+        iconclass: 'fa fa-indent',
+        tooltiptext: taTranslations.indent.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("indent", null);
+        },
+        activeState: function(){
+            return this.$editor().queryFormatBlockState('blockquote');
+        },
+        commandKeyCode: 'TabKey'
+    });
+    taRegisterTool('outdent', {
+        iconclass: 'fa fa-outdent',
+        tooltiptext: taTranslations.outdent.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("outdent", null);
+        },
+        activeState: function(){
+            return false;
+        },
+        commandKeyCode: 'ShiftTabKey'
+    });
+    taRegisterTool('italics', {
+        iconclass: 'fa fa-italic',
+        tooltiptext: taTranslations.italic.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("italic", null);
+        },
+        activeState: function(){
+            return this.$editor().queryCommandState('italic');
+        },
+        commandKeyCode: 105
+    });
+    taRegisterTool('underline', {
+        iconclass: 'fa fa-underline',
+        tooltiptext: taTranslations.underline.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("underline", null);
+        },
+        activeState: function(){
+            return this.$editor().queryCommandState('underline');
+        },
+        commandKeyCode: 117
+    });
+    taRegisterTool('strikeThrough', {
+        iconclass: 'fa fa-strikethrough',
+        tooltiptext: taTranslations.strikeThrough.tooltip,
+        action: function(){
+            return this.$editor().wrapSelection("strikeThrough", null);
+        },
+        activeState: function(){
+            return document.queryCommandState('strikeThrough');
+        }
+    });
+    taRegisterTool('clear', {
+        iconclass: 'fa fa-ban',
+        tooltiptext: taTranslations.clear.tooltip,
+        action: function(deferred, restoreSelection){
+            var i, selectedElements, elementsSeen;
+
+            this.$editor().wrapSelection("removeFormat", null);
+            var possibleNodes = angular.element(taSelection.getSelectionElement());
+            selectedElements = taSelection.getAllSelectedElements();
+            //$log.log('selectedElements:', selectedElements);
+            // remove lists
+            var removeListElements = function(list, pe){
+                list = angular.element(list);
+                var prevElement = pe;
+                if (!pe) {
+                    prevElement = list;
+                }
+                angular.forEach(list.children(), function(liElem){
+                    if (liElem.tagName.toLowerCase() === 'ul' ||
+                        liElem.tagName.toLowerCase() === 'ol') {
+                        prevElement = removeListElements(liElem, prevElement);
+                    } else {
+                        var newElem = angular.element('<p></p>');
+                        newElem.html(angular.element(liElem).html());
+                        prevElement.after(newElem);
+                        prevElement = newElem;
+                    }
+                });
+                list.remove();
+                return prevElement;
+            };
+
+            angular.forEach(selectedElements, function(element) {
+                if (element.nodeName.toLowerCase() === 'ul' ||
+                    element.nodeName.toLowerCase() === 'ol') {
+                    //console.log('removeListElements', element);
+                    removeListElements(element);
+                }
+            });
+
+            angular.forEach(possibleNodes.find("ul"), removeListElements);
+            angular.forEach(possibleNodes.find("ol"), removeListElements);
+
+            // clear out all class attributes. These do not seem to be cleared via removeFormat
+            var $editor = this.$editor();
+            var recursiveRemoveClass = function(node){
+                node = angular.element(node);
+                /* istanbul ignore next: this is not triggered in tests any longer since we now never select the whole displayELement */
+                if(node[0] !== $editor.displayElements.text[0]) {
+                    node.removeAttr('class');
+                }
+                angular.forEach(node.children(), recursiveRemoveClass);
+            };
+            angular.forEach(possibleNodes, recursiveRemoveClass);
+            // check if in list. If not in list then use formatBlock option
+            if(possibleNodes[0] && possibleNodes[0].tagName.toLowerCase() !== 'li' &&
+                possibleNodes[0].tagName.toLowerCase() !== 'ol' &&
+                possibleNodes[0].tagName.toLowerCase() !== 'ul' &&
+                possibleNodes[0].getAttribute("contenteditable") !== "true") {
+                this.$editor().wrapSelection("formatBlock", "default");
+            }
+            restoreSelection();
+        }
+    });
+
+        /* jshint -W099 */
+    /****************************
+     //  we don't use this code - since the previous way CLEAR is expected to work does not clear partially selected <li>
+
+     var removeListElement = function(listE){
+                console.log(listE);
+                var _list = listE.parentNode.childNodes;
+                console.log('_list', _list);
+                var _preLis = [], _postLis = [], _found = false;
+                for (i = 0; i < _list.length; i++) {
+                    if (_list[i] === listE) {
+                        _found = true;
+                    } else if (!_found) _preLis.push(_list[i]);
+                    else _postLis.push(_list[i]);
+                }
+                var _parent = angular.element(listE.parentNode);
+                var newElem = angular.element('<p></p>');
+                newElem.html(angular.element(listE).html());
+                if (_preLis.length === 0 || _postLis.length === 0) {
+                    if (_postLis.length === 0) _parent.after(newElem);
+                    else _parent[0].parentNode.insertBefore(newElem[0], _parent[0]);
+
+                    if (_preLis.length === 0 && _postLis.length === 0) _parent.remove();
+                    else angular.element(listE).remove();
+                } else {
+                    var _firstList = angular.element('<' + _parent[0].tagName + '></' + _parent[0].tagName + '>');
+                    var _secondList = angular.element('<' + _parent[0].tagName + '></' + _parent[0].tagName + '>');
+                    for (i = 0; i < _preLis.length; i++) _firstList.append(angular.element(_preLis[i]));
+                    for (i = 0; i < _postLis.length; i++) _secondList.append(angular.element(_postLis[i]));
+                    _parent.after(_secondList);
+                    _parent.after(newElem);
+                    _parent.after(_firstList);
+                    _parent.remove();
+                }
+                taSelection.setSelectionToElementEnd(newElem[0]);
+            };
+
+     elementsSeen = [];
+     if (selectedElements.length !==0) console.log(selectedElements);
+     angular.forEach(selectedElements, function (element) {
+                if (elementsSeen.indexOf(element) !== -1 || elementsSeen.indexOf(element.parentElement) !== -1) {
+                    return;
+                }
+                elementsSeen.push(element);
+                if (element.nodeName.toLowerCase() === 'li') {
+                    console.log('removeListElement', element);
+                    removeListElement(element);
+                }
+                else if (element.parentElement && element.parentElement.nodeName.toLowerCase() === 'li') {
+                    console.log('removeListElement', element.parentElement);
+                    elementsSeen.push(element.parentElement);
+                    removeListElement(element.parentElement);
+                }
+            });
+     **********************/
+
+    /**********************
+     if(possibleNodes[0].tagName.toLowerCase() === 'li'){
+                var _list = possibleNodes[0].parentNode.childNodes;
+                var _preLis = [], _postLis = [], _found = false;
+                for(i = 0; i < _list.length; i++){
+                    if(_list[i] === possibleNodes[0]){
+                        _found = true;
+                    }else if(!_found) _preLis.push(_list[i]);
+                    else _postLis.push(_list[i]);
+                }
+                var _parent = angular.element(possibleNodes[0].parentNode);
+                var newElem = angular.element('<p></p>');
+                newElem.html(angular.element(possibleNodes[0]).html());
+                if(_preLis.length === 0 || _postLis.length === 0){
+                    if(_postLis.length === 0) _parent.after(newElem);
+                    else _parent[0].parentNode.insertBefore(newElem[0], _parent[0]);
+
+                    if(_preLis.length === 0 && _postLis.length === 0) _parent.remove();
+                    else angular.element(possibleNodes[0]).remove();
+                }else{
+                    var _firstList = angular.element('<'+_parent[0].tagName+'></'+_parent[0].tagName+'>');
+                    var _secondList = angular.element('<'+_parent[0].tagName+'></'+_parent[0].tagName+'>');
+                    for(i = 0; i < _preLis.length; i++) _firstList.append(angular.element(_preLis[i]));
+                    for(i = 0; i < _postLis.length; i++) _secondList.append(angular.element(_postLis[i]));
+                    _parent.after(_secondList);
+                    _parent.after(newElem);
+                    _parent.after(_firstList);
+                    _parent.remove();
+                }
+                taSelection.setSelectionToElementEnd(newElem[0]);
+            }
+     *******************/
+
+
+    /* istanbul ignore next: if it's javascript don't worry - though probably should show some kind of error message */
+    var blockJavascript = function (link) {
+        if (link.toLowerCase().indexOf('javascript')!==-1) {
+            return true;
+        }
+        return false;
+    };
+
+    taRegisterTool('insertImage', {
+        iconclass: 'fa fa-picture-o',
+        tooltiptext: taTranslations.insertImage.tooltip,
+        action: function(){
+            var imageLink;
+            imageLink = $window.prompt(taTranslations.insertImage.dialogPrompt, 'http://');
+            if(imageLink && imageLink !== '' && imageLink !== 'http://'){
+                /* istanbul ignore next: don't know how to test this... since it needs a dialogPrompt */
+                // block javascript here
+                if (!blockJavascript(imageLink)) {
+                    if (taSelection.getSelectionElement().tagName && taSelection.getSelectionElement().tagName.toLowerCase() === 'a') {
+                        // due to differences in implementation between FireFox and Chrome, we must move the
+                        // insertion point past the <a> element, otherwise FireFox inserts inside the <a>
+                        // With this change, both FireFox and Chrome behave the same way!
+                        taSelection.setSelectionAfterElement(taSelection.getSelectionElement());
+                    }
+                    // In the past we used the simple statement:
+                    //return this.$editor().wrapSelection('insertImage', imageLink, true);
+                    //
+                    // However on Firefox only, when the content is empty this is a problem
+                    // See Issue #1201
+                    // Investigation reveals that Firefox only inserts a <p> only!!!!
+                    // So now we use insertHTML here and all is fine.
+                    // NOTE: this is what 'insertImage' is supposed to do anyway!
+                    var embed = '<img src="' + imageLink + '">';
+                    return this.$editor().wrapSelection('insertHTML', embed, true);
+                }
+            }
+        },
+        onElementSelect: {
+            element: 'img',
+            action: taToolFunctions.imgOnSelectAction
+        }
+    });
+    taRegisterTool('insertVideo', {
+        iconclass: 'fa fa-youtube-play',
+        tooltiptext: taTranslations.insertVideo.tooltip,
+        action: function(){
+            var urlPrompt;
+            urlPrompt = $window.prompt(taTranslations.insertVideo.dialogPrompt, 'https://');
+            // block javascript here
+            /* istanbul ignore else: if it's javascript don't worry - though probably should show some kind of error message */
+            if (!blockJavascript(urlPrompt)) {
+
+                if (urlPrompt && urlPrompt !== '' && urlPrompt !== 'https://') {
+
+                    videoId = taToolFunctions.extractYoutubeVideoId(urlPrompt);
+
+                    /* istanbul ignore else: if it's invalid don't worry - though probably should show some kind of error message */
+                    if (videoId) {
+                        // create the embed link
+                        var urlLink = "https://www.youtube.com/embed/" + videoId;
+                        // create the HTML
+                        // for all options see: http://stackoverflow.com/questions/2068344/how-do-i-get-a-youtube-video-thumbnail-from-the-youtube-api
+                        // maxresdefault.jpg seems to be undefined on some.
+                        var embed = '<img class="ta-insert-video" src="https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg" ta-insert-video="' + urlLink + '" contenteditable="false" allowfullscreen="true" frameborder="0" />';
+                        /* istanbul ignore next: don't know how to test this... since it needs a dialogPrompt */
+                        if (taSelection.getSelectionElement().tagName && taSelection.getSelectionElement().tagName.toLowerCase() === 'a') {
+                            // due to differences in implementation between FireFox and Chrome, we must move the
+                            // insertion point past the <a> element, otherwise FireFox inserts inside the <a>
+                            // With this change, both FireFox and Chrome behave the same way!
+                            taSelection.setSelectionAfterElement(taSelection.getSelectionElement());
+                        }
+                        // insert
+                        return this.$editor().wrapSelection('insertHTML', embed, true);
+                    }
+                }
+            }
+        },
+        onElementSelect: {
+            element: 'img',
+            onlyWithAttrs: ['ta-insert-video'],
+            action: taToolFunctions.imgOnSelectAction
+        }
+    });
+    taRegisterTool('insertLink', {
+        tooltiptext: taTranslations.insertLink.tooltip,
+        iconclass: 'fa fa-link',
+        action: function(){
+            var urlLink;
+            // if this link has already been set, we need to just edit the existing link
+            /* istanbul ignore if: we do not test this */
+            if (taSelection.getSelectionElement().tagName && taSelection.getSelectionElement().tagName.toLowerCase() === 'a') {
+                urlLink = $window.prompt(taTranslations.insertLink.dialogPrompt, taSelection.getSelectionElement().href);
+            } else {
+                urlLink = $window.prompt(taTranslations.insertLink.dialogPrompt, 'http://');
+            }
+            if(urlLink && urlLink !== '' && urlLink !== 'http://'){
+                // block javascript here
+                /* istanbul ignore else: if it's javascript don't worry - though probably should show some kind of error message */
+                if (!blockJavascript(urlLink)) {
+                    return this.$editor().wrapSelection('createLink', urlLink, true);
+                }
+            }
+        },
+        activeState: function(commonElement){
+            if(commonElement) return commonElement[0].tagName === 'A';
+            return false;
+        },
+        onElementSelect: {
+            element: 'a',
+            action: taToolFunctions.aOnSelectAction
+        }
+    });
+    taRegisterTool('wordcount', {
+        display: '<div id="toolbarWC" style="display:block; min-width:100px;">Words: <span ng-bind="wordcount"></span></div>',
+        disabled: true,
+        wordcount: 0,
+        activeState: function(){ // this fires on keyup
+            var textElement = this.$editor().displayElements.text;
+            /* istanbul ignore next: will default to '' when undefined */
+            var workingHTML = textElement[0].innerHTML || '';
+            var noOfWords = 0;
+
+            /* istanbul ignore if: will default to '' when undefined */
+            if (workingHTML.replace(/\s*<[^>]*?>\s*/g, '') !== '') {
+                if (workingHTML.trim() !== '') {
+                    noOfWords = workingHTML.replace(/<\/?(b|i|em|strong|span|u|strikethrough|a|img|small|sub|sup|label)( [^>*?])?>/gi, '') // remove inline tags without adding spaces
+                        .replace(/(<[^>]*?>\s*<[^>]*?>)/ig, ' ') // replace adjacent tags with possible space between with a space
+                        .replace(/(<[^>]*?>)/ig, '') // remove any singular tags
+                        .replace(/\s+/ig, ' ') // condense spacing
+                        .match(/\S+/g).length; // count remaining non-space strings
+                }
+            }
+
+            //Set current scope
+            this.wordcount = noOfWords;
+            //Set editor scope
+            this.$editor().wordcount = noOfWords;
+
+            return false;
+        }
+    });
+    taRegisterTool('charcount', {
+        display: '<div id="toolbarCC" style="display:block; min-width:120px;">Characters: <span ng-bind="charcount"></span></div>',
+        disabled: true,
+        charcount: 0,
+        activeState: function(){ // this fires on keyup
+            var textElement = this.$editor().displayElements.text;
+            var sourceText = textElement[0].innerText || textElement[0].textContent; // to cover the non-jquery use case.
+
+            // Caculate number of chars
+            var noOfChars = sourceText.replace(/(\r\n|\n|\r)/gm,"").replace(/^\s+/g,' ').replace(/\s+$/g, ' ').length;
+            //Set current scope
+            this.charcount = noOfChars;
+            //Set editor scope
+            this.$editor().charcount = noOfChars;
+            return false;
+        }
+    });
+}]);
+
+/*
+@license textAngular
+Author : Austin Anderson
+License : 2013 MIT
+Version 1.5.16
+
+See README.md or https://github.com/fraywing/textAngular/wiki for requirements and use.
+*/
+
+/*
+Commonjs package manager support (eg componentjs).
+*/
+
+
+"use strict";// NOTE: textAngularVersion must match the Gruntfile.js 'setVersion' task.... and have format v/d+./d+./d+
+var textAngularVersion = 'v1.5.16';   // This is automatically updated during the build process to the current release!
+
+
+// IE version detection - http://stackoverflow.com/questions/4169160/javascript-ie-detection-why-not-use-simple-conditional-comments
+// We need this as IE sometimes plays funny tricks with the contenteditable.
+// ----------------------------------------------------------
+// If you're not in IE (or IE version is less than 5) then:
+// ie === undefined
+// If you're in IE (>=5) then you can determine which version:
+// ie === 7; // IE7
+// Thus, to detect IE:
+// if (ie) {}
+// And to detect the version:
+// ie === 6 // IE6
+// ie > 7 // IE8, IE9, IE10 ...
+// ie < 9 // Anything less than IE9
+// ----------------------------------------------------------
+/* istanbul ignore next: untestable browser check */
+var _browserDetect = {
+	ie: (function(){
+		var undef,
+			v = 3,
+			div = document.createElement('div'),
+			all = div.getElementsByTagName('i');
+
+		while (
+			div.innerHTML = '<!--[if gt IE ' + (++v) + ']><i></i><![endif]-->',
+			all[0]
+		);
+
+		return v > 4 ? v : undef;
+	}()),
+	webkit: /AppleWebKit\/([\d.]+)/i.test(navigator.userAgent),
+	isFirefox: navigator.userAgent.toLowerCase().indexOf('firefox') > -1
+};
+
+// Global to textAngular to measure performance where needed
+/* istanbul ignore next: untestable browser check */
+var performance = performance || {};
+/* istanbul ignore next: untestable browser check */
+performance.now = (function() {
+	return performance.now       ||
+		performance.mozNow    ||
+		performance.msNow     ||
+		performance.oNow      ||
+		performance.webkitNow ||
+		function() { return new Date().getTime(); };
+})();
+// usage is:
+// var t0 = performance.now();
+// doSomething();
+// var t1 = performance.now();
+// console.log('Took', (t1 - t0).toFixed(4), 'milliseconds to do something!');
+//
+
+// turn html into pure text that shows visiblity
+function stripHtmlToText(html)
+{
+	var tmp = document.createElement("DIV");
+	tmp.innerHTML = html;
+	var res = tmp.textContent || tmp.innerText || '';
+	res.replace('\u200B', ''); // zero width space
+	res = res.trim();
+	return res;
+}
+// get html
+function getDomFromHtml(html)
+{
+	var tmp = document.createElement("DIV");
+	tmp.innerHTML = html;
+	return tmp;
+}
+
+
+// Global to textAngular REGEXP vars for block and list elements.
+
+var BLOCKELEMENTS = /^(address|article|aside|audio|blockquote|canvas|center|dd|div|dl|fieldset|figcaption|figure|footer|form|h1|h2|h3|h4|h5|h6|header|hgroup|hr|noscript|ol|output|p|pre|section|table|tfoot|ul|video)$/i;
+var LISTELEMENTS = /^(ul|li|ol)$/i;
+// updated VALIDELEMENTS to include #text and span so that we can use nodeName instead of tagName
+var VALIDELEMENTS = /^(#text|span|address|article|aside|audio|blockquote|canvas|center|dd|div|dl|fieldset|figcaption|figure|footer|form|h1|h2|h3|h4|h5|h6|header|hgroup|hr|noscript|ol|output|p|pre|section|table|tfoot|ul|video|li)$/i;
+
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/Trim#Compatibility
+/* istanbul ignore next: trim shim for older browsers */
+if (!String.prototype.trim) {
+	String.prototype.trim = function () {
+		return this.replace(/^\s+|\s+$/g, '');
+	};
+}
+
+/*
+	Custom stylesheet for the placeholders rules.
+	Credit to: http://davidwalsh.name/add-rules-stylesheets
+*/
+var sheet, addCSSRule, removeCSSRule, _addCSSRule, _removeCSSRule, _getRuleIndex;
+/* istanbul ignore else: IE <8 test*/
+if(_browserDetect.ie > 8 || _browserDetect.ie === undefined){
+	var _sheets = document.styleSheets;
+	/* istanbul ignore next: preference for stylesheet loaded externally */
+	for(var i = 0; i < _sheets.length; i++){
+		if(_sheets[i].media.length === 0 || _sheets[i].media.mediaText.match(/(all|screen)/ig)){
+			if(_sheets[i].href){
+				if(_sheets[i].href.match(/textangular\.(min\.|)css/ig)){
+					sheet = _sheets[i];
+					break;
+				}
+			}
+		}
+	}
+	/* istanbul ignore next: preference for stylesheet loaded externally */
+	if(!sheet){
+		// this sheet is used for the placeholders later on.
+		sheet = (function() {
+			// Create the <style> tag
+			var style = document.createElement("style");
+			/* istanbul ignore else : WebKit hack :( */
+			if(_browserDetect.webkit) style.appendChild(document.createTextNode(""));
+
+			// Add the <style> element to the page, add as first so the styles can be overridden by custom stylesheets
+			document.getElementsByTagName('head')[0].appendChild(style);
+
+			return style.sheet;
+		})();
+	}
+
+	// use as: addCSSRule("header", "float: left");
+	addCSSRule = function(selector, rules) {
+		return _addCSSRule(sheet, selector, rules);
+	};
+	_addCSSRule = function(_sheet, selector, rules){
+		var insertIndex;
+		var insertedRule;
+		// This order is important as IE 11 has both cssRules and rules but they have different lengths - cssRules is correct, rules gives an error in IE 11
+		/* istanbul ignore next: browser catches */
+		if(_sheet.cssRules) insertIndex = Math.max(_sheet.cssRules.length - 1, 0);
+		else if(_sheet.rules) insertIndex = Math.max(_sheet.rules.length - 1, 0);
+
+		/* istanbul ignore else: untestable IE option */
+		if(_sheet.insertRule) {
+			_sheet.insertRule(selector + "{" + rules + "}", insertIndex);
+		}
+		else {
+			_sheet.addRule(selector, rules, insertIndex);
+		}
+		/* istanbul ignore next: browser catches */
+		if(sheet.rules) insertedRule = sheet.rules[insertIndex];
+		else if(sheet.cssRules) insertedRule = sheet.cssRules[insertIndex];
+		// return the inserted stylesheet rule
+		return insertedRule;
+	};
+
+	_getRuleIndex = function(rule, rules) {
+		var i, ruleIndex;
+		for (i=0; i < rules.length; i++) {
+			/* istanbul ignore else: check for correct rule */
+			if (rules[i].cssText === rule.cssText) {
+				ruleIndex = i;
+				break;
+			}
+		}
+		return ruleIndex;
+	};
+
+	removeCSSRule = function(rule){
+		_removeCSSRule(sheet, rule);
+	};
+	/* istanbul ignore next: tests are browser specific */
+	_removeCSSRule = function(sheet, rule){
+		var rules = sheet.cssRules || sheet.rules;
+		if(!rules || rules.length === 0) return;
+		var ruleIndex = _getRuleIndex(rule, rules);
+		if(sheet.removeRule){
+			sheet.removeRule(ruleIndex);
+		}else{
+			sheet.deleteRule(ruleIndex);
+		}
+	};
+}
+
+angular.module('textAngular.factories', [])
+.factory('taBrowserTag', [function(){
+    return function(tag){
+        /* istanbul ignore next: ie specific test */
+        if(!tag) return (_browserDetect.ie <= 8)? 'P' : 'p';
+        else if(tag === '') return (_browserDetect.ie === undefined)? 'div' : (_browserDetect.ie <= 8)? 'P' : 'p';
+        else return (_browserDetect.ie <= 8)? tag.toUpperCase() : tag;
+    };
+}]).factory('taApplyCustomRenderers', ['taCustomRenderers', 'taDOM', function(taCustomRenderers, taDOM){
+    return function(val){
+        var element = angular.element('<div></div>');
+        element[0].innerHTML = val;
+
+        angular.forEach(taCustomRenderers, function(renderer){
+            var elements = [];
+            // get elements based on what is defined. If both defined do secondary filter in the forEach after using selector string
+            if(renderer.selector && renderer.selector !== '')
+                elements = element.find(renderer.selector);
+            /* istanbul ignore else: shouldn't fire, if it does we're ignoring everything */
+            else if(renderer.customAttribute && renderer.customAttribute !== '')
+                elements = taDOM.getByAttribute(element, renderer.customAttribute);
+            // process elements if any found
+            angular.forEach(elements, function(_element){
+                _element = angular.element(_element);
+                if(renderer.selector && renderer.selector !== '' && renderer.customAttribute && renderer.customAttribute !== ''){
+                    if(_element.attr(renderer.customAttribute) !== undefined) renderer.renderLogic(_element);
+                } else renderer.renderLogic(_element);
+            });
+        });
+
+        return element[0].innerHTML;
+    };
+}]).factory('taFixChrome', function(){
+    // get whaterever rubbish is inserted in chrome
+    // should be passed an html string, returns an html string
+    var taFixChrome = function(html, keepStyles){
+        if(!html || !angular.isString(html) || html.length <= 0) return html;
+        // grab all elements with a style attibute
+        // a betterSpanMatch matches only a style=... with matching quotes
+        // this captures the whole:
+        // 'style="background-color: rgb(255, 255, 255);"'
+        var betterSpanMatch = /style\s?=\s?(["'])(?:(?=(\\?))\2.)*?\1/ig;
+        // where the original spanMatch = /<([^>\/]+?)style=("([^\"]+)"|'([^']+)')([^>]*)>/ig;
+        // captures too much and includes the front tag!
+        var spanMatch = /<([^>\/]+?)style=("([^\"]+)"|'([^']+)')([^>]*)>/ig;
+        var appleConvertedSpaceMatch = /<span class="Apple-converted-space">([^<]+)<\/span>/ig;
+        var match, styleVal, appleSpaceVal, newTag, finalHtml = '', lastIndex = 0;
+        // remove all the Apple-converted-space spans and replace with the content of the span
+        //console.log('before:', html);
+        /* istanbul ignore next: apple-contereted-space span match */
+        while(match = appleConvertedSpaceMatch.exec(html)){
+            appleSpaceVal = match[1];
+            appleSpaceVal = appleSpaceVal.replace(/&nbsp;/ig, ' ');
+            finalHtml += html.substring(lastIndex, match.index) + appleSpaceVal;
+            lastIndex = match.index + match[0].length;
+        }
+        /* istanbul ignore next: apple-contereted-space span has matched */
+        if (lastIndex) {
+            // modified....
+            finalHtml += html.substring(lastIndex);
+            html=finalHtml;
+            finalHtml='';
+            lastIndex=0;
+        }
+        /////////////////////////////////////////////////////////////
+        //
+        // Allow control of this modification
+        // taKeepStyles: False - removes these modification
+        //
+        // taFixChrome removes the following styles:
+        //    font-family: inherit;
+        //    line-height: <number>
+        //    color: inherit;
+        //    color: rgb( <rgb-component>#{3} )
+        //    background-color: rgb( <rgb-component>#{3} )
+        //
+        /////////////////////////////////////////////////////////////
+        if (!keepStyles) {
+            while (match = betterSpanMatch.exec(html)) {
+                finalHtml += html.substring(lastIndex, match.index-1);
+                styleVal = match[0];
+                // test for chrome inserted junk
+                match = /font-family: inherit;|line-height: 1.[0-9]{3,12};|color: inherit; line-height: 1.1;|color: rgb\(\d{1,3}, \d{1,3}, \d{1,3}\);|background-color: rgb\(\d{1,3}, \d{1,3}, \d{1,3}\);/gi.exec(styleVal);
+                if (match) {
+                    styleVal = styleVal.replace(/( |)font-family: inherit;|( |)line-height: 1.[0-9]{3,12};|( |)color: inherit;|( |)color: rgb\(\d{1,3}, \d{1,3}, \d{1,3}\);|( |)background-color: rgb\(\d{1,3}, \d{1,3}, \d{1,3}\);/ig, '');
+                    //console.log(styleVal, styleVal.length);
+                    if (styleVal.length > 8) {
+                        finalHtml += ' ' + styleVal;
+                    }
+                } else {
+                    finalHtml += ' ' + styleVal;
+                }
+                lastIndex = betterSpanMatch.lastIndex;
+            }
+            finalHtml += html.substring(lastIndex);
+        }
+        //console.log('final:', finalHtml);
+        // only replace when something has changed, else we get focus problems on inserting lists
+        if(lastIndex > 0){
+            // replace all empty strings
+            var fe = finalHtml.replace(/<span\s?>(.*?)<\/span>(<br(\/|)>|)/ig, '$1');
+            return fe;
+        } else return html;
+    };
+    return taFixChrome;
+}).factory('taSanitize', ['$sanitize', function taSanitizeFactory($sanitize){
+
+    var convert_infos = [
+        {
+            property: 'font-weight',
+            values: [ 'bold' ],
+            tag: 'b'
+        },
+        {
+            property: 'font-style',
+            values: [ 'italic' ],
+            tag: 'i'
+        }
+    ];
+
+    var styleMatch = [];
+    for(var i = 0; i < convert_infos.length; i++){
+        var _partialStyle = '(' + convert_infos[i].property + ':\\s*(';
+        for(var j = 0; j < convert_infos[i].values.length; j++){
+            /* istanbul ignore next: not needed to be tested yet */
+            if(j > 0) _partialStyle += '|';
+            _partialStyle += convert_infos[i].values[j];
+        }
+        _partialStyle += ');)';
+        styleMatch.push(_partialStyle);
+    }
+    var styleRegexString = '(' + styleMatch.join('|') + ')';
+
+    function wrapNested(html, wrapTag) {
+        var depth = 0;
+        var lastIndex = 0;
+        var match;
+        var tagRegex = /<[^>]*>/ig;
+        while(match = tagRegex.exec(html)){
+            lastIndex = match.index;
+            if(match[0].substr(1, 1) === '/'){
+                if(depth === 0) break;
+                else depth--;
+            }else depth++;
+        }
+        return wrapTag +
+            html.substring(0, lastIndex) +
+            // get the start tags reversed - this is safe as we construct the strings with no content except the tags
+            angular.element(wrapTag)[0].outerHTML.substring(wrapTag.length) +
+            html.substring(lastIndex);
+    }
+
+    function transformLegacyStyles(html){
+        if(!html || !angular.isString(html) || html.length <= 0) return html;
+        var i;
+        var styleElementMatch = /<([^>\/]+?)style=("([^"]+)"|'([^']+)')([^>]*)>/ig;
+        var match, subMatch, styleVal, newTag, lastNewTag = '', newHtml, finalHtml = '', lastIndex = 0;
+        while(match = styleElementMatch.exec(html)){
+            // one of the quoted values ' or "
+            /* istanbul ignore next: quotations match */
+            styleVal = match[3] || match[4];
+            var styleRegex = new RegExp(styleRegexString, 'i');
+            // test for style values to change
+            if(angular.isString(styleVal) && styleRegex.test(styleVal)){
+                // remove build tag list
+                newTag = '';
+                // init regex here for exec
+                var styleRegexExec = new RegExp(styleRegexString, 'ig');
+                // find relevand tags and build a string of them
+                while(subMatch = styleRegexExec.exec(styleVal)){
+                    for(i = 0; i < convert_infos.length; i++){
+                        if(!!subMatch[(i*2) + 2]){
+                            newTag += '<' + convert_infos[i].tag + '>';
+                        }
+                    }
+                }
+                // recursively find more legacy styles in html before this tag and after the previous match (if any)
+                newHtml = transformLegacyStyles(html.substring(lastIndex, match.index));
+                // build up html
+                if(lastNewTag.length > 0){
+                    finalHtml += wrapNested(newHtml, lastNewTag);
+                }else finalHtml += newHtml;
+                // grab the style val without the transformed values
+                styleVal = styleVal.replace(new RegExp(styleRegexString, 'ig'), '');
+                // build the html tag
+                finalHtml += '<' + match[1].trim();
+                if(styleVal.length > 0) finalHtml += ' style="' + styleVal + '"';
+                finalHtml += match[5] + '>';
+                // update the start index to after this tag
+                lastIndex = match.index + match[0].length;
+                lastNewTag = newTag;
+            }
+        }
+        if(lastNewTag.length > 0){
+            finalHtml += wrapNested(html.substring(lastIndex), lastNewTag);
+        }
+        else finalHtml += html.substring(lastIndex);
+        return finalHtml;
+    }
+
+    function transformLegacyAttributes(html){
+        if(!html || !angular.isString(html) || html.length <= 0) return html;
+        // replace all align='...' tags with text-align attributes
+        var attrElementMatch = /<([^>\/]+?)align=("([^"]+)"|'([^']+)')([^>]*)>/ig;
+        var match, finalHtml = '', lastIndex = 0;
+        // match all attr tags
+        while(match = attrElementMatch.exec(html)){
+            // add all html before this tag
+            finalHtml += html.substring(lastIndex, match.index);
+            // record last index after this tag
+            lastIndex = match.index + match[0].length;
+            // construct tag without the align attribute
+            var newTag = '<' + match[1] + match[5];
+            // add the style attribute
+            if(/style=("([^"]+)"|'([^']+)')/ig.test(newTag)){
+                /* istanbul ignore next: quotations match */
+                newTag = newTag.replace(/style=("([^"]+)"|'([^']+)')/i, 'style="$2$3 text-align:' + (match[3] || match[4]) + ';"');
+            }else{
+                /* istanbul ignore next: quotations match */
+                newTag += ' style="text-align:' + (match[3] || match[4]) + ';"';
+            }
+            newTag += '>';
+            // add to html
+            finalHtml += newTag;
+        }
+        // return with remaining html
+        return finalHtml + html.substring(lastIndex);
+    }
+
+    // use precompiled regexp for speed
+    var rsb1 = new RegExp(/<span id="selectionBoundary_\d+_\d+" class="rangySelectionBoundary">[^<>]+?<\/span>/ig);
+    var rsb2 = new RegExp(/<span class="rangySelectionBoundary" id="selectionBoundary_\d+_\d+">[^<>]+?<\/span>/ig);
+    var rsb3 = new RegExp(/<span id="selectionBoundary_\d+_\d+" class="rangySelectionBoundary">[^<>]+?<\/span>/ig);
+
+    return function taSanitize(unsafe, oldsafe, ignore){
+        // unsafe html should NEVER built into a DOM object via angular.element. This allows XSS to be inserted and run.
+        if ( !ignore ) {
+            try {
+                unsafe = transformLegacyStyles(unsafe);
+            } catch (e) {
+            }
+        }
+
+        // unsafe and oldsafe should be valid HTML strings
+        // any exceptions (lets say, color for example) should be made here but with great care
+        // setup unsafe element for modification
+        unsafe = transformLegacyAttributes(unsafe);
+
+        // we had an issue in the past, where we dumped a whole bunch of <span>'s into the content...
+        // so we remove them here
+        // IN A FUTURE release this can be removed after all have updated through release 1.5.9
+        if (unsafe) {
+            try {
+                unsafe = unsafe.replace(rsb1, '');
+                unsafe = unsafe.replace(rsb2, '');
+                unsafe = unsafe.replace(rsb1, '');
+                unsafe = unsafe.replace(rsb3, '');
+            } catch (e) {
+            }
+        }
+
+        var safe;
+        try {
+            safe = $sanitize(unsafe);
+            // do this afterwards, then the $sanitizer should still throw for bad markup
+            if(ignore) safe = unsafe;
+        } catch (e){
+            safe = oldsafe || '';
+        }
+
+        // Do processing for <pre> tags, removing tabs and return carriages outside of them
+
+        var _preTags = safe.match(/(<pre[^>]*>.*?<\/pre[^>]*>)/ig);
+        var processedSafe = safe.replace(/(&#(9|10);)*/ig, '');
+        var re = /<pre[^>]*>.*?<\/pre[^>]*>/ig;
+        var index = 0;
+        var lastIndex = 0;
+        var origTag;
+        safe = '';
+        while((origTag = re.exec(processedSafe)) !== null && index < _preTags.length){
+            safe += processedSafe.substring(lastIndex, origTag.index) + _preTags[index];
+            lastIndex = origTag.index + origTag[0].length;
+            index++;
+        }
+        return safe + processedSafe.substring(lastIndex);
+    };
+}]).factory('taToolExecuteAction', ['$q', '$log', function($q, $log){
+    // this must be called on a toolScope or instance
+    return function(editor){
+        if(editor !== undefined) this.$editor = function(){ return editor; };
+        var deferred = $q.defer(),
+            promise = deferred.promise,
+            _editor = this.$editor();
+        // pass into the action the deferred function and also the function to reload the current selection if rangy available
+        var result;
+        try{
+            result = this.action(deferred, _editor.startAction());
+            // We set the .finally callback here to make sure it doesn't get executed before any other .then callback.
+            promise['finally'](function(){
+                _editor.endAction.call(_editor);
+            });
+        }catch(exc){
+            $log.error(exc);
+        }
+        if(result || result === undefined){
+            // if true or undefined is returned then the action has finished. Otherwise the deferred action will be resolved manually.
+            deferred.resolve();
+        }
+    };
+}]);
+
+angular.module('textAngular.DOM', ['textAngular.factories'])
+.factory('taExecCommand', ['taSelection', 'taBrowserTag', '$document', function(taSelection, taBrowserTag, $document){
+    var listToDefault = function(listElement, defaultWrap){
+        var $target, i;
+        // if all selected then we should remove the list
+        // grab all li elements and convert to taDefaultWrap tags
+        var children = listElement.find('li');
+        for(i = children.length - 1; i >= 0; i--){
+            $target = angular.element('<' + defaultWrap + '>' + children[i].innerHTML + '</' + defaultWrap + '>');
+            listElement.after($target);
+        }
+        listElement.remove();
+        taSelection.setSelectionToElementEnd($target[0]);
+    };
+    var listElementToSelfTag = function(list, listElement, selfTag, bDefault, defaultWrap){
+        var $target, i;
+        // if all selected then we should remove the list
+        // grab all li elements
+        var priorElement;
+        var nextElement;
+        var children = list.find('li');
+        var foundIndex;
+        for (i = 0; i<children.length; i++) {
+            if (children[i].outerHTML === listElement[0].outerHTML) {
+                // found it...
+                foundIndex = i;
+                if (i>0) {
+                    priorElement = children[i-1];
+                }
+                if (i+1<children.length) {
+                    nextElement = children[i+1];
+                }
+                break;
+            }
+        }
+        //console.log('listElementToSelfTag', list, listElement, selfTag, bDefault, priorElement, nextElement);
+        // un-list the listElement
+        var html = '';
+        if (bDefault) {
+            html += '<' + defaultWrap + '>' + listElement[0].innerHTML + '</' + defaultWrap + '>';
+        } else {
+            html += '<' + taBrowserTag(selfTag) + '>';
+            html += '<li>' + listElement[0].innerHTML + '</li>';
+            html += '</' + taBrowserTag(selfTag) + '>';
+        }
+        $target = angular.element(html);
+        //console.log('$target', $target[0]);
+        if (!priorElement) {
+            // this is the first the list, so we just remove it...
+            listElement.remove();
+            list.after(angular.element(list[0].outerHTML));
+            list.after($target);
+            list.remove();
+            taSelection.setSelectionToElementEnd($target[0]);
+            return;
+        } else if (!nextElement) {
+            // this is the last in the list, so we just remove it..
+            listElement.remove();
+            list.after($target);
+            taSelection.setSelectionToElementEnd($target[0]);
+        } else {
+            var p = list.parent();
+            // okay it was some where in the middle... so we need to break apart the list...
+            var html1 = '';
+            var listTag = list[0].nodeName.toLowerCase();
+            html1 += '<' + listTag + '>';
+            for(i = 0; i < foundIndex; i++){
+                html1 += '<li>' + children[i].innerHTML + '</li>';
+            }
+            html1 += '</' + listTag + '>';
+            var html2 = '';
+            html2 += '<' + listTag + '>';
+            for(i = foundIndex+1; i < children.length; i++){
+                html2 += '<li>' + children[i].innerHTML + '</li>';
+            }
+            html2 += '</' + listTag + '>';
+            //console.log(html1, $target[0], html2);
+            list.after(angular.element(html2));
+            list.after($target);
+            list.after(angular.element(html1));
+            list.remove();
+            //console.log('parent ******XXX*****', p[0]);
+            taSelection.setSelectionToElementEnd($target[0]);
+        }
+    };
+    var listElementsToSelfTag = function(list, listElements, selfTag, bDefault, defaultWrap){
+        var $target, i, j, p;
+        // grab all li elements
+        var priorElement;
+        var afterElement;
+        //console.log('list:', list, 'listElements:', listElements, 'selfTag:', selfTag, 'bDefault:', bDefault);
+        var children = list.find('li');
+        var foundIndexes = [];
+        for (i = 0; i<children.length; i++) {
+            for (j = 0; j<listElements.length; j++) {
+                if (children[i].isEqualNode(listElements[j])) {
+                    // found it...
+                    foundIndexes[j] = i;
+                }
+            }
+        }
+        if (foundIndexes[0] > 0) {
+            priorElement = children[foundIndexes[0] - 1];
+        }
+        if (foundIndexes[listElements.length-1] + 1 < children.length) {
+            afterElement = children[foundIndexes[listElements.length-1] + 1];
+        }
+        //console.log('listElementsToSelfTag', list, listElements, selfTag, bDefault, !priorElement, !afterElement, foundIndexes[listElements.length-1], children.length);
+        // un-list the listElements
+        var html = '';
+        if (bDefault) {
+            for (j = 0; j < listElements.length; j++) {
+                html += '<' + defaultWrap + '>' + listElements[j].innerHTML + '</' + defaultWrap + '>';
+                listElements[j].remove();
+            }
+        } else {
+            html += '<' + taBrowserTag(selfTag) + '>';
+            for (j = 0; j < listElements.length; j++) {
+                html += listElements[j].outerHTML;
+                listElements[j].remove();
+            }
+            html += '</' + taBrowserTag(selfTag) + '>';
+        }
+        $target = angular.element(html);
+        if (!priorElement) {
+            // this is the first the list, so we just remove it...
+            list.after(angular.element(list[0].outerHTML));
+            list.after($target);
+            list.remove();
+            taSelection.setSelectionToElementEnd($target[0]);
+            return;
+        } else if (!afterElement) {
+            // this is the last in the list, so we just remove it..
+            list.after($target);
+            taSelection.setSelectionToElementEnd($target[0]);
+            return;
+        } else {
+            // okay it was some where in the middle... so we need to break apart the list...
+            var html1 = '';
+            var listTag = list[0].nodeName.toLowerCase();
+            html1 += '<' + listTag + '>';
+            for(i = 0; i < foundIndexes[0]; i++){
+                html1 += '<li>' + children[i].innerHTML + '</li>';
+            }
+            html1 += '</' + listTag + '>';
+            var html2 = '';
+            html2 += '<' + listTag + '>';
+            for(i = foundIndexes[listElements.length-1]+1; i < children.length; i++){
+                html2 += '<li>' + children[i].innerHTML + '</li>';
+            }
+            html2 += '</' + listTag + '>';
+            list.after(angular.element(html2));
+            list.after($target);
+            list.after(angular.element(html1));
+            list.remove();
+            //console.log('parent ******YYY*****', list.parent()[0]);
+            taSelection.setSelectionToElementEnd($target[0]);
+        }
+    };
+    var selectLi = function(liElement){
+        if(/(<br(|\/)>)$/i.test(liElement.innerHTML.trim())) taSelection.setSelectionBeforeElement(angular.element(liElement).find("br")[0]);
+        else taSelection.setSelectionToElementEnd(liElement);
+    };
+    var listToList = function(listElement, newListTag){
+        var $target = angular.element('<' + newListTag + '>' + listElement[0].innerHTML + '</' + newListTag + '>');
+        listElement.after($target);
+        listElement.remove();
+        selectLi($target.find('li')[0]);
+    };
+    var childElementsToList = function(elements, listElement, newListTag){
+        var html = '';
+        for(var i = 0; i < elements.length; i++){
+            html += '<' + taBrowserTag('li') + '>' + elements[i].innerHTML + '</' + taBrowserTag('li') + '>';
+        }
+        var $target = angular.element('<' + newListTag + '>' + html + '</' + newListTag + '>');
+        listElement.after($target);
+        listElement.remove();
+        selectLi($target.find('li')[0]);
+    };
+    var turnBlockIntoBlocks = function(element, options) {
+        for(var i = 0; i<element.childNodes.length; i++) {
+            var _n = element.childNodes[i];
+            /* istanbul ignore next - more complex testing*/
+            if (_n.tagName && _n.tagName.match(BLOCKELEMENTS)) {
+                turnBlockIntoBlocks(_n, options);
+            }
+        }
+        /* istanbul ignore next - very rare condition that we do not test*/
+        if (element.parentNode === null) {
+            // nothing left to do..
+            return element;
+        }
+        /* istanbul ignore next - not sure have to test this */
+        if (options === '<br>'){
+            return element;
+        }
+        else {
+            var $target = angular.element(options);
+            $target[0].innerHTML = element.innerHTML;
+            element.parentNode.insertBefore($target[0], element);
+            element.parentNode.removeChild(element);
+            return $target;
+        }
+    };
+    return function(taDefaultWrap, topNode){
+        // NOTE: here we are dealing with the html directly from the browser and not the html the user sees.
+        // IF you want to modify the html the user sees, do it when the user does a switchView
+        taDefaultWrap = taBrowserTag(taDefaultWrap);
+        return function(command, showUI, options, defaultTagAttributes){
+            var i, $target, html, _nodes, next, optionsTagName, selectedElement, ourSelection;
+            var defaultWrapper = angular.element('<' + taDefaultWrap + '>');
+            try{
+                if (taSelection.getSelection) {
+                    ourSelection = taSelection.getSelection();
+                }
+                selectedElement = taSelection.getSelectionElement();
+                // special checks and fixes when we are selecting the whole container
+                var __h, _innerNode;
+                /* istanbul ignore next */
+                if (selectedElement.tagName !== undefined) {
+                    if (selectedElement.tagName.toLowerCase() === 'div' &&
+                        /taTextElement.+/.test(selectedElement.id) &&
+                        ourSelection && ourSelection.start &&
+                        ourSelection.start.offset === 1 &&
+                        ourSelection.end.offset === 1) {
+                        // opps we are actually selecting the whole container!
+                        //console.log('selecting whole container!');
+                        __h = selectedElement.innerHTML;
+                        if (/<br>/i.test(__h)) {
+                            // Firefox adds <br>'s and so we remove the <br>
+                            __h = __h.replace(/<br>/i, '&#8203;');  // no space-space
+                        }
+                        if (/<br\/>/i.test(__h)) {
+                            // Firefox adds <br/>'s and so we remove the <br/>
+                            __h = __h.replace(/<br\/>/i, '&#8203;');  // no space-space
+                        }
+                        // remove stacked up <span>'s
+                        if (/<span>(<span>)+/i.test(__h)) {
+                            __h = __.replace(/<span>(<span>)+/i, '<span>');
+                        }
+                        // remove stacked up </span>'s
+                        if (/<\/span>(<\/span>)+/i.test(__h)) {
+                            __h = __.replace(/<\/span>(<\/span>)+/i, '<\/span>');
+                        }
+                        if (/<span><\/span>/i.test(__h)) {
+                            // if we end up with a <span></span> here we remove it...
+                            __h = __h.replace(/<span><\/span>/i, '');
+                        }
+                        //console.log('inner whole container', selectedElement.childNodes);
+                        _innerNode = '<div>' + __h + '</div>';
+                        selectedElement.innerHTML = _innerNode;
+                        taSelection.setSelectionToElementEnd(selectedElement.childNodes[0]);
+                        selectedElement = taSelection.getSelectionElement();
+                    } else if (selectedElement.tagName.toLowerCase() === 'span' &&
+                        ourSelection && ourSelection.start &&
+                        ourSelection.start.offset === 1 &&
+                        ourSelection.end.offset === 1) {
+                        // just a span -- this is a problem...
+                        //console.log('selecting span!');
+                        __h = selectedElement.innerHTML;
+                        if (/<br>/i.test(__h)) {
+                            // Firefox adds <br>'s and so we remove the <br>
+                            __h = __h.replace(/<br>/i, '&#8203;');  // no space-space
+                        }
+                        if (/<br\/>/i.test(__h)) {
+                            // Firefox adds <br/>'s and so we remove the <br/>
+                            __h = __h.replace(/<br\/>/i, '&#8203;');  // no space-space
+                        }
+                        // remove stacked up <span>'s
+                        if (/<span>(<span>)+/i.test(__h)) {
+                            __h = __.replace(/<span>(<span>)+/i, '<span>');
+                        }
+                        // remove stacked up </span>'s
+                        if (/<\/span>(<\/span>)+/i.test(__h)) {
+                            __h = __.replace(/<\/span>(<\/span>)+/i, '<\/span>');
+                        }
+                        if (/<span><\/span>/i.test(__h)) {
+                            // if we end up with a <span></span> here we remove it...
+                            __h = __h.replace(/<span><\/span>/i, '');
+                        }
+                        //console.log('inner span', selectedElement.childNodes);
+                        // we wrap this in a <div> because otherwise the browser get confused when we attempt to select the whole node
+                        // and the focus is not set correctly no matter what we do
+                        _innerNode = '<div>' + __h + '</div>';
+                        selectedElement.innerHTML = _innerNode;
+                        taSelection.setSelectionToElementEnd(selectedElement.childNodes[0]);
+                        selectedElement = taSelection.getSelectionElement();
+                        //console.log(selectedElement.innerHTML);
+                    } else if (selectedElement.tagName.toLowerCase() === 'p' &&
+                        ourSelection && ourSelection.start &&
+                        ourSelection.start.offset === 1 &&
+                        ourSelection.end.offset === 1) {
+                        //console.log('p special');
+                        // we need to remove the </br> that firefox adds!
+                        __h = selectedElement.innerHTML;
+                        if (/<br>/i.test(__h)) {
+                            // Firefox adds <br>'s and so we remove the <br>
+                            __h = __h.replace(/<br>/i, '&#8203;');  // no space-space
+                            selectedElement.innerHTML = __h;
+                        }
+                    } else if (selectedElement.tagName.toLowerCase() === 'li' &&
+                        ourSelection && ourSelection.start &&
+                        ourSelection.start.offset === ourSelection.end.offset) {
+                        // we need to remove the </br> that firefox adds!
+                        __h = selectedElement.innerHTML;
+                        if (/<br>/i.test(__h)) {
+                            // Firefox adds <br>'s and so we remove the <br>
+                            __h = __h.replace(/<br>/i, '');  // nothing
+                            selectedElement.innerHTML = __h;
+                        }
+                    }
+                }
+            }catch(e){}
+            //console.log('************** selectedElement:', selectedElement);
+            /* istanbul ignore if: */
+            if (!selectedElement){return;}
+            var $selected = angular.element(selectedElement);
+            var tagName = (selectedElement && selectedElement.tagName && selectedElement.tagName.toLowerCase()) ||
+                /* istanbul ignore next: */ "";
+            if(command.toLowerCase() === 'insertorderedlist' || command.toLowerCase() === 'insertunorderedlist'){
+                var selfTag = taBrowserTag((command.toLowerCase() === 'insertorderedlist')? 'ol' : 'ul');
+                var selectedElements = taSelection.getOnlySelectedElements();
+                //console.log('PPPPPPPPPPPPP', tagName, selfTag, selectedElements, tagName.match(BLOCKELEMENTS), $selected.hasClass('ta-bind'), $selected.parent()[0].tagName);
+                if (selectedElements.length>1 && (tagName === 'ol' ||  tagName === 'ul' )) {
+                    return listElementsToSelfTag($selected, selectedElements, selfTag, selfTag===tagName, taDefaultWrap);
+                }
+                if(tagName === selfTag){
+                    // if all selected then we should remove the list
+                    // grab all li elements and convert to taDefaultWrap tags
+                    //console.log('tagName===selfTag');
+                    if ($selected[0].childNodes.length !== selectedElements.length && selectedElements.length===1) {
+                        $selected = angular.element(selectedElements[0]);
+                        return listElementToSelfTag($selected.parent(), $selected, selfTag, true, taDefaultWrap);
+                    } else {
+                        return listToDefault($selected, taDefaultWrap);
+                    }
+                }else if(tagName === 'li' &&
+                    $selected.parent()[0].tagName.toLowerCase() === selfTag &&
+                    $selected.parent().children().length === 1){
+                    // catch for the previous statement if only one li exists
+                    return listToDefault($selected.parent(), taDefaultWrap);
+                }else if(tagName === 'li' &&
+                    $selected.parent()[0].tagName.toLowerCase() !== selfTag &&
+                    $selected.parent().children().length === 1){
+                    // catch for the previous statement if only one li exists
+                    return listToList($selected.parent(), selfTag);
+                }else if(tagName.match(BLOCKELEMENTS) && !$selected.hasClass('ta-bind')){
+                    // if it's one of those block elements we have to change the contents
+                    // if it's a ol/ul we are changing from one to the other
+                    if (selectedElements.length) {
+                        if ($selected[0].childNodes.length !== selectedElements.length && selectedElements.length===1) {
+                            //console.log('&&&&&&&&&&&&&&& --------- &&&&&&&&&&&&&&&&', selectedElements[0], $selected[0].childNodes);
+                            $selected = angular.element(selectedElements[0]);
+                            return listElementToSelfTag($selected.parent(), $selected, selfTag, selfTag===tagName, taDefaultWrap);
+                        }
+                    }
+                    if(tagName === 'ol' || tagName === 'ul'){
+                        // now if this is a set of selected elements... behave diferently
+                        return listToList($selected, selfTag);
+                    }else{
+                        var childBlockElements = false;
+                        angular.forEach($selected.children(), function(elem){
+                            if(elem.tagName.match(BLOCKELEMENTS)) {
+                                childBlockElements = true;
+                            }
+                        });
+                        if(childBlockElements){
+                            return childElementsToList($selected.children(), $selected, selfTag);
+                        }else{
+                            return childElementsToList([angular.element('<div>' + selectedElement.innerHTML + '</div>')[0]], $selected, selfTag);
+                        }
+                    }
+                }else if(tagName.match(BLOCKELEMENTS)){
+                    // if we get here then the contents of the ta-bind are selected
+                    _nodes = taSelection.getOnlySelectedElements();
+                    //console.log('_nodes', _nodes, tagName);
+                    if(_nodes.length === 0){
+                        // here is if there is only text in ta-bind ie <div ta-bind>test content</div>
+                        $target = angular.element('<' + selfTag + '><li>' + selectedElement.innerHTML + '</li></' + selfTag + '>');
+                        $selected.html('');
+                        $selected.append($target);
+                    }else if(_nodes.length === 1 && (_nodes[0].tagName.toLowerCase() === 'ol' || _nodes[0].tagName.toLowerCase() === 'ul')){
+                        if(_nodes[0].tagName.toLowerCase() === selfTag){
+                            // remove
+                            return listToDefault(angular.element(_nodes[0]), taDefaultWrap);
+                        }else{
+                            return listToList(angular.element(_nodes[0]), selfTag);
+                        }
+                    }else{
+                        html = '';
+                        var $nodes = [];
+                        for(i = 0; i < _nodes.length; i++){
+                            /* istanbul ignore else: catch for real-world can't make it occur in testing */
+                            if(_nodes[i].nodeType !== 3){
+                                var $n = angular.element(_nodes[i]);
+                                /* istanbul ignore if: browser check only, phantomjs doesn't return children nodes but chrome at least does */
+                                if(_nodes[i].tagName.toLowerCase() === 'li') continue;
+                                else if(_nodes[i].tagName.toLowerCase() === 'ol' || _nodes[i].tagName.toLowerCase() === 'ul'){
+                                    html += $n[0].innerHTML; // if it's a list, add all it's children
+                                }else if(_nodes[i].tagName.toLowerCase() === 'span' && (_nodes[i].childNodes[0].tagName.toLowerCase() === 'ol' || _nodes[i].childNodes[0].tagName.toLowerCase() === 'ul')){
+                                    html += $n[0].childNodes[0].innerHTML; // if it's a list, add all it's children
+                                }else{
+                                    html += '<' + taBrowserTag('li') + '>' + $n[0].innerHTML + '</' + taBrowserTag('li') + '>';
+                                }
+                                $nodes.unshift($n);
+                            }
+                        }
+                        //console.log('$nodes', $nodes);
+                        $target = angular.element('<' + selfTag + '>' + html + '</' + selfTag + '>');
+                        $nodes.pop().replaceWith($target);
+                        angular.forEach($nodes, function($node){ $node.remove(); });
+                    }
+                    taSelection.setSelectionToElementEnd($target[0]);
+                    return;
+                }
+            }else if(command.toLowerCase() === 'formatblock'){
+                optionsTagName = options.toLowerCase().replace(/[<>]/ig, '');
+                if(optionsTagName.trim() === 'default') {
+                    optionsTagName = taDefaultWrap;
+                    options = '<' + taDefaultWrap + '>';
+                }
+                if(tagName === 'li') {
+                    $target = $selected.parent();
+                }
+                else {
+                    $target = $selected;
+                }
+                // find the first blockElement
+                while(!$target[0].tagName || !$target[0].tagName.match(BLOCKELEMENTS) && !$target.parent().attr('contenteditable')){
+                    $target = $target.parent();
+                    /* istanbul ignore next */
+                    tagName = ($target[0].tagName || '').toLowerCase();
+                }
+                if(tagName === optionsTagName){
+                    // $target is wrap element
+                    _nodes = $target.children();
+                    var hasBlock = false;
+                    for(i = 0; i < _nodes.length; i++){
+                        hasBlock = hasBlock || _nodes[i].tagName.match(BLOCKELEMENTS);
+                    }
+                    if(hasBlock){
+                        $target.after(_nodes);
+                        next = $target.next();
+                        $target.remove();
+                        $target = next;
+                    }else{
+                        defaultWrapper.append($target[0].childNodes);
+                        $target.after(defaultWrapper);
+                        $target.remove();
+                        $target = defaultWrapper;
+                    }
+                }else if($target.parent()[0].tagName.toLowerCase() === optionsTagName &&
+                    !$target.parent().hasClass('ta-bind')){
+                    //unwrap logic for parent
+                    var blockElement = $target.parent();
+                    var contents = blockElement.contents();
+                    for(i = 0; i < contents.length; i ++){
+                        /* istanbul ignore next: can't test - some wierd thing with how phantomjs works */
+                        if(blockElement.parent().hasClass('ta-bind') && contents[i].nodeType === 3){
+                            defaultWrapper = angular.element('<' + taDefaultWrap + '>');
+                            defaultWrapper[0].innerHTML = contents[i].outerHTML;
+                            contents[i] = defaultWrapper[0];
+                        }
+                        blockElement.parent()[0].insertBefore(contents[i], blockElement[0]);
+                    }
+                    blockElement.remove();
+                }else if(tagName.match(LISTELEMENTS)){
+                    // wrapping a list element
+                    $target.wrap(options);
+                }else{
+                    // default wrap behaviour
+                    _nodes = taSelection.getOnlySelectedElements();
+                    if(_nodes.length === 0) {
+                        // no nodes at all....
+                        _nodes = [$target[0]];
+                    }
+                    // find the parent block element if any of the nodes are inline or text
+                    for(i = 0; i < _nodes.length; i++){
+                        if(_nodes[i].nodeType === 3 || !_nodes[i].tagName.match(BLOCKELEMENTS)){
+                            while(_nodes[i].nodeType === 3 || !_nodes[i].tagName || !_nodes[i].tagName.match(BLOCKELEMENTS)){
+                                _nodes[i] = _nodes[i].parentNode;
+                            }
+                        }
+                    }
+                    // remove any duplicates from the array of _nodes!
+                    _nodes = _nodes.filter(function(value, index, self) {
+                        return self.indexOf(value) === index;
+                    });
+                    // remove all whole taTextElement if it is here... unless it is the only element!
+                    if (_nodes.length>1) {
+                        _nodes = _nodes.filter(function (value, index, self) {
+                            return !(value.nodeName.toLowerCase() === 'div' && /^taTextElement/.test(value.id));
+                        });
+                    }
+                    if(angular.element(_nodes[0]).hasClass('ta-bind')){
+                        $target = angular.element(options);
+                        $target[0].innerHTML = _nodes[0].innerHTML;
+                        _nodes[0].innerHTML = $target[0].outerHTML;
+                    }else if(optionsTagName === 'blockquote'){
+                        // blockquotes wrap other block elements
+                        html = '';
+                        for(i = 0; i < _nodes.length; i++){
+                            html += _nodes[i].outerHTML;
+                        }
+                        $target = angular.element(options);
+                        $target[0].innerHTML = html;
+                        _nodes[0].parentNode.insertBefore($target[0],_nodes[0]);
+                        for(i = _nodes.length - 1; i >= 0; i--){
+                            /* istanbul ignore else:  */
+                            if (_nodes[i].parentNode) _nodes[i].parentNode.removeChild(_nodes[i]);
+                        }
+                    } else /* istanbul ignore next: not tested since identical to blockquote */
+                    if (optionsTagName === 'pre' && taSelection.getStateShiftKey()) {
+                        //console.log('shift pre', _nodes);
+                        // pre wrap other block elements
+                        html = '';
+                        for (i = 0; i < _nodes.length; i++) {
+                            html += _nodes[i].outerHTML;
+                        }
+                        $target = angular.element(options);
+                        $target[0].innerHTML = html;
+                        _nodes[0].parentNode.insertBefore($target[0], _nodes[0]);
+                        for (i = _nodes.length - 1; i >= 0; i--) {
+                            /* istanbul ignore else:  */
+                            if (_nodes[i].parentNode) _nodes[i].parentNode.removeChild(_nodes[i]);
+                        }
+                    }
+                    else {
+                        //console.log(optionsTagName, _nodes);
+                        // regular block elements replace other block elements
+                        for (i = 0; i < _nodes.length; i++) {
+                            var newBlock = turnBlockIntoBlocks(_nodes[i], options);
+                            if (_nodes[i] === $target[0]) {
+                                $target = angular.element(newBlock);
+                            }
+                        }
+                    }
+                }
+                taSelection.setSelectionToElementEnd($target[0]);
+                // looses focus when we have the whole container selected and no text!
+                // refocus on the shown display element, this fixes a bug when using firefox
+                $target[0].focus();
+                return;
+            }else if(command.toLowerCase() === 'createlink'){
+                /* istanbul ignore next: firefox specific fix */
+                if (tagName === 'a') {
+                    // already a link!!! we are just replacing it...
+                    taSelection.getSelectionElement().href = options;
+                    return;
+                }
+                var tagBegin = '<a href="' + options + '" target="' +
+                        (defaultTagAttributes.a.target ? defaultTagAttributes.a.target : '') +
+                        '">',
+                    tagEnd = '</a>',
+                    _selection = taSelection.getSelection();
+                if(_selection.collapsed){
+                    //console.log('collapsed');
+                    // insert text at selection, then select then just let normal exec-command run
+                    taSelection.insertHtml(tagBegin + options + tagEnd, topNode);
+                }else if(rangy.getSelection().getRangeAt(0).canSurroundContents()){
+                    var node = angular.element(tagBegin + tagEnd)[0];
+                    rangy.getSelection().getRangeAt(0).surroundContents(node);
+                }
+                return;
+            }else if(command.toLowerCase() === 'inserthtml'){
+                //console.log('inserthtml');
+                taSelection.insertHtml(options, topNode);
+                return;
+            }
+            try{
+                $document[0].execCommand(command, showUI, options);
+            }catch(e){}
+        };
+    };
+}]).service('taSelection', ['$document', 'taDOM', '$log',
+/* istanbul ignore next: all browser specifics and PhantomJS dosen't seem to support half of it */
+function($document, taDOM, $log){
+    // need to dereference the document else the calls don't work correctly
+    var _document = $document[0];
+    var bShiftState;
+    var brException = function (element, offset) {
+        /* check if selection is a BR element at the beginning of a container. If so, get
+        * the parentNode instead.
+        * offset should be zero in this case. Otherwise, return the original
+        * element.
+        */
+        if (element.tagName && element.tagName.match(/^br$/i) && offset === 0 && !element.previousSibling) {
+            return {
+                element: element.parentNode,
+                offset: 0
+            };
+        } else {
+            return {
+                element: element,
+                offset: offset
+            };
+        }
+    };
+    var api = {
+        getSelection: function(){
+            var range;
+            try {
+                // catch any errors from rangy and ignore the issue
+                range = rangy.getSelection().getRangeAt(0);
+            } catch(e) {
+                //console.info(e);
+                return undefined;
+            }
+            var container = range.commonAncestorContainer;
+            var selection = {
+                start: brException(range.startContainer, range.startOffset),
+                end: brException(range.endContainer, range.endOffset),
+                collapsed: range.collapsed
+            };
+            // This has problems under Firefox.
+            // On Firefox with
+            // <p>Try me !</p>
+            // <ul>
+            // <li>line 1</li>
+            // <li>line 2</li>
+            // </ul>
+            // <p>line 3</p>
+            // <ul>
+            // <li>line 4</li>
+            // <li>line 5</li>
+            // </ul>
+            // <p>Hello textAngular</p>
+            // WITH the cursor after the 3 on line 3, it gets the commonAncestorContainer as:
+            // <TextNode textContent='line 3'>
+            // AND Chrome gets the commonAncestorContainer as:
+            // <p>line 3</p>
+            //
+            // Check if the container is a text node and return its parent if so
+            // unless this is the whole taTextElement.  If so we return the textNode
+            if (container.nodeType === 3) {
+                if (container.parentNode.nodeName.toLowerCase() === 'div' &&
+                    /^taTextElement/.test(container.parentNode.id)) {
+                    // textNode where the parent is the whole <div>!!!
+                    //console.log('textNode ***************** container:', container);
+                } else {
+                    container = container.parentNode;
+                }
+            }
+            if (container.nodeName.toLowerCase() === 'div' &&
+                /^taTextElement/.test(container.id)) {
+                //console.log('*********taTextElement************');
+                //console.log('commonAncestorContainer:', container);
+                selection.start.element = container.childNodes[selection.start.offset];
+                selection.end.element = container.childNodes[selection.end.offset];
+                selection.container = container;
+            } else {
+                if (container.parentNode === selection.start.element ||
+                    container.parentNode === selection.end.element) {
+                    selection.container = container.parentNode;
+                } else {
+                    selection.container = container;
+                }
+            }
+            //console.log('***selection container:', selection.container.nodeName, selection.start.offset, selection.container);
+            return selection;
+        },
+        // if we use the LEFT_ARROW and we are at the special place <span>&#65279;</span> we move the cursor over by one...
+        // Chrome and Firefox behave differently so so fix this for Firefox here.  No adjustment needed for Chrome.
+        updateLeftArrowKey: function(element) {
+            var range = rangy.getSelection().getRangeAt(0);
+            if (range && range.collapsed) {
+                var _nodes = api.getFlattenedDom(range);
+                if (!_nodes.findIndex) return;
+                var _node = range.startContainer;
+                var indexStartContainer = _nodes.findIndex(function(element, index){
+                    if (element.node===_node) return true;
+                    var _indexp = element.parents.indexOf(_node);
+                    return (_indexp !== -1);
+                });
+                var m;
+                var nextNodeToRight;
+                //console.log('indexStartContainer', indexStartContainer, _nodes.length, 'startContainer:', _node, _node === _nodes[indexStartContainer].node);
+                _nodes.forEach(function (n, i) {
+                    //console.log(i, n.node);
+                    n.parents.forEach(function (nn, j){
+                        //console.log(i, j, nn);
+                    });
+                });
+                if (indexStartContainer+1 < _nodes.length) {
+                    // we need the node just after this startContainer
+                    // so we can check and see it this is a special place
+                    nextNodeToRight = _nodes[indexStartContainer+1].node;
+                    //console.log(nextNodeToRight, range.startContainer);
+                }
+                //console.log('updateLeftArrowKey', range.startOffset, range.startContainer.textContent);
+                // this first section handles the case for Chrome browser
+                // if the first character of the nextNode is a \ufeff we know that we are just before the special span...
+                // and so we most left by one character
+                if (nextNodeToRight && nextNodeToRight.textContent) {
+                    m = /^\ufeff([^\ufeff]*)$/.exec(nextNodeToRight.textContent);
+                    if (m) {
+                        // we are before the special node with begins with a \ufeff character
+                        //console.log('LEFT ...found it...', 'startOffset:', range.startOffset, m[0].length, m[1].length);
+                        // no need to change anything in this case
+                        return;
+                    }
+                }
+                var nextNodeToLeft;
+                if (indexStartContainer > 0) {
+                    // we need the node just after this startContainer
+                    // so we can check and see it this is a special place
+                    nextNodeToLeft = _nodes[indexStartContainer-1].node;
+                    //console.log(nextNodeToLeft, nextNodeToLeft);
+                }
+                if (range.startOffset === 0 && nextNodeToLeft) {
+                    //console.log(nextNodeToLeft, range.startOffset, nextNodeToLeft.textContent);
+                    m = /^\ufeff([^\ufeff]*)$/.exec(nextNodeToLeft.textContent);
+                    if (m) {
+                        //console.log('LEFT &&&&&&&&&&&&&&&&&&&...found it...&&&&&&&&&&&', nextNodeToLeft, m[0].length, m[1].length);
+                        // move over to the left my one -- Firefox triggers this case
+                        api.setSelectionToElementEnd(nextNodeToLeft);
+                        return;
+                    }
+                }
+            }
+            return;
+        },
+        // if we use the RIGHT_ARROW and we are at the special place <span>&#65279;</span> we move the cursor over by one...
+        updateRightArrowKey: function(element) {
+            // we do not need to make any adjustments here, so we ignore all this code
+            if (false) {
+                var range = rangy.getSelection().getRangeAt(0);
+                if (range && range.collapsed) {
+                    var _nodes = api.getFlattenedDom(range);
+                    if (!_nodes.findIndex) return;
+                    var _node = range.startContainer;
+                    var indexStartContainer = _nodes.findIndex(function (element, index) {
+                        if (element.node === _node) return true;
+                        var _indexp = element.parents.indexOf(_node);
+                        return (_indexp !== -1);
+                    });
+                    var _sel;
+                    var i;
+                    var m;
+
+                    // if the last character is a \ufeff we know that we are just before the special span...
+                    // and so we most right by one character
+                    var indexFound = _nodes.findIndex(function (n, index) {
+                        if (n.textContent) {
+                            var m = /^\ufeff([^\ufeff]*)$/.exec(n.textContent);
+                            if (m) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    });
+                    if (indexFound === -1) {
+                        return;
+                    }
+                    //console.log(indexFound, range.startContainer, range.startOffset);
+                    _node = _nodes[indexStartContainer];
+                    //console.log('indexStartContainer', indexStartContainer);
+                    if (_node && _node.textContent) {
+                        m = /^\ufeff([^\ufeff]*)$/.exec(_node.textContent);
+                        if (m && range.startOffset - 1 === m[1].length) {
+                            //console.log('RIGHT found it...&&&&&&&&&&&', range.startOffset);
+                            // no need to make any adjustment
+                            return;
+                        }
+                    }
+                    //console.log(range.startOffset);
+                    if (_nodes && range.startOffset === 0) {
+                        indexStartContainer = _nodes.indexOf(range.startContainer);
+                        if (indexStartContainer !== -1 && indexStartContainer > 0) {
+                            _node = _nodes[indexStartContainer - 1];
+                            if (_node.textContent) {
+                                m = /\ufeff([^\ufeff]*)$/.exec(_node.textContent);
+                                if (m && true || range.startOffset === m[1].length + 1) {
+                                    //console.log('RIGHT &&&&&&&&&&&&&&&&&&&...found it...&&&&&&&&&&&', range.startOffset, m[1].length);
+                                    // no need to make any adjustment
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        getFlattenedDom: function(range) {
+            var parent = range.commonAncestorContainer.parentNode;
+            if (!parent) {
+                return range.commonAncestorContainer.childNodes;
+            }
+            var nodes = Array.prototype.slice.call(parent.childNodes); // converts NodeList to Array
+            var indexStartContainer = nodes.indexOf(range.startContainer);
+            // make sure that we have a big enough set of nodes
+            if (indexStartContainer+1 < nodes.length && indexStartContainer > 0) {
+                // we are good
+                // we can go down one node or up one node
+            } else {
+                if (parent.parentNode) {
+                    parent = parent.parentNode;
+                }
+            }
+            // now walk the parent
+            nodes = [];
+            function addNodes(_set) {
+                if (_set.node.childNodes.length) {
+                    var childNodes = Array.prototype.slice.call(_set.node.childNodes); // converts NodeList to Array
+                    childNodes.forEach(function(n) {
+                        var _t = _set.parents.slice();
+                        if (_t.slice(-1)[0]!==_set.node) {
+                            _t.push(_set.node);
+                        }
+                        addNodes({parents: _t, node: n});
+                    });
+                } else {
+                    nodes.push({parents: _set.parents, node: _set.node});
+                }
+            }
+            addNodes({parents: [parent], node: parent});
+            return nodes;
+        },
+        getOnlySelectedElements: function(){
+            var range = rangy.getSelection().getRangeAt(0);
+            var container = range.commonAncestorContainer;
+            // Node.TEXT_NODE === 3
+            // Node.ELEMENT_NODE === 1
+            // Node.COMMENT_NODE === 8
+            // Check if the container is a text node and return its parent if so
+            container = container.nodeType === 3 ? container.parentNode : container;
+            // get the nodes in the range that are ELEMENT_NODE and are children of the container
+            // in this range...
+            return range.getNodes([1], function(node){
+                return node.parentNode === container;
+            });
+        },
+        // this includes the container element if all children are selected
+        getAllSelectedElements: function(){
+            var range = rangy.getSelection().getRangeAt(0);
+            var container = range.commonAncestorContainer;
+            // Node.TEXT_NODE === 3
+            // Node.ELEMENT_NODE === 1
+            // Node.COMMENT_NODE === 8
+            // Check if the container is a text node and return its parent if so
+            container = container.nodeType === 3 ? container.parentNode : container;
+            // get the nodes in the range that are ELEMENT_NODE and are children of the container
+            // in this range...
+            var selectedNodes = range.getNodes([1], function(node){
+                return node.parentNode === container;
+            });
+            var innerHtml = container.innerHTML;
+            // remove the junk that rangy has put down
+            innerHtml = innerHtml.replace(/<span id=.selectionBoundary[^>]+>\ufeff?<\/span>/ig, '');
+            //console.log(innerHtml);
+            //console.log(range.toHtml());
+            //console.log(innerHtml === range.toHtml());
+            if (innerHtml === range.toHtml() &&
+                // not the whole taTextElement
+                (!(container.nodeName.toLowerCase() === 'div' &&  /^taTextElement/.test(container.id)))
+            ) {
+                var arr = [];
+                for(var i = selectedNodes.length; i--; arr.unshift(selectedNodes[i]));
+                selectedNodes = arr;
+                selectedNodes.push(container);
+                //$log.debug(selectedNodes);
+            }
+            return selectedNodes;
+        },
+        // Some basic selection functions
+        getSelectionElement: function () {
+            var s = api.getSelection();
+            if (s) {
+                return api.getSelection().container;
+            } else {
+                return undefined;
+            }
+        },
+        setSelection: function(elStart, elEnd, start, end){
+            var range = rangy.createRange();
+
+            range.setStart(elStart, start);
+            range.setEnd(elEnd, end);
+
+            rangy.getSelection().setSingleRange(range);
+        },
+        setSelectionBeforeElement: function (el){
+            var range = rangy.createRange();
+
+            range.selectNode(el);
+            range.collapse(true);
+
+            rangy.getSelection().setSingleRange(range);
+        },
+        setSelectionAfterElement: function (el){
+            var range = rangy.createRange();
+
+            range.selectNode(el);
+            range.collapse(false);
+
+            rangy.getSelection().setSingleRange(range);
+        },
+        setSelectionToElementStart: function (el){
+            var range = rangy.createRange();
+
+            range.selectNodeContents(el);
+            range.collapse(true);
+
+            rangy.getSelection().setSingleRange(range);
+        },
+        setSelectionToElementEnd: function (el){
+            var range = rangy.createRange();
+
+            range.selectNodeContents(el);
+            range.collapse(false);
+            if(el.childNodes && el.childNodes[el.childNodes.length - 1] && el.childNodes[el.childNodes.length - 1].nodeName === 'br'){
+                range.startOffset = range.endOffset = range.startOffset - 1;
+            }
+            rangy.getSelection().setSingleRange(range);
+        },
+        setStateShiftKey: function(bS) {
+            bShiftState = bS;
+        },
+        getStateShiftKey: function() {
+            return bShiftState;
+        },
+        // from http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div
+        // topNode is the contenteditable normally, all manipulation MUST be inside this.
+        insertHtml: function(html, topNode){
+            var parent, secondParent, _childI, nodes, i, lastNode, _tempFrag;
+            var element = angular.element("<div>" + html + "</div>");
+            var range = rangy.getSelection().getRangeAt(0);
+            var frag = _document.createDocumentFragment();
+            var children = element[0].childNodes;
+            var isInline = true;
+
+            if(children.length > 0){
+                // NOTE!! We need to do the following:
+                // check for blockelements - if they exist then we have to split the current element in half (and all others up to the closest block element) and insert all children in-between.
+                // If there are no block elements, or there is a mixture we need to create textNodes for the non wrapped text (we don't want them spans messing up the picture).
+                nodes = [];
+                for(_childI = 0; _childI < children.length; _childI++){
+                    var _cnode = children[_childI];
+                    if (_cnode.nodeName.toLowerCase() === 'p' &&
+                        _cnode.innerHTML.trim() === '') { // empty p element
+                        continue;
+                    }
+                    /****************
+                     *  allow any text to be inserted...
+                    if((   _cnode.nodeType === 3 &&
+                           _cnode.nodeValue === '\ufeff'[0] &&
+                           _cnode.nodeValue.trim() === '') // empty no-space space element
+                        ) {
+                        // no change to isInline
+                        nodes.push(_cnode);
+                        continue;
+                    }
+                    if(_cnode.nodeType === 3 &&
+                         _cnode.nodeValue.trim() === '') { // empty text node
+                        continue;
+                    }
+                    *****************/
+                    isInline = isInline && !BLOCKELEMENTS.test(_cnode.nodeName);
+                    nodes.push(_cnode);
+                }
+                for(var _n = 0; _n < nodes.length; _n++) {
+                    lastNode = frag.appendChild(nodes[_n]);
+                }
+                if( !isInline &&
+                    range.collapsed &&
+                    /^(|<br(|\/)>)$/i.test(range.startContainer.innerHTML) ) {
+                    range.selectNode(range.startContainer);
+                }
+            }else{
+                isInline = true;
+                // paste text of some sort
+                lastNode = frag = _document.createTextNode(html);
+            }
+
+            // Other Edge case - selected data spans multiple blocks.
+            if(isInline){
+                range.deleteContents();
+            }else{ // not inline insert
+                if(range.collapsed && range.startContainer !== topNode){
+                    if(range.startContainer.innerHTML && range.startContainer.innerHTML.match(/^<[^>]*>$/i)){
+                        // this log is to catch when innerHTML is something like `<img ...>`
+                        parent = range.startContainer;
+                        if(range.startOffset === 1){
+                            // before single tag
+                            range.setStartAfter(parent);
+                            range.setEndAfter(parent);
+                        }else{
+                            // after single tag
+                            range.setStartBefore(parent);
+                            range.setEndBefore(parent);
+                        }
+                    }else{
+                        // split element into 2 and insert block element in middle
+                        if(range.startContainer.nodeType === 3 && range.startContainer.parentNode !== topNode){ // if text node
+                            parent = range.startContainer.parentNode;
+                            secondParent = parent.cloneNode();
+                            // split the nodes into two lists - before and after, splitting the node with the selection into 2 text nodes.
+                            taDOM.splitNodes(parent.childNodes, parent, secondParent, range.startContainer, range.startOffset);
+
+                            // Escape out of the inline tags like b
+                            while(!VALIDELEMENTS.test(parent.nodeName)){
+                                angular.element(parent).after(secondParent);
+                                parent = parent.parentNode;
+                                var _lastSecondParent = secondParent;
+                                secondParent = parent.cloneNode();
+                                // split the nodes into two lists - before and after, splitting the node with the selection into 2 text nodes.
+                                taDOM.splitNodes(parent.childNodes, parent, secondParent, _lastSecondParent);
+                            }
+                        }else{
+                            parent = range.startContainer;
+                            secondParent = parent.cloneNode();
+                            taDOM.splitNodes(parent.childNodes, parent, secondParent, undefined, undefined, range.startOffset);
+                        }
+
+                        angular.element(parent).after(secondParent);
+                        // put cursor to end of inserted content
+                        //console.log('setStartAfter', parent);
+                        range.setStartAfter(parent);
+                        range.setEndAfter(parent);
+
+                        if(/^(|<br(|\/)>)$/i.test(parent.innerHTML.trim())){
+                            range.setStartBefore(parent);
+                            range.setEndBefore(parent);
+                            angular.element(parent).remove();
+                        }
+                        if(/^(|<br(|\/)>)$/i.test(secondParent.innerHTML.trim())) angular.element(secondParent).remove();
+                        if(parent.nodeName.toLowerCase() === 'li'){
+                            _tempFrag = _document.createDocumentFragment();
+                            for(i = 0; i < frag.childNodes.length; i++){
+                                element = angular.element('<li>');
+                                taDOM.transferChildNodes(frag.childNodes[i], element[0]);
+                                taDOM.transferNodeAttributes(frag.childNodes[i], element[0]);
+                                _tempFrag.appendChild(element[0]);
+                            }
+                            frag = _tempFrag;
+                            if(lastNode){
+                                lastNode = frag.childNodes[frag.childNodes.length - 1];
+                                lastNode = lastNode.childNodes[lastNode.childNodes.length - 1];
+                            }
+                        }
+                    }
+                }else{
+                    range.deleteContents();
+                }
+            }
+
+            range.insertNode(frag);
+            if(lastNode){
+                api.setSelectionToElementEnd(lastNode);
+            }
+        }
+
+        /* NOT FUNCTIONAL YET
+         // under Firefox, we may have a selection that needs to be normalized
+         isSelectionContainerWhole_taTextElement: function (){
+         var range = rangy.getSelection().getRangeAt(0);
+         var container = range.commonAncestorContainer;
+         if (container.nodeName.toLowerCase() === 'div' &&
+         /^taTextElement/.test(container.id)) {
+         // container is the whole taTextElement
+         return true;
+         }
+         return false;
+         },
+         setNormalizedSelection: function (){
+         var range = rangy.getSelection().getRangeAt(0);
+         var container = range.commonAncestorContainer;
+         console.log(range);
+         console.log(container.childNodes);
+         if (range.collapsed) {
+         // we know what to do...
+         console.log(container.childNodes[range.startOffset]);
+         api.setSelectionToElementStart(container.childNodes[range.startOffset]);
+         }
+         },
+         */
+    };
+    return api;
+}]).service('taDOM', function(){
+    var taDOM = {
+        // recursive function that returns an array of angular.elements that have the passed attribute set on them
+        getByAttribute: function(element, attribute){
+            var resultingElements = [];
+            var childNodes = element.children();
+            if(childNodes.length){
+                angular.forEach(childNodes, function(child){
+                    resultingElements = resultingElements.concat(taDOM.getByAttribute(angular.element(child), attribute));
+                });
+            }
+            if(element.attr(attribute) !== undefined) resultingElements.push(element);
+            return resultingElements;
+        },
+
+        transferChildNodes: function(source, target){
+            // clear out target
+            target.innerHTML = '';
+            while(source.childNodes.length > 0) target.appendChild(source.childNodes[0]);
+            return target;
+        },
+
+        splitNodes: function(nodes, target1, target2, splitNode, subSplitIndex, splitIndex){
+            if(!splitNode && isNaN(splitIndex)) throw new Error('taDOM.splitNodes requires a splitNode or splitIndex');
+            var startNodes = document.createDocumentFragment();
+            var endNodes = document.createDocumentFragment();
+            var index = 0;
+
+            while(nodes.length > 0 && (isNaN(splitIndex) || splitIndex !== index) && nodes[0] !== splitNode){
+                startNodes.appendChild(nodes[0]); // this removes from the nodes array (if proper childNodes object.
+                index++;
+            }
+
+            if(!isNaN(subSplitIndex) && subSplitIndex >= 0 && nodes[0]){
+                startNodes.appendChild(document.createTextNode(nodes[0].nodeValue.substring(0, subSplitIndex)));
+                nodes[0].nodeValue = nodes[0].nodeValue.substring(subSplitIndex);
+            }
+            while(nodes.length > 0) endNodes.appendChild(nodes[0]);
+
+            taDOM.transferChildNodes(startNodes, target1);
+            taDOM.transferChildNodes(endNodes, target2);
+        },
+
+        transferNodeAttributes: function(source, target){
+            for(var i = 0; i < source.attributes.length; i++) target.setAttribute(source.attributes[i].name, source.attributes[i].value);
+            return target;
+        }
+    };
+    return taDOM;
+});
+
+angular.module('textAngular.validators', [])
+.directive('taMaxText', function(){
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, elem, attrs, ctrl){
+            var max = parseInt(scope.$eval(attrs.taMaxText));
+            if (isNaN(max)){
+                throw('Max text must be an integer');
+            }
+            attrs.$observe('taMaxText', function(value){
+                max = parseInt(value);
+                if (isNaN(max)){
+                    throw('Max text must be an integer');
+                }
+                if (ctrl.$dirty){
+                    ctrl.$validate();
+                }
+            });
+            ctrl.$validators.taMaxText = function(viewValue){
+                var source = angular.element('<div/>');
+                source.html(viewValue);
+                return source.text().length <= max;
+            };
+        }
+    };
+}).directive('taMinText', function(){
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, elem, attrs, ctrl){
+            var min = parseInt(scope.$eval(attrs.taMinText));
+            if (isNaN(min)){
+                throw('Min text must be an integer');
+            }
+            attrs.$observe('taMinText', function(value){
+                min = parseInt(value);
+                if (isNaN(min)){
+                    throw('Min text must be an integer');
+                }
+                if (ctrl.$dirty){
+                    ctrl.$validate();
+                }
+            });
+            ctrl.$validators.taMinText = function(viewValue){
+                var source = angular.element('<div/>');
+                source.html(viewValue);
+                return !source.text().length || source.text().length >= min;
+            };
+        }
+    };
+});
+angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'])
+.service('_taBlankTest', [function(){
+    return function(_blankVal){
+        // we radically restructure this code.
+        // what was here before was incredibly fragile.
+        // What we do now is to check that the html is non-blank visually
+        // which we check by looking at html->text
+        if(!_blankVal) return true;
+        // find first non-tag match - ie start of string or after tag that is not whitespace
+        // var t0 = performance.now();
+        // Takes a small fraction of a mSec to do this...
+        var _text_ = stripHtmlToText(_blankVal);
+        // var t1 = performance.now();
+        // console.log('Took', (t1 - t0).toFixed(4), 'milliseconds to generate:');
+        if (_text_=== '') {
+            // img generates a visible item so it is not blank!
+            if (/<img[^>]+>/.test(_blankVal)) {
+                return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    };
+}])
+.directive('taButton', [function(){
+    return {
+        link: function(scope, element, attrs){
+            element.attr('unselectable', 'on');
+            element.on('mousedown', function(e, eventData){
+                /* istanbul ignore else: this is for catching the jqLite testing*/
+                if(eventData) angular.extend(e, eventData);
+                // this prevents focusout from firing on the editor when clicking toolbar buttons
+                e.preventDefault();
+                return false;
+            });
+        }
+    };
+}])
+.directive('taBind', [
+        'taSanitize', '$timeout', '$document', 'taFixChrome', 'taBrowserTag',
+        'taSelection', 'taSelectableElements', 'taApplyCustomRenderers', 'taOptions',
+        '_taBlankTest', '$parse', 'taDOM', 'textAngularManager',
+        function(
+            taSanitize, $timeout, $document, taFixChrome, taBrowserTag,
+            taSelection, taSelectableElements, taApplyCustomRenderers, taOptions,
+            _taBlankTest, $parse, taDOM, textAngularManager){
+    // Uses for this are textarea or input with ng-model and ta-bind='text'
+    // OR any non-form element with contenteditable="contenteditable" ta-bind="html|text" ng-model
+    return {
+        priority: 2, // So we override validators correctly
+        require: ['ngModel','?ngModelOptions'],
+        link: function(scope, element, attrs, controller){
+            var ngModel = controller[0];
+            var ngModelOptions = controller[1] || {};
+            // the option to use taBind on an input or textarea is required as it will sanitize all input into it correctly.
+            var _isContentEditable = element.attr('contenteditable') !== undefined && element.attr('contenteditable');
+            var _isInputFriendly = _isContentEditable || element[0].tagName.toLowerCase() === 'textarea' || element[0].tagName.toLowerCase() === 'input';
+            var _isReadonly = false;
+            var _focussed = false;
+            var _skipRender = false;
+            var _disableSanitizer = attrs.taUnsafeSanitizer || taOptions.disableSanitizer;
+            var _keepStyles = attrs.taKeepStyles || taOptions.keepStyles;
+            var _lastKey;
+            // see http://www.javascripter.net/faq/keycodes.htm for good information
+            // NOTE Mute On|Off 173 (Opera MSIE Safari Chrome) 181 (Firefox)
+            // BLOCKED_KEYS are special keys...
+            // Tab, pause/break, CapsLock, Esc, Page Up, End, Home,
+            // Left arrow, Up arrow, Right arrow, Down arrow, Insert, Delete,
+            // f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12
+            // NumLock, ScrollLock
+            var BLOCKED_KEYS = /^(9|19|20|27|33|34|35|36|37|38|39|40|45|112|113|114|115|116|117|118|119|120|121|122|123|144|145)$/i;
+            // UNDO_TRIGGER_KEYS - spaces, enter, delete, backspace, all punctuation
+            // Backspace, Enter, Space, Delete, (; :) (Firefox), (= +) (Firefox),
+            // Numpad +, Numpad -, (; :), (= +),
+            // (, <), (- _), (. >), (/ ?), (` ~), ([ {), (\ |), (] }), (' ")
+            // NOTE - Firefox: 173 = (- _) -- adding this to UNDO_TRIGGER_KEYS
+            var UNDO_TRIGGER_KEYS = /^(8|13|32|46|59|61|107|109|173|186|187|188|189|190|191|192|219|220|221|222)$/i;
+            var _pasteHandler;
+
+            // defaults to the paragraph element, but we need the line-break or it doesn't allow you to type into the empty element
+            // non IE is '<p><br/></p>', ie is '<p></p>' as for once IE gets it correct...
+            var _defaultVal, _defaultTest;
+
+            var _CTRL_KEY = 0x0001;
+            var _META_KEY = 0x0002;
+            var _ALT_KEY = 0x0004;
+            var _SHIFT_KEY = 0x0008;
+            // KEYCODEs we use
+            var _ENTER_KEYCODE = 13;
+            var _SHIFT_KEYCODE = 16;
+            var _TAB_KEYCODE = 9;
+            var _LEFT_ARROW_KEYCODE = 37;
+            var _RIGHT_ARROW_KEYCODE = 39;
+            // map events to special keys...
+            // mappings is an array of maps from events to specialKeys as declared in textAngularSetup
+            var _keyMappings = [
+                //		ctrl/command + z
+                {
+                    specialKey: 'UndoKey',
+                    forbiddenModifiers: _ALT_KEY + _SHIFT_KEY,
+                    mustHaveModifiers: [_META_KEY + _CTRL_KEY],
+                    keyCode: 90
+                },
+                //		ctrl/command + shift + z
+                {
+                    specialKey: 'RedoKey',
+                    forbiddenModifiers: _ALT_KEY,
+                    mustHaveModifiers: [_META_KEY + _CTRL_KEY, _SHIFT_KEY],
+                    keyCode: 90
+                },
+                //		ctrl/command + y
+                {
+                    specialKey: 'RedoKey',
+                    forbiddenModifiers: _ALT_KEY + _SHIFT_KEY,
+                    mustHaveModifiers: [_META_KEY + _CTRL_KEY],
+                    keyCode: 89
+                },
+                //		TabKey
+                {
+                    specialKey: 'TabKey',
+                    forbiddenModifiers: _META_KEY + _SHIFT_KEY + _ALT_KEY + _CTRL_KEY,
+                    mustHaveModifiers: [],
+                    keyCode: _TAB_KEYCODE
+                },
+                //		shift + TabKey
+                {
+                    specialKey: 'ShiftTabKey',
+                    forbiddenModifiers: _META_KEY + _ALT_KEY + _CTRL_KEY,
+                    mustHaveModifiers: [_SHIFT_KEY],
+                    keyCode: _TAB_KEYCODE
+                }
+            ];
+            function _mapKeys(event) {
+                var specialKey;
+                _keyMappings.forEach(function (map){
+                    if (map.keyCode === event.keyCode) {
+                        var netModifiers = (event.metaKey ? _META_KEY: 0) +
+                            (event.ctrlKey ? _CTRL_KEY: 0) +
+                            (event.shiftKey ? _SHIFT_KEY: 0) +
+                            (event.altKey ? _ALT_KEY: 0);
+                        if (map.forbiddenModifiers & netModifiers) return;
+                        if (map.mustHaveModifiers.every(function (modifier) { return netModifiers & modifier; })){
+                            specialKey = map.specialKey;
+                        }
+                    }
+                });
+                return specialKey;
+            }
+
+            // set the default to be a paragraph value
+            if(attrs.taDefaultWrap === undefined) attrs.taDefaultWrap = 'p';
+            /* istanbul ignore next: ie specific test */
+            if(attrs.taDefaultWrap === ''){
+                _defaultVal = '';
+                _defaultTest = (_browserDetect.ie === undefined)? '<div><br></div>' : (_browserDetect.ie >= 11)? '<p><br></p>' : (_browserDetect.ie <= 8)? '<P>&nbsp;</P>' : '<p>&nbsp;</p>';
+            }else{
+                _defaultVal = (_browserDetect.ie === undefined || _browserDetect.ie >= 11)?
+                    (attrs.taDefaultWrap.toLowerCase() === 'br' ? '<BR><BR>' : '<' + attrs.taDefaultWrap + '><br></' + attrs.taDefaultWrap + '>') :
+                    (_browserDetect.ie <= 8)?
+                        '<' + attrs.taDefaultWrap.toUpperCase() + '></' + attrs.taDefaultWrap.toUpperCase() + '>' :
+                        '<' + attrs.taDefaultWrap + '></' + attrs.taDefaultWrap + '>';
+                _defaultTest = (_browserDetect.ie === undefined || _browserDetect.ie >= 11)?
+                    (attrs.taDefaultWrap.toLowerCase() === 'br' ? '<br><br>' : '<' + attrs.taDefaultWrap + '><br></' + attrs.taDefaultWrap + '>') :
+                    (_browserDetect.ie <= 8)?
+                        '<' + attrs.taDefaultWrap.toUpperCase() + '>&nbsp;</' + attrs.taDefaultWrap.toUpperCase() + '>' :
+                        '<' + attrs.taDefaultWrap + '>&nbsp;</' + attrs.taDefaultWrap + '>';
+            }
+
+            /* istanbul ignore else */
+            if(!ngModelOptions.$options) ngModelOptions.$options = {}; // ng-model-options support
+
+            var _ensureContentWrapped = function(value) {
+                if (_taBlankTest(value)) return value;
+                var domTest = angular.element("<div>" + value + "</div>");
+                //console.log('domTest.children().length():', domTest.children().length);
+                //console.log('_ensureContentWrapped', domTest.children());
+                //console.log(value, attrs.taDefaultWrap);
+                if (domTest.children().length === 0) {
+                    // if we have a <br> and the attrs.taDefaultWrap is a <p> we need to remove the <br>
+                    //value = value.replace(/<br>/i, '');
+                    value = "<" + attrs.taDefaultWrap + ">" + value + "</" + attrs.taDefaultWrap + ">";
+                } else {
+                    var _children = domTest[0].childNodes;
+                    var i;
+                    var _foundBlockElement = false;
+                    for (i = 0; i < _children.length; i++) {
+                        if (_foundBlockElement = _children[i].nodeName.toLowerCase().match(BLOCKELEMENTS)) break;
+                    }
+                    if (!_foundBlockElement) {
+                        value = "<" + attrs.taDefaultWrap + ">" + value + "</" + attrs.taDefaultWrap + ">";
+                    }
+                    else{
+                        value = "";
+                        for(i = 0; i < _children.length; i++){
+                            var node = _children[i];
+                            var nodeName = node.nodeName.toLowerCase();
+                            //console.log('node#:', i, 'name:', nodeName);
+                            if(nodeName === '#comment') {
+                                value += '<!--' + node.nodeValue + '-->';
+                            } else if(nodeName === '#text') {
+                                // determine if this is all whitespace, if so, we will leave it as it is.
+                                // otherwise, we will wrap it as it is
+                                var text = node.textContent;
+                                if (!text.trim()) {
+                                    // just whitespace
+                                    value += text;
+                                } else {
+                                    // not pure white space so wrap in <p>...</p> or whatever attrs.taDefaultWrap is set to.
+                                    value += "<" + attrs.taDefaultWrap + ">" + text + "</" + attrs.taDefaultWrap + ">";
+                                }
+                            } else if(!nodeName.match(BLOCKELEMENTS)){
+                                /* istanbul ignore  next: Doesn't seem to trigger on tests */
+                                var _subVal = (node.outerHTML || node.nodeValue);
+                                /* istanbul ignore else: Doesn't seem to trigger on tests, is tested though */
+                                if(_subVal.trim() !== '')
+                                    value += "<" + attrs.taDefaultWrap + ">" + _subVal + "</" + attrs.taDefaultWrap + ">";
+                                else value += _subVal;
+                            } else {
+                                value += node.outerHTML;
+                            }
+                            //console.log(value);
+                        }
+                    }
+                }
+                //console.log(value);
+                return value;
+            };
+
+            if(attrs.taPaste) {
+                _pasteHandler = $parse(attrs.taPaste);
+            }
+
+            element.addClass('ta-bind');
+
+            var _undoKeyupTimeout;
+
+            scope['$undoManager' + (attrs.id || '')] = ngModel.$undoManager = {
+                _stack: [],
+                _index: 0,
+                _max: 1000,
+                push: function(value){
+                    if((typeof value === "undefined" || value === null) ||
+                        ((typeof this.current() !== "undefined" && this.current() !== null) && value === this.current())) return value;
+                    if(this._index < this._stack.length - 1){
+                        this._stack = this._stack.slice(0,this._index+1);
+                    }
+                    this._stack.push(value);
+                    if(_undoKeyupTimeout) $timeout.cancel(_undoKeyupTimeout);
+                    if(this._stack.length > this._max) this._stack.shift();
+                    this._index = this._stack.length - 1;
+                    return value;
+                },
+                undo: function(){
+                    return this.setToIndex(this._index-1);
+                },
+                redo: function(){
+                    return this.setToIndex(this._index+1);
+                },
+                setToIndex: function(index){
+                    if(index < 0 || index > this._stack.length - 1){
+                        return undefined;
+                    }
+                    this._index = index;
+                    return this.current();
+                },
+                current: function(){
+                    return this._stack[this._index];
+                }
+            };
+
+            // in here we are undoing the converts used elsewhere to prevent the < > and & being displayed when they shouldn't in the code.
+            var _compileHtml = function(){
+                if(_isContentEditable) {
+                    return element[0].innerHTML;
+                }
+                if(_isInputFriendly) {
+                    return element.val();
+                }
+                throw ('textAngular Error: attempting to update non-editable taBind');
+            };
+
+            var selectorClickHandler = function(event){
+                // emit the element-select event, pass the element
+                scope.$emit('ta-element-select', this);
+                event.preventDefault();
+                return false;
+            };
+
+            //used for updating when inserting wrapped elements
+            var _reApplyOnSelectorHandlers = scope['reApplyOnSelectorHandlers' + (attrs.id || '')] = function(){
+                /* istanbul ignore else */
+                if(!_isReadonly) angular.forEach(taSelectableElements, function(selector){
+                    // check we don't apply the handler twice
+                    element.find(selector)
+                        .off('click', selectorClickHandler)
+                        .on('click', selectorClickHandler);
+                });
+            };
+
+            var _setViewValue = function(_val, triggerUndo, skipRender){
+                _skipRender = skipRender || false;
+                if(typeof triggerUndo === "undefined" || triggerUndo === null) triggerUndo = true && _isContentEditable; // if not contentEditable then the native undo/redo is fine
+                if(typeof _val === "undefined" || _val === null) _val = _compileHtml();
+                if(_taBlankTest(_val)){
+                    // this avoids us from tripping the ng-pristine flag if we click in and out with out typing
+                    if(ngModel.$viewValue !== '') ngModel.$setViewValue('');
+                    if(triggerUndo && ngModel.$undoManager.current() !== '') ngModel.$undoManager.push('');
+                }else{
+                    _reApplyOnSelectorHandlers();
+                    if(ngModel.$viewValue !== _val){
+                        ngModel.$setViewValue(_val);
+                        if(triggerUndo) ngModel.$undoManager.push(_val);
+                    }
+                }
+                ngModel.$render();
+            };
+
+            var _setInnerHTML = function(newval){
+                element[0].innerHTML = newval;
+            };
+
+            var _redoUndoTimeout;
+            var _undo = scope['$undoTaBind' + (attrs.id || '')] = function(){
+                /* istanbul ignore else: can't really test it due to all changes being ignored as well in readonly */
+                if(!_isReadonly && _isContentEditable){
+                    var content = ngModel.$undoManager.undo();
+                    if(typeof content !== "undefined" && content !== null){
+                        _setInnerHTML(content);
+                        _setViewValue(content, false);
+                        if(_redoUndoTimeout) $timeout.cancel(_redoUndoTimeout);
+                        _redoUndoTimeout = $timeout(function(){
+                            element[0].focus();
+                            taSelection.setSelectionToElementEnd(element[0]);
+                        }, 1);
+                    }
+                }
+            };
+
+            var _redo = scope['$redoTaBind' + (attrs.id || '')] = function(){
+                /* istanbul ignore else: can't really test it due to all changes being ignored as well in readonly */
+                if(!_isReadonly && _isContentEditable){
+                    var content = ngModel.$undoManager.redo();
+                    if(typeof content !== "undefined" && content !== null){
+                        _setInnerHTML(content);
+                        _setViewValue(content, false);
+                        /* istanbul ignore next */
+                        if(_redoUndoTimeout) $timeout.cancel(_redoUndoTimeout);
+                        _redoUndoTimeout = $timeout(function(){
+                            element[0].focus();
+                            taSelection.setSelectionToElementEnd(element[0]);
+                        }, 1);
+                    }
+                }
+            };
+
+            //used for updating when inserting wrapped elements
+            scope['updateTaBind' + (attrs.id || '')] = function(){
+                if(!_isReadonly) _setViewValue(undefined, undefined, true);
+            };
+
+            // catch DOM XSS via taSanitize
+            // Sanitizing both ways is identical
+            var _sanitize = function(unsafe){
+                return (ngModel.$oldViewValue = taSanitize(taFixChrome(unsafe, _keepStyles), ngModel.$oldViewValue, _disableSanitizer));
+            };
+
+            // trigger the validation calls
+            if(element.attr('required')) ngModel.$validators.required = function(modelValue, viewValue) {
+                return !_taBlankTest(modelValue || viewValue);
+            };
+            // parsers trigger from the above keyup function or any other time that the viewValue is updated and parses it for storage in the ngModel
+            ngModel.$parsers.push(_sanitize);
+            ngModel.$parsers.unshift(_ensureContentWrapped);
+            // because textAngular is bi-directional (which is awesome) we need to also sanitize values going in from the server
+            ngModel.$formatters.push(_sanitize);
+            ngModel.$formatters.unshift(_ensureContentWrapped);
+            ngModel.$formatters.unshift(function(value){
+                return ngModel.$undoManager.push(value || '');
+            });
+
+            //this code is used to update the models when data is entered/deleted
+            if(_isInputFriendly){
+                scope.events = {};
+                if(!_isContentEditable){
+                    // if a textarea or input just add in change and blur handlers, everything else is done by angulars input directive
+                    element.on('change blur', scope.events.change = scope.events.blur = function(){
+                        if(!_isReadonly) ngModel.$setViewValue(_compileHtml());
+                    });
+
+                    element.on('keydown', scope.events.keydown = function(event, eventData){
+                        /* istanbul ignore else: this is for catching the jqLite testing*/
+                        if(eventData) angular.extend(event, eventData);
+                        // Reference to http://stackoverflow.com/questions/6140632/how-to-handle-tab-in-textarea
+                        /* istanbul ignore else: otherwise normal functionality */
+                        if(event.keyCode === _TAB_KEYCODE){ // tab was pressed
+                            // get caret position/selection
+                            var start = this.selectionStart;
+                            var end = this.selectionEnd;
+
+                            var value = element.val();
+                            if(event.shiftKey){
+                                // find \t
+                                var _linebreak = value.lastIndexOf('\n', start), _tab = value.lastIndexOf('\t', start);
+                                if(_tab !== -1 && _tab >= _linebreak){
+                                    // set textarea value to: text before caret + tab + text after caret
+                                    element.val(value.substring(0, _tab) + value.substring(_tab + 1));
+
+                                    // put caret at right position again (add one for the tab)
+                                    this.selectionStart = this.selectionEnd = start - 1;
+                                }
+                            }else{
+                                // set textarea value to: text before caret + tab + text after caret
+                                element.val(value.substring(0, start) + "\t" + value.substring(end));
+
+                                // put caret at right position again (add one for the tab)
+                                this.selectionStart = this.selectionEnd = start + 1;
+                            }
+                            // prevent the focus lose
+                            event.preventDefault();
+                        }
+                    });
+
+                    var _repeat = function(string, n){
+                        var result = '';
+                        for(var _n = 0; _n < n; _n++) result += string;
+                        return result;
+                    };
+
+                    // add a forEach function that will work on a NodeList, etc..
+                    var forEach = function (array, callback, scope) {
+                        for (var i= 0; i<array.length; i++) {
+                            callback.call(scope, i, array[i]);
+                        }
+                    };
+
+                    // handle <ul> or <ol> nodes
+                    var recursiveListFormat = function(listNode, tablevel){
+                        var _html = '';
+                        var _subnodes = listNode.childNodes;
+                        tablevel++;
+                        // tab out and add the <ul> or <ol> html piece
+                        _html += _repeat('\t', tablevel-1) + listNode.outerHTML.substring(0, 4);
+                        forEach(_subnodes, function (index, node) {
+                            /* istanbul ignore next: browser catch */
+                            var nodeName = node.nodeName.toLowerCase();
+                            if (nodeName === '#comment') {
+                                _html += '<!--' + node.nodeValue + '-->';
+                                return;
+                            }
+                            if (nodeName === '#text') {
+                                _html += node.textContent;
+                                return;
+                            }
+                            /* istanbul ignore next: not tested, and this was original code -- so not wanting to possibly cause an issue, leaving it... */
+                            if(!node.outerHTML) {
+                                // no html to add
+                                return;
+                            }
+                            if(nodeName === 'ul' || nodeName === 'ol') {
+                                _html += '\n' + recursiveListFormat(node, tablevel);
+                            }
+                            else {
+                                // no reformatting within this subnode, so just do the tabing...
+                                _html += '\n' + _repeat('\t', tablevel) + node.outerHTML;
+                            }
+                        });
+                        // now add on the </ol> or </ul> piece
+                        _html += '\n' + _repeat('\t', tablevel-1) + listNode.outerHTML.substring(listNode.outerHTML.lastIndexOf('<'));
+                        return _html;
+                    };
+                    // handle formating of something like:
+                    // <ol><!--First comment-->
+                    //  <li>Test Line 1<!--comment test list 1--></li>
+                    //    <ul><!--comment ul-->
+                    //      <li>Nested Line 1</li>
+                    //        <!--comment between nested lines--><li>Nested Line 2</li>
+                    //    </ul>
+                    //  <li>Test Line 3</li>
+                    // </ol>
+                    ngModel.$formatters.unshift(function(htmlValue){
+                        // tabulate the HTML so it looks nicer
+                        //
+                        // first get a list of the nodes...
+                        // we do this by using the element parser...
+                        //
+                        // doing this -- which is simpiler -- breaks our tests...
+                        //var _nodes=angular.element(htmlValue);
+                        var _nodes = angular.element('<div>' + htmlValue + '</div>')[0].childNodes;
+                        if(_nodes.length > 0){
+                            // do the reformatting of the layout...
+                            htmlValue = '';
+                            forEach(_nodes, function (index, node) {
+                                var nodeName = node.nodeName.toLowerCase();
+                                if (nodeName === '#comment') {
+                                    htmlValue += '<!--' + node.nodeValue + '-->';
+                                    return;
+                                }
+                                if (nodeName === '#text') {
+                                    htmlValue += node.textContent;
+                                    return;
+                                }
+                                /* istanbul ignore next: not tested, and this was original code -- so not wanting to possibly cause an issue, leaving it... */
+                                if(!node.outerHTML)
+                                {
+                                    // nothing to format!
+                                    return;
+                                }
+                                if(htmlValue.length > 0) {
+                                    // we aready have some content, so drop to a new line
+                                    htmlValue += '\n';
+                                }
+                                if(nodeName === 'ul' || nodeName === 'ol') {
+                                    // okay a set of list stuff we want to reformat in a nested way
+                                    htmlValue += '' + recursiveListFormat(node, 0);
+                                }
+                                else {
+                                    // just use the original without any additional formating
+                                    htmlValue += '' + node.outerHTML;
+                                }
+                            });
+                        }
+                        return htmlValue;
+                    });
+                }else{
+                    // all the code specific to contenteditable divs
+                    var _processingPaste = false;
+                    /* istanbul ignore next: phantom js cannot test this for some reason */
+                    var processpaste = function(text) {
+                       var _isOneNote = text!==undefined? text.match(/content=["']*OneNote.File/i): false;
+                        /* istanbul ignore else: don't care if nothing pasted */
+                        //console.log(text);
+                        if(text && text.trim().length){
+                            // test paste from word/microsoft product
+                            if(text.match(/class=["']*Mso(Normal|List)/i) || text.match(/content=["']*Word.Document/i) || text.match(/content=["']*OneNote.File/i)){
+                                var textFragment = text.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/i);
+                                if(!textFragment) textFragment = text;
+                                else textFragment = textFragment[1];
+                                textFragment = textFragment.replace(/<o:p>[\s\S]*?<\/o:p>/ig, '').replace(/class=(["']|)MsoNormal(["']|)/ig, '');
+                                var dom = angular.element("<div>" + textFragment + "</div>");
+                                var targetDom = angular.element("<div></div>");
+                                var _list = {
+                                    element: null,
+                                    lastIndent: [],
+                                    lastLi: null,
+                                    isUl: false
+                                };
+                                _list.lastIndent.peek = function(){
+                                    var n = this.length;
+                                    if (n>0) return this[n-1];
+                                };
+                                var _resetList = function(isUl){
+                                    _list.isUl = isUl;
+                                    _list.element = angular.element(isUl ? "<ul>" : "<ol>");
+                                    _list.lastIndent = [];
+                                    _list.lastIndent.peek = function(){
+                                        var n = this.length;
+                                        if (n>0) return this[n-1];
+                                    };
+                                    _list.lastLevelMatch = null;
+                                };
+                                for(var i = 0; i <= dom[0].childNodes.length; i++){
+                                    if(!dom[0].childNodes[i] || dom[0].childNodes[i].nodeName === "#text"){
+                                        continue;
+                                    } else {
+                                        var tagName = dom[0].childNodes[i].tagName.toLowerCase();
+                                        if(tagName !== 'p' &&
+                                            tagName !== 'ul' &&
+                                            tagName !== 'h1' &&
+                                            tagName !== 'h2' &&
+                                            tagName !== 'h3' &&
+                                            tagName !== 'h4' &&
+                                            tagName !== 'h5' &&
+                                            tagName !== 'h6' &&
+                                            tagName !== 'table'){
+                                            continue;
+                                        }
+                                    }
+                                    var el = angular.element(dom[0].childNodes[i]);
+                                    var _listMatch = (el.attr('class') || '').match(/MsoList(Bullet|Number|Paragraph)(CxSp(First|Middle|Last)|)/i);
+
+                                    if(_listMatch){
+                                        if(el[0].childNodes.length < 2 || el[0].childNodes[1].childNodes.length < 1){
+                                            continue;
+                                        }
+                                        var isUl = _listMatch[1].toLowerCase() === 'bullet' || (_listMatch[1].toLowerCase() !== 'number' && !(/^[^0-9a-z<]*[0-9a-z]+[^0-9a-z<>]</i.test(el[0].childNodes[1].innerHTML) || /^[^0-9a-z<]*[0-9a-z]+[^0-9a-z<>]</i.test(el[0].childNodes[1].childNodes[0].innerHTML)));
+                                        var _indentMatch = (el.attr('style') || '').match(/margin-left:([\-\.0-9]*)/i);
+                                        var indent = parseFloat((_indentMatch)?_indentMatch[1]:0);
+                                        var _levelMatch = (el.attr('style') || '').match(/mso-list:l([0-9]+) level([0-9]+) lfo[0-9+]($|;)/i);
+                                        // prefers the mso-list syntax
+
+                                        if(_levelMatch && _levelMatch[2]) indent = parseInt(_levelMatch[2]);
+
+                                        if ((_levelMatch && (!_list.lastLevelMatch || _levelMatch[1] !== _list.lastLevelMatch[1])) || !_listMatch[3] || _listMatch[3].toLowerCase() === 'first' || (_list.lastIndent.peek() === null) || (_list.isUl !== isUl && _list.lastIndent.peek() === indent)) {
+                                            _resetList(isUl);
+                                            targetDom.append(_list.element);
+                                        } else if (_list.lastIndent.peek() != null && _list.lastIndent.peek() < indent){
+                                            _list.element = angular.element(isUl ? '<ul>' : '<ol>');
+                                            _list.lastLi.append(_list.element);
+                                        } else if (_list.lastIndent.peek() != null && _list.lastIndent.peek() > indent){
+                                            while(_list.lastIndent.peek() != null && _list.lastIndent.peek() > indent){
+                                                if(_list.element.parent()[0].tagName.toLowerCase() === 'li'){
+                                                    _list.element = _list.element.parent();
+                                                    continue;
+                                                }else if(/[uo]l/i.test(_list.element.parent()[0].tagName.toLowerCase())){
+                                                    _list.element = _list.element.parent();
+                                                }else{ // else it's it should be a sibling
+                                                    break;
+                                                }
+                                                _list.lastIndent.pop();
+                                            }
+                                            _list.isUl = _list.element[0].tagName.toLowerCase() === 'ul';
+                                            if (isUl !== _list.isUl) {
+                                                _resetList(isUl);
+                                                targetDom.append(_list.element);
+                                            }
+                                        }
+
+                                        _list.lastLevelMatch = _levelMatch;
+                                        if(indent !== _list.lastIndent.peek()) _list.lastIndent.push(indent);
+                                        _list.lastLi = angular.element('<li>');
+                                        _list.element.append(_list.lastLi);
+                                        _list.lastLi.html(el.html().replace(/<!(--|)\[if !supportLists\](--|)>[\s\S]*?<!(--|)\[endif\](--|)>/ig, ''));
+                                        el.remove();
+                                    }else{
+                                        _resetList(false);
+                                        targetDom.append(el);
+                                    }
+                                }
+                                var _unwrapElement = function(node){
+                                    node = angular.element(node);
+                                    for(var _n = node[0].childNodes.length - 1; _n >= 0; _n--) node.after(node[0].childNodes[_n]);
+                                    node.remove();
+                                };
+
+                                angular.forEach(targetDom.find('span'), function(node){
+                                    node.removeAttribute('lang');
+                                    if(node.attributes.length <= 0) _unwrapElement(node);
+                                });
+                                angular.forEach(targetDom.find('font'), _unwrapElement);
+
+                                text = targetDom.html();
+                                if(_isOneNote){
+                                    text = targetDom.html() || dom.html();
+                                }
+                                // LF characters instead of spaces in some spots and they are replaced by '/n', so we need to just swap them to spaces
+                                text = text.replace(/\n/g, ' ');
+                            }else{
+                                // remove unnecessary chrome insert
+                                text = text.replace(/<(|\/)meta[^>]*?>/ig, '');
+                                if(text.match(/<[^>]*?(ta-bind)[^>]*?>/)){
+                                    // entire text-angular or ta-bind has been pasted, REMOVE AT ONCE!!
+                                    if(text.match(/<[^>]*?(text-angular)[^>]*?>/)){
+                                        var _el = angular.element('<div>' + text + '</div>');
+                                        _el.find('textarea').remove();
+                                        for(var _b = 0; _b < binds.length; _b++){
+                                            var _target = binds[_b][0].parentNode.parentNode;
+                                            for(var _c = 0; _c < binds[_b][0].childNodes.length; _c++){
+                                                _target.parentNode.insertBefore(binds[_b][0].childNodes[_c], _target);
+                                            }
+                                            _target.parentNode.removeChild(_target);
+                                        }
+                                        text = _el.html().replace('<br class="Apple-interchange-newline">', '');
+                                    }
+                                }else if(text.match(/^<span/)){
+                                    // in case of pasting only a span - chrome paste, remove them. THis is just some wierd formatting
+                                    // if we remove the '<span class="Apple-converted-space"> </span>' here we destroy the spacing
+                                    // on paste from even ourselves!
+                                    if (!text.match(/<span class=(\"Apple-converted-space\"|\'Apple-converted-space\')>.<\/span>/ig)) {
+                                        text = text.replace(/<(|\/)span[^>]*?>/ig, '');
+                                    }
+                                }
+                                // Webkit on Apple tags
+                                text = text.replace(/<br class="Apple-interchange-newline"[^>]*?>/ig, '').replace(/<span class="Apple-converted-space">( |&nbsp;)<\/span>/ig, '&nbsp;');
+                            }
+
+                            if (/<li(\s.*)?>/i.test(text) && /(<ul(\s.*)?>|<ol(\s.*)?>).*<li(\s.*)?>/i.test(text) === false) {
+                                // insert missing parent of li element
+                                text = text.replace(/<li(\s.*)?>.*<\/li(\s.*)?>/i, '<ul>$&</ul>');
+                            }
+
+                            // parse whitespace from plaintext input, starting with preceding spaces that get stripped on paste
+                            text = text.replace(/^[ |\u00A0]+/gm, function (match) {
+                                var result = '';
+                                for (var i = 0; i < match.length; i++) {
+                                    result += '&nbsp;';
+                                }
+                                return result;
+                            }).replace(/\n|\r\n|\r/g, '<br />').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+
+                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text}) || text;
+
+                            // turn span vertical-align:super into <sup></sup>
+                            text = text.replace(/<span style=("|')([^<]*?)vertical-align\s*:\s*super;?([^>]*?)("|')>([^<]+?)<\/span>/g, "<sup style='$2$3'>$5</sup>");
+
+                            text = taSanitize(text, '', _disableSanitizer);
+                            //console.log('DONE\n', text);
+
+                            taSelection.insertHtml(text, element[0]);
+                            $timeout(function(){
+                                ngModel.$setViewValue(_compileHtml());
+                                _processingPaste = false;
+                                element.removeClass('processing-paste');
+                            }, 0);
+                        }else{
+                            _processingPaste = false;
+                            element.removeClass('processing-paste');
+                        }
+                    };
+
+                    element.on('paste', scope.events.paste = function(e, eventData){
+                        /* istanbul ignore else: this is for catching the jqLite testing*/
+                        if(eventData) angular.extend(e, eventData);
+                        if(_isReadonly || _processingPaste){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            return false;
+                        }
+
+                        // Code adapted from http://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser/6804718#6804718
+                        _processingPaste = true;
+                        element.addClass('processing-paste');
+                        var pastedContent;
+                        var clipboardData = (e.originalEvent || e).clipboardData;
+                        /* istanbul ignore next: Handle legacy IE paste */
+                        if ( !clipboardData && window.clipboardData && window.clipboardData.getData ){
+                            pastedContent = window.clipboardData.getData("Text");
+                            processpaste(pastedContent);
+                            e.stopPropagation();
+                            e.preventDefault();
+                            return false;
+                        }
+                        if (clipboardData && clipboardData.getData && clipboardData.types.length > 0) {// Webkit - get data from clipboard, put into editdiv, cleanup, then cancel event
+                            var _types = "";
+                            for(var _t = 0; _t < clipboardData.types.length; _t++){
+                                _types += " " + clipboardData.types[_t];
+                            }
+                            /* istanbul ignore next: browser tests */
+                            if (/text\/html/i.test(_types)) {
+                                pastedContent = clipboardData.getData('text/html');
+                            } else if (/text\/plain/i.test(_types)) {
+                                pastedContent = clipboardData.getData('text/plain');
+                            }
+                            processpaste(pastedContent);
+                            e.stopPropagation();
+                            e.preventDefault();
+                            return false;
+                        } else {// Everything else - empty editdiv and allow browser to paste content into it, then cleanup
+                            var _savedSelection = rangy.saveSelection(),
+                                _tempDiv = angular.element('<div class="ta-hidden-input" contenteditable="true"></div>');
+                            $document.find('body').append(_tempDiv);
+                            _tempDiv[0].focus();
+                            $timeout(function(){
+                                // restore selection
+                                rangy.restoreSelection(_savedSelection);
+                                processpaste(_tempDiv[0].innerHTML);
+                                element[0].focus();
+                                _tempDiv.remove();
+                            }, 0);
+                        }
+                    });
+                    element.on('cut', scope.events.cut = function(e){
+                        // timeout to next is needed as otherwise the paste/cut event has not finished actually changing the display
+                        if(!_isReadonly) $timeout(function(){
+                            ngModel.$setViewValue(_compileHtml());
+                        }, 0);
+                        else e.preventDefault();
+                    });
+
+                    element.on('keydown', scope.events.keydown = function(event, eventData){
+                        /* istanbul ignore else: this is for catching the jqLite testing*/
+                        if(eventData) angular.extend(event, eventData);
+                        if (event.keyCode === _SHIFT_KEYCODE) {
+                            taSelection.setStateShiftKey(true);
+                        } else {
+                            taSelection.setStateShiftKey(false);
+                        }
+                        event.specialKey = _mapKeys(event);
+                        var userSpecialKey;
+                        /* istanbul ignore next: difficult to test */
+                        taOptions.keyMappings.forEach(function (mapping) {
+                            if (event.specialKey === mapping.commandKeyCode) {
+                                // taOptions has remapped this binding... so
+                                // we disable our own
+                                event.specialKey = undefined;
+                            }
+                            if (mapping.testForKey(event)) {
+                                userSpecialKey = mapping.commandKeyCode;
+                            }
+                            if ((mapping.commandKeyCode === 'UndoKey') || (mapping.commandKeyCode === 'RedoKey')) {
+                                // this is necessary to fully stop the propagation.
+                                if (!mapping.enablePropagation) {
+                                    event.preventDefault();
+                                }
+                            }
+                        });
+                        /* istanbul ignore next: difficult to test */
+                        if (typeof userSpecialKey !== 'undefined') {
+                            event.specialKey = userSpecialKey;
+                        }
+                        /* istanbul ignore next: difficult to test as can't seem to select */
+                        if ((typeof event.specialKey !== 'undefined') && (
+                                event.specialKey !== 'UndoKey' || event.specialKey !== 'RedoKey'
+                            )) {
+                            event.preventDefault();
+                            textAngularManager.sendKeyCommand(scope, event);
+                        }
+                        /* istanbul ignore else: readonly check */
+                        if(!_isReadonly){
+                            if (event.specialKey==='UndoKey') {
+                                _undo();
+                                event.preventDefault();
+                            }
+                            if (event.specialKey==='RedoKey') {
+                                _redo();
+                                event.preventDefault();
+                            }
+                            /* istanbul ignore next: difficult to test as can't seem to select */
+                            if(event.keyCode === _ENTER_KEYCODE && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey)
+                            {
+                                var contains = function(a, obj) {
+                                    for (var i = 0; i < a.length; i++) {
+                                        if (a[i] === obj) {
+                                            return true;
+                                        }
+                                    }
+                                    return false;
+                                };
+                                var $selection;
+                                var selection = taSelection.getSelectionElement();
+                                // shifted to nodeName here from tagName since it is more widely supported see: http://stackoverflow.com/questions/4878484/difference-between-tagname-and-nodename
+                                if(!selection.nodeName.match(VALIDELEMENTS)) return;
+                                var _new = angular.element(_defaultVal);
+                                // if we are in the last element of a blockquote, or ul or ol and the element is blank
+                                // we need to pull the element outside of the said type
+                                var moveOutsideElements = ['blockquote', 'ul', 'ol'];
+                                if (contains(moveOutsideElements, selection.parentNode.tagName.toLowerCase())) {
+                                    if (/^<br(|\/)>$/i.test(selection.innerHTML.trim()) && !selection.nextSibling) {
+                                        // if last element is blank, pull element outside.
+                                        $selection = angular.element(selection);
+                                        var _parent = $selection.parent();
+                                        _parent.after(_new);
+                                        $selection.remove();
+                                        if (_parent.children().length === 0) _parent.remove();
+                                        taSelection.setSelectionToElementStart(_new[0]);
+                                        event.preventDefault();
+                                    }
+                                    if (/^<[^>]+><br(|\/)><\/[^>]+>$/i.test(selection.innerHTML.trim())) {
+                                        $selection = angular.element(selection);
+                                        $selection.after(_new);
+                                        $selection.remove();
+                                        taSelection.setSelectionToElementStart(_new[0]);
+                                        event.preventDefault();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    var _keyupTimeout;
+                    element.on('keyup', scope.events.keyup = function(event, eventData){
+                        /* istanbul ignore else: this is for catching the jqLite testing*/
+                        if(eventData) angular.extend(event, eventData);
+                        taSelection.setStateShiftKey(false);	// clear the ShiftKey state
+                        /* istanbul ignore next: FF specific bug fix */
+                        if (event.keyCode === _TAB_KEYCODE) {
+                            var _selection = taSelection.getSelection();
+                            if(_selection.start.element === element[0] && element.children().length) taSelection.setSelectionToElementStart(element.children()[0]);
+                            return;
+                        }
+                        // we do this here during the 'keyup' so that the browser has already moved the slection by one character...
+                        if (event.keyCode === _LEFT_ARROW_KEYCODE && !event.shiftKey) {
+                            taSelection.updateLeftArrowKey(element);
+                        }
+                        // we do this here during the 'keyup' so that the browser has already moved the slection by one character...
+                        if (event.keyCode === _RIGHT_ARROW_KEYCODE && !event.shiftKey) {
+                            taSelection.updateRightArrowKey(element);
+                        }
+                        if(_undoKeyupTimeout) $timeout.cancel(_undoKeyupTimeout);
+                        if(!_isReadonly && !BLOCKED_KEYS.test(event.keyCode)){
+                            /* istanbul ignore next: Ignore any _ENTER_KEYCODE that has ctrlKey, metaKey or alKey */
+                            if (event.keyCode === _ENTER_KEYCODE && (event.ctrlKey || event.metaKey || event.altKey)) {
+                                // we ignore any ENTER_	KEYCODE that is anything but plain or a shift one...
+                            } else {
+                                // if enter - insert new taDefaultWrap, if shift+enter insert <br/>
+                                if(_defaultVal !== '' && _defaultVal !== '<BR><BR>' && event.keyCode === _ENTER_KEYCODE && !event.ctrlKey && !event.metaKey && !event.altKey){
+                                    var selection = taSelection.getSelectionElement();
+                                    while(!selection.nodeName.match(VALIDELEMENTS) && selection !== element[0]){
+                                        selection = selection.parentNode;
+                                    }
+                                    if(!event.shiftKey){
+                                        // new paragraph, br should be caught correctly
+                                        // shifted to nodeName here from tagName since it is more widely supported see: http://stackoverflow.com/questions/4878484/difference-between-tagname-and-nodename
+                                        //console.log('Enter', selection.nodeName, attrs.taDefaultWrap, selection.innerHTML.trim());
+                                        if(selection.tagName.toLowerCase() !==
+                                            attrs.taDefaultWrap &&
+                                            selection.nodeName.toLowerCase() !== 'li' &&
+                                            (selection.innerHTML.trim() === '' || selection.innerHTML.trim() === '<br>')
+                                        ) {
+                                            // Chrome starts with a <div><br></div> after an EnterKey
+                                            // so we replace this with the _defaultVal
+                                            var _new = angular.element(_defaultVal);
+                                            angular.element(selection).replaceWith(_new);
+                                            taSelection.setSelectionToElementStart(_new[0]);
+                                        }
+                                    } else {
+                                        // shift + Enter
+                                        var tagName = selection.tagName.toLowerCase();
+                                        //console.log('Shift+Enter', selection.tagName, attrs.taDefaultWrap, selection.innerHTML.trim());
+                                        // For an LI: We see: LI p ....<br><br>
+                                        // For a P: We see: P p ....<br><br>
+                                        // on Safari, the browser ignores the Shift+Enter and acts just as an Enter Key
+                                        // For an LI: We see: LI p <br>
+                                        // For a P: We see: P p <br>
+                                        if((tagName === attrs.taDefaultWrap ||
+                                            tagName === 'li' ||
+                                            tagName === 'pre' ||
+                                            tagName === 'div') &&
+                                            !/.+<br><br>/.test(selection.innerHTML.trim())) {
+                                            var ps = selection.previousSibling;
+                                            //console.log('wrong....', ps);
+                                            // we need to remove this selection and fix the previousSibling up...
+                                            if (ps) {
+                                                ps.innerHTML = ps.innerHTML + '<br><br>';
+                                                angular.element(selection).remove();
+                                                taSelection.setSelectionToElementEnd(ps);
+                                            }
+                                        }
+                                    }
+                                }
+                                var val = _compileHtml();
+                                if(_defaultVal !== '' && (val.trim() === '' || val.trim() === '<br>')){
+                                    _setInnerHTML(_defaultVal);
+                                    taSelection.setSelectionToElementStart(element.children()[0]);
+                                }else if(val.substring(0, 1) !== '<' && attrs.taDefaultWrap !== ''){
+                                    /* we no longer do this, since there can be comments here and white space
+                                     var _savedSelection = rangy.saveSelection();
+                                     val = _compileHtml();
+                                     val = "<" + attrs.taDefaultWrap + ">" + val + "</" + attrs.taDefaultWrap + ">";
+                                     _setInnerHTML(val);
+                                     rangy.restoreSelection(_savedSelection);
+                                     */
+                                }
+                                var triggerUndo = _lastKey !== event.keyCode && UNDO_TRIGGER_KEYS.test(event.keyCode);
+                                if(_keyupTimeout) $timeout.cancel(_keyupTimeout);
+                                _keyupTimeout = $timeout(function() {
+                                    _setViewValue(val, triggerUndo, true);
+                                }, ngModelOptions.$options.debounce || 400);
+                                if(!triggerUndo) _undoKeyupTimeout = $timeout(function(){ ngModel.$undoManager.push(val); }, 250);
+                                _lastKey = event.keyCode;
+                            }
+                        }
+                    });
+
+                    // when there is a change from a spelling correction in the browser, the only
+                    // change that is seen is a 'input' and the $watch('html') sees nothing... So
+                    // we added this element.on('input') to catch this change and call the _setViewValue()
+                    // so the ngModel is updated and all works as it should.
+                    var _inputTimeout;
+                    element.on('input', function() {
+                        if (_compileHtml() !== ngModel.$viewValue) {
+                            // we wait a time now to allow the natural $watch('html') to handle this change
+                            // and then after a 1 second delay, if there is still a difference we will do the
+                            // _setViewValue() call.
+                            /* istanbul ignore if: can't test */
+                            if(_inputTimeout) $timeout.cancel(_inputTimeout);
+                            /* istanbul ignore next: cant' test? */
+                            _inputTimeout = $timeout(function() {
+                                var _savedSelection = rangy.saveSelection();
+                                var _val = _compileHtml();
+                                if (_val !== ngModel.$viewValue) {
+                                    //console.log('_setViewValue');
+                                    //console.log('old:', ngModel.$viewValue);
+                                    //console.log('new:', _val);
+                                    _setViewValue(_val, true);
+                                }
+                                // if the savedSelection marker is gone at this point, we cannot restore the selection!!!
+                                //console.log('rangy.restoreSelection', ngModel.$viewValue.length, _savedSelection);
+                                if (ngModel.$viewValue.length !== 0) {
+                                    rangy.restoreSelection(_savedSelection);
+                                }
+                            }, 1000);
+                        }
+                    });
+
+                    element.on('blur', scope.events.blur = function(){
+                        _focussed = false;
+                        /* istanbul ignore else: if readonly don't update model */
+                        if(!_isReadonly){
+                            _setViewValue(undefined, undefined, true);
+                        }else{
+                            _skipRender = true; // don't redo the whole thing, just check the placeholder logic
+                            ngModel.$render();
+                        }
+                    });
+
+                    // Placeholders not supported on ie 8 and below
+                    if(attrs.placeholder && (_browserDetect.ie > 8 || _browserDetect.ie === undefined)){
+                        var rule;
+                        if(attrs.id) rule = addCSSRule('#' + attrs.id + '.placeholder-text:before', 'content: "' + attrs.placeholder + '"');
+                        else throw('textAngular Error: An unique ID is required for placeholders to work');
+
+                        scope.$on('$destroy', function(){
+                            removeCSSRule(rule);
+                        });
+                    }
+
+                    element.on('focus', scope.events.focus = function(){
+                        _focussed = true;
+                        element.removeClass('placeholder-text');
+                        _reApplyOnSelectorHandlers();
+                    });
+
+                    element.on('mouseup', scope.events.mouseup = function(){
+                        var _selection = taSelection.getSelection();
+                        if(_selection && _selection.start.element === element[0] && element.children().length) taSelection.setSelectionToElementStart(element.children()[0]);
+                    });
+
+                    // prevent propagation on mousedown in editor, see #206
+                    element.on('mousedown', scope.events.mousedown = function(event, eventData){
+                        /* istanbul ignore else: this is for catching the jqLite testing*/
+                        if(eventData) angular.extend(event, eventData);
+                        event.stopPropagation();
+                    });
+                }
+            }
+
+            var fileDropHandler = function(event, eventData){
+                /* istanbul ignore else: this is for catching the jqLite testing*/
+                if(eventData) angular.extend(event, eventData);
+                // emit the drop event, pass the element, preventing should be done elsewhere
+                if(!dropFired && !_isReadonly){
+                    dropFired = true;
+                    var dataTransfer;
+                    if(event.originalEvent) dataTransfer = event.originalEvent.dataTransfer;
+                    else dataTransfer = event.dataTransfer;
+                    scope.$emit('ta-drop-event', this, event, dataTransfer);
+                    $timeout(function(){
+                        dropFired = false;
+                        _setViewValue(undefined, undefined, true);
+                    }, 100);
+                }
+            };
+
+            var _renderTimeout;
+            var _renderInProgress = false;
+            // changes to the model variable from outside the html/text inputs
+            ngModel.$render = function(){
+                /* istanbul ignore if: Catches rogue renders, hard to replicate in tests */
+                if(_renderInProgress) return;
+                else _renderInProgress = true;
+                // catch model being null or undefined
+                var val = ngModel.$viewValue || '';
+                // if the editor isn't focused it needs to be updated, otherwise it's receiving user input
+                if(!_skipRender){
+                    /* istanbul ignore else: in other cases we don't care */
+                    if(_isContentEditable && _focussed){
+                        // update while focussed
+                        element.removeClass('placeholder-text');
+                        /* istanbul ignore next: don't know how to test this */
+                        if(_renderTimeout) $timeout.cancel(_renderTimeout);
+                        _renderTimeout = $timeout(function(){
+                            /* istanbul ignore if: Can't be bothered testing this... */
+                            if(!_focussed){
+                                element[0].focus();
+                                taSelection.setSelectionToElementEnd(element.children()[element.children().length - 1]);
+                            }
+                            _renderTimeout = undefined;
+                        }, 1);
+                    }
+                    if(_isContentEditable){
+                        // WYSIWYG Mode
+                        if(attrs.placeholder){
+                            if(val === ''){
+                                // blank
+                                _setInnerHTML(_defaultVal);
+                            }else{
+                                // not-blank
+                                _setInnerHTML(val);
+                            }
+                        }else{
+                            _setInnerHTML((val === '') ? _defaultVal : val);
+                        }
+                        // if in WYSIWYG and readOnly we kill the use of links by clicking
+                        if(!_isReadonly){
+                            _reApplyOnSelectorHandlers();
+                            element.on('drop', fileDropHandler);
+                        }else{
+                            element.off('drop', fileDropHandler);
+                        }
+                    }else if(element[0].tagName.toLowerCase() !== 'textarea' && element[0].tagName.toLowerCase() !== 'input'){
+                        // make sure the end user can SEE the html code as a display. This is a read-only display element
+                        _setInnerHTML(taApplyCustomRenderers(val));
+                    }else{
+                        // only for input and textarea inputs
+                        element.val(val);
+                    }
+                }
+                if(_isContentEditable && attrs.placeholder){
+                    if(val === ''){
+                        if(_focussed) element.removeClass('placeholder-text');
+                        else element.addClass('placeholder-text');
+                    }else{
+                        element.removeClass('placeholder-text');
+                    }
+                }
+                _renderInProgress = _skipRender = false;
+            };
+
+            if(attrs.taReadonly){
+                //set initial value
+                _isReadonly = scope.$eval(attrs.taReadonly);
+                if(_isReadonly){
+                    element.addClass('ta-readonly');
+                    // we changed to readOnly mode (taReadonly='true')
+                    if(element[0].tagName.toLowerCase() === 'textarea' || element[0].tagName.toLowerCase() === 'input'){
+                        element.attr('disabled', 'disabled');
+                    }
+                    if(element.attr('contenteditable') !== undefined && element.attr('contenteditable')){
+                        element.removeAttr('contenteditable');
+                    }
+                }else{
+                    element.removeClass('ta-readonly');
+                    // we changed to NOT readOnly mode (taReadonly='false')
+                    if(element[0].tagName.toLowerCase() === 'textarea' || element[0].tagName.toLowerCase() === 'input'){
+                        element.removeAttr('disabled');
+                    }else if(_isContentEditable){
+                        element.attr('contenteditable', 'true');
+                    }
+                }
+                // taReadonly only has an effect if the taBind element is an input or textarea or has contenteditable='true' on it.
+                // Otherwise it is readonly by default
+                scope.$watch(attrs.taReadonly, function(newVal, oldVal){
+                    if(oldVal === newVal) return;
+                    if(newVal){
+                        element.addClass('ta-readonly');
+                        // we changed to readOnly mode (taReadonly='true')
+                        if(element[0].tagName.toLowerCase() === 'textarea' || element[0].tagName.toLowerCase() === 'input'){
+                            element.attr('disabled', 'disabled');
+                        }
+                        if(element.attr('contenteditable') !== undefined && element.attr('contenteditable')){
+                            element.removeAttr('contenteditable');
+                        }
+                        // turn ON selector click handlers
+                        angular.forEach(taSelectableElements, function(selector){
+                            element.find(selector).on('click', selectorClickHandler);
+                        });
+                        element.off('drop', fileDropHandler);
+                    }else{
+                        element.removeClass('ta-readonly');
+                        // we changed to NOT readOnly mode (taReadonly='false')
+                        if(element[0].tagName.toLowerCase() === 'textarea' || element[0].tagName.toLowerCase() === 'input'){
+                            element.removeAttr('disabled');
+                        }else if(_isContentEditable){
+                            element.attr('contenteditable', 'true');
+                        }
+                        // remove the selector click handlers
+                        angular.forEach(taSelectableElements, function(selector){
+                            element.find(selector).off('click', selectorClickHandler);
+                        });
+                        element.on('drop', fileDropHandler);
+                    }
+                    _isReadonly = newVal;
+                });
+            }
+
+            // Initialise the selectableElements
+            // if in WYSIWYG and readOnly we kill the use of links by clicking
+            if(_isContentEditable && !_isReadonly){
+                angular.forEach(taSelectableElements, function(selector){
+                    element.find(selector).on('click', selectorClickHandler);
+                });
+                element.on('drop', fileDropHandler);
+            }
+        }
+    };
+}]);
+
+// this global var is used to prevent multiple fires of the drop event. Needs to be global to the textAngular file.
+var dropFired = false;
+var textAngular = angular.module("textAngular", ['ngSanitize', 'textAngularSetup', 'textAngular.factories', 'textAngular.DOM', 'textAngular.validators', 'textAngular.taBind']); //This makes ngSanitize required
+
+textAngular.config([function(){
+    // clear taTools variable. Just catches testing and any other time that this config may run multiple times...
+    angular.forEach(taTools, function(value, key){ delete taTools[key];	});
+}]);
+
+textAngular.directive("textAngular", [
+    '$compile', '$timeout', 'taOptions', 'taSelection', 'taExecCommand',
+    'textAngularManager', '$document', '$animate', '$log', '$q', '$parse',
+    function($compile, $timeout, taOptions, taSelection, taExecCommand,
+        textAngularManager, $document, $animate, $log, $q, $parse){
+        return {
+            require: '?ngModel',
+            scope: {},
+            restrict: "EA",
+            priority: 2, // So we override validators correctly
+            link: function(scope, element, attrs, ngModel){
+                // all these vars should not be accessable outside this directive
+                var _keydown, _keyup, _keypress, _mouseup, _focusin, _focusout,
+                    _originalContents, _editorFunctions,
+                    _serial = (attrs.serial) ? attrs.serial : Math.floor(Math.random() * 10000000000000000),
+                    _taExecCommand, _resizeMouseDown, _updateSelectedStylesTimeout;
+                var _resizeTimeout;
+
+                scope._name = (attrs.name) ? attrs.name : 'textAngularEditor' + _serial;
+
+                var oneEvent = function(_element, event, action){
+                    $timeout(function(){
+                        _element.one(event, action);
+                    }, 100);
+                };
+                _taExecCommand = taExecCommand(attrs.taDefaultWrap);
+                // get the settings from the defaults and add our specific functions that need to be on the scope
+                angular.extend(scope, angular.copy(taOptions), {
+                    // wraps the selection in the provided tag / execCommand function. Should only be called in WYSIWYG mode.
+                    wrapSelection: function(command, opt, isSelectableElementTool){
+                        // we restore the saved selection that was saved when focus was lost
+                        /* NOT FUNCTIONAL YET */
+                        /* textAngularManager.restoreFocusSelection(scope._name, scope); */
+                        if(command.toLowerCase() === "undo"){
+                            scope['$undoTaBindtaTextElement' + _serial]();
+                        }else if(command.toLowerCase() === "redo"){
+                            scope['$redoTaBindtaTextElement' + _serial]();
+                        }else{
+                            // catch errors like FF erroring when you try to force an undo with nothing done
+                            _taExecCommand(command, false, opt, scope.defaultTagAttributes);
+                            if(isSelectableElementTool){
+                                // re-apply the selectable tool events
+                                scope['reApplyOnSelectorHandlerstaTextElement' + _serial]();
+                            }
+                            // refocus on the shown display element, this fixes a display bug when using :focus styles to outline the box.
+                            // You still have focus on the text/html input it just doesn't show up
+                            scope.displayElements.text[0].focus();
+                        }
+                    },
+                    showHtml: scope.$eval(attrs.taShowHtml) || false
+                });
+                // setup the options from the optional attributes
+                if(attrs.taFocussedClass)			scope.classes.focussed = attrs.taFocussedClass;
+                if(attrs.taTextEditorClass)			scope.classes.textEditor = attrs.taTextEditorClass;
+                if(attrs.taHtmlEditorClass)			scope.classes.htmlEditor = attrs.taHtmlEditorClass;
+                if(attrs.taDefaultTagAttributes){
+                    try	{
+                        //	TODO: This should use angular.merge to enhance functionality once angular 1.4 is required
+                        angular.extend(scope.defaultTagAttributes, angular.fromJson(attrs.taDefaultTagAttributes));
+                    } catch (error) {
+                        $log.error(error);
+                    }
+                }
+                // optional setup functions
+                if(attrs.taTextEditorSetup)			scope.setup.textEditorSetup = scope.$parent.$eval(attrs.taTextEditorSetup);
+                if(attrs.taHtmlEditorSetup)			scope.setup.htmlEditorSetup = scope.$parent.$eval(attrs.taHtmlEditorSetup);
+                // optional fileDropHandler function
+                if(attrs.taFileDrop)				scope.fileDropHandler = scope.$parent.$eval(attrs.taFileDrop);
+                else								scope.fileDropHandler = scope.defaultFileDropHandler;
+
+                _originalContents = element[0].innerHTML;
+                // clear the original content
+                element[0].innerHTML = '';
+
+                // Setup the HTML elements as variable references for use later
+                scope.displayElements = {
+                    // we still need the hidden input even with a textarea as the textarea may have invalid/old input in it,
+                    // wheras the input will ALLWAYS have the correct value.
+                    forminput: angular.element("<input type='hidden' tabindex='-1' style='display: none;'>"),
+                    html: angular.element("<textarea></textarea>"),
+                    text: angular.element("<div></div>"),
+                    // other toolbased elements
+                    scrollWindow: angular.element("<div class='ta-scroll-window'></div>"),
+                    popover: angular.element('<div class="popover fade bottom" style="max-width: none; width: 305px;"></div>'),
+                    popoverArrow: angular.element('<div class="arrow"></div>'),
+                    popoverContainer: angular.element('<div class="popover-content"></div>'),
+                    resize: {
+                        overlay: angular.element('<div class="ta-resizer-handle-overlay"></div>'),
+                        background: angular.element('<div class="ta-resizer-handle-background"></div>'),
+                        anchors: [
+                            angular.element('<div class="ta-resizer-handle-corner ta-resizer-handle-corner-tl"></div>'),
+                            angular.element('<div class="ta-resizer-handle-corner ta-resizer-handle-corner-tr"></div>'),
+                            angular.element('<div class="ta-resizer-handle-corner ta-resizer-handle-corner-bl"></div>'),
+                            angular.element('<div class="ta-resizer-handle-corner ta-resizer-handle-corner-br"></div>')
+                        ],
+                        info: angular.element('<div class="ta-resizer-handle-info"></div>')
+                    }
+                };
+
+                // Setup the popover
+                scope.displayElements.popover.append(scope.displayElements.popoverArrow);
+                scope.displayElements.popover.append(scope.displayElements.popoverContainer);
+                scope.displayElements.scrollWindow.append(scope.displayElements.popover);
+
+                scope.displayElements.popover.on('mousedown', function(e, eventData){
+                    /* istanbul ignore else: this is for catching the jqLite testing*/
+                    if(eventData) angular.extend(e, eventData);
+                    // this prevents focusout from firing on the editor when clicking anything in the popover
+                    e.preventDefault();
+                    return false;
+                });
+
+                /* istanbul ignore next: popover resize and scroll events handled */
+                scope.handlePopoverEvents = function() {
+                    if (scope.displayElements.popover.css('display')==='block') {
+                        if(_resizeTimeout) $timeout.cancel(_resizeTimeout);
+                        _resizeTimeout = $timeout(function() {
+                            //console.log('resize', scope.displayElements.popover.css('display'));
+                            scope.reflowPopover(scope.resizeElement);
+                            scope.reflowResizeOverlay(scope.resizeElement);
+                        }, 100);
+                    }
+                };
+
+                /* istanbul ignore next: browser resize check */
+                angular.element(window).on('resize', scope.handlePopoverEvents);
+
+                /* istanbul ignore next: browser scroll check */
+                angular.element(window).on('scroll', scope.handlePopoverEvents);
+
+                // we want to know if a given node has a scrollbar!
+                // credit to lotif on http://stackoverflow.com/questions/4880381/check-whether-html-element-has-scrollbars
+                var isScrollable = function(node) {
+                    var cs;
+                    var _notScrollable = {
+                        vertical: false,
+                        horizontal: false,
+                    };
+                    try {
+                        cs = window.getComputedStyle(node);
+                        if (cs === null) {
+                            return _notScrollable;
+                        }
+                    } catch (e) {
+                        /* istanbul ignore next: error handler */
+                        return _notScrollable;
+                    }
+                    var overflowY = cs['overflow-y'];
+                    var overflowX = cs['overflow-x'];
+                    return {
+                        vertical: (overflowY === 'scroll' || overflowY === 'auto') &&
+                                    /* istanbul ignore next: not tested */
+                                    node.scrollHeight > node.clientHeight,
+                        horizontal: (overflowX === 'scroll' || overflowX === 'auto') &&
+                                    /* istanbul ignore next: not tested */
+                                    node.scrollWidth > node.clientWidth,
+                    };
+                };
+
+                // getScrollTop
+                //
+                // we structure this so that it can climb the parents of the _el and when it finds
+                // one with scrollbars, it adds an EventListener, so that no matter how the
+                // DOM is structured in the user APP, if there is a scrollbar not as part of the
+                // ta-scroll-window, we will still capture the 'scroll' events...
+                // and handle the scroll event properly and do the resize, etc.
+                //
+                scope.getScrollTop = function (_el, bAddListener) {
+                    var scrollTop = _el.scrollTop;
+                    if (typeof scrollTop === 'undefined') {
+                        scrollTop = 0;
+                    }
+                    /* istanbul ignore next: triggered only if has scrollbar */
+                    if (bAddListener && isScrollable(_el).vertical) {
+                        // remove element eventListener
+                        _el.removeEventListener('scroll', scope._scrollListener, false);
+                        _el.addEventListener('scroll', scope._scrollListener, false);
+                    }
+                    /* istanbul ignore next: triggered only if has scrollbar and scrolled */
+                    if (scrollTop !== 0) {
+                        return { node:_el.nodeName, top:scrollTop };
+                    }
+                    /* istanbul ignore else: catches only if no scroll */
+                    if (_el.parentNode) {
+                        return scope.getScrollTop(_el.parentNode, bAddListener);
+                    } else {
+                        return { node:'<none>', top:0 };
+                    }
+                };
+
+                // define the popover show and hide functions
+                scope.showPopover = function(_el){
+                    scope.getScrollTop(scope.displayElements.scrollWindow[0], true);
+                    scope.displayElements.popover.css('display', 'block');
+                    // we must use a $timeout here, or the css change to the
+                    // displayElements.resize.overlay will not take!!!
+                    // WHY???
+                    $timeout(function() {
+                        scope.displayElements.resize.overlay.css('display', 'block');
+                    });
+                    scope.resizeElement = _el;
+                    scope.reflowPopover(_el);
+                    $animate.addClass(scope.displayElements.popover, 'in');
+                    oneEvent($document.find('body'), 'click keyup', function(){scope.hidePopover();});
+                };
+
+                /* istanbul ignore next: browser scroll event handler */
+                scope._scrollListener = function (e, eventData){
+                    scope.handlePopoverEvents();
+                };
+
+                scope.reflowPopover = function(_el){
+                    var scrollTop = scope.getScrollTop(scope.displayElements.scrollWindow[0], false);
+                    var spaceAboveImage = _el[0].offsetTop-scrollTop.top;
+                    //var spaceBelowImage = scope.displayElements.text[0].offsetHeight - _el[0].offsetHeight - spaceAboveImage;
+                    //console.log(spaceAboveImage, spaceBelowImage);
+
+                    /* istanbul ignore if: catches only if near bottom of editor */
+                    if(spaceAboveImage < 51) {
+                        scope.displayElements.popover.css('top', _el[0].offsetTop + _el[0].offsetHeight + scope.displayElements.scrollWindow[0].scrollTop + 'px');
+                        scope.displayElements.popover.removeClass('top').addClass('bottom');
+                    } else {
+                        scope.displayElements.popover.css('top', _el[0].offsetTop - 54 + scope.displayElements.scrollWindow[0].scrollTop + 'px');
+                        scope.displayElements.popover.removeClass('bottom').addClass('top');
+                    }
+                    var _maxLeft = scope.displayElements.text[0].offsetWidth - scope.displayElements.popover[0].offsetWidth;
+                    var _targetLeft = _el[0].offsetLeft + (_el[0].offsetWidth / 2.0) - (scope.displayElements.popover[0].offsetWidth / 2.0);
+                    var _rleft = Math.max(0, Math.min(_maxLeft, _targetLeft));
+                    var _marginLeft = (Math.min(_targetLeft, (Math.max(0, _targetLeft - _maxLeft))) - 11);
+                    _rleft += window.scrollX;
+                    _marginLeft -= window.scrollX;
+                    scope.displayElements.popover.css('left', _rleft + 'px');
+                    scope.displayElements.popoverArrow.css('margin-left', _marginLeft + 'px');
+                };
+                scope.hidePopover = function(){
+                    scope.displayElements.popover.css('display', 'none');
+                    scope.displayElements.popoverContainer.attr('style', '');
+                    scope.displayElements.popoverContainer.attr('class', 'popover-content');
+                    scope.displayElements.popover.removeClass('in');
+                    scope.displayElements.resize.overlay.css('display', 'none');
+                };
+
+                // setup the resize overlay
+                scope.displayElements.resize.overlay.append(scope.displayElements.resize.background);
+                angular.forEach(scope.displayElements.resize.anchors, function(anchor){ scope.displayElements.resize.overlay.append(anchor);});
+                scope.displayElements.resize.overlay.append(scope.displayElements.resize.info);
+                scope.displayElements.scrollWindow.append(scope.displayElements.resize.overlay);
+
+                // A click event on the resize.background will now shift the focus to the editor
+                /* istanbul ignore next: click on the resize.background to focus back to editor */
+                scope.displayElements.resize.background.on('click', function(e) {
+                    scope.displayElements.text[0].focus();
+                });
+
+                // define the show and hide events
+                scope.reflowResizeOverlay = function(_el){
+                    _el = angular.element(_el)[0];
+                    scope.displayElements.resize.overlay.css({
+                        'display': 'block',
+                        'left': _el.offsetLeft - 5 + 'px',
+                        'top': _el.offsetTop - 5 + 'px',
+                        'width': _el.offsetWidth + 10 + 'px',
+                        'height': _el.offsetHeight + 10 + 'px'
+                    });
+                    scope.displayElements.resize.info.text(_el.offsetWidth + ' x ' + _el.offsetHeight);
+                };
+                /* istanbul ignore next: pretty sure phantomjs won't test this */
+                scope.showResizeOverlay = function(_el){
+                    var _body = $document.find('body');
+                    _resizeMouseDown = function(event){
+                        var startPosition = {
+                            width: parseInt(_el.attr('width')),
+                            height: parseInt(_el.attr('height')),
+                            x: event.clientX,
+                            y: event.clientY
+                        };
+                        if(startPosition.width === undefined || isNaN(startPosition.width)) startPosition.width = _el[0].offsetWidth;
+                        if(startPosition.height === undefined || isNaN(startPosition.height)) startPosition.height = _el[0].offsetHeight;
+                        scope.hidePopover();
+                        var ratio = startPosition.height / startPosition.width;
+                        var mousemove = function(event){
+                            // calculate new size
+                            var pos = {
+                                x: Math.max(0, startPosition.width + (event.clientX - startPosition.x)),
+                                y: Math.max(0, startPosition.height + (event.clientY - startPosition.y))
+                            };
+
+                            // DEFAULT: the aspect ratio is not locked unless the Shift key is pressed.
+                            //
+                            // attribute: ta-resize-force-aspect-ratio -- locks resize into maintaing the aspect ratio
+                            var bForceAspectRatio = (attrs.taResizeForceAspectRatio !== undefined);
+                            // attribute: ta-resize-maintain-aspect-ratio=true causes the space ratio to remain locked
+                            // unless the Shift key is pressed
+                            var bFlipKeyBinding = attrs.taResizeMaintainAspectRatio;
+                            var bKeepRatio =  bForceAspectRatio || (bFlipKeyBinding && !event.shiftKey);
+                            if(bKeepRatio) {
+                                var newRatio = pos.y / pos.x;
+                                pos.x = ratio > newRatio ? pos.x : pos.y / ratio;
+                                pos.y = ratio > newRatio ? pos.x * ratio : pos.y;
+                            }
+                            var el = angular.element(_el);
+                            function roundedMaxVal(val) {
+                                return Math.round(Math.max(0, val));
+                            }
+                            el.css('height', roundedMaxVal(pos.y) + 'px');
+                            el.css('width', roundedMaxVal(pos.x) + 'px');
+
+                            // reflow the popover tooltip
+                            scope.reflowResizeOverlay(_el);
+                        };
+                        _body.on('mousemove', mousemove);
+                        oneEvent(_body, 'mouseup', function(event){
+                            event.preventDefault();
+                            event.stopPropagation();
+                            _body.off('mousemove', mousemove);
+                            // at this point, we need to force the model to update! since the css has changed!
+                            // this fixes bug: #862 - we now hide the popover -- as this seems more consitent.
+                            // there are still issues under firefox, the window does not repaint. -- not sure
+                            // how best to resolve this, but clicking anywhere works.
+                            scope.$apply(function (){
+                                scope.hidePopover();
+                                scope.updateTaBindtaTextElement();
+                            }, 100);
+                        });
+                        event.stopPropagation();
+                        event.preventDefault();
+                    };
+
+                    scope.displayElements.resize.anchors[3].off('mousedown');
+                    scope.displayElements.resize.anchors[3].on('mousedown', _resizeMouseDown);
+
+                    scope.reflowResizeOverlay(_el);
+                    oneEvent(_body, 'click', function(){scope.hideResizeOverlay();});
+                };
+                /* istanbul ignore next: pretty sure phantomjs won't test this */
+                scope.hideResizeOverlay = function(){
+                    scope.displayElements.resize.anchors[3].off('mousedown', _resizeMouseDown);
+                    scope.displayElements.resize.overlay.css('display', 'none');
+                };
+
+                // allow for insertion of custom directives on the textarea and div
+                scope.setup.htmlEditorSetup(scope.displayElements.html);
+                scope.setup.textEditorSetup(scope.displayElements.text);
+                scope.displayElements.html.attr({
+                    'id': 'taHtmlElement' + _serial,
+                    'ng-show': 'showHtml',
+                    'ta-bind': 'ta-bind',
+                    'ng-model': 'html',
+                    'ng-model-options': element.attr('ng-model-options')
+                });
+                scope.displayElements.text.attr({
+                    'id': 'taTextElement' + _serial,
+                    'contentEditable': 'true',
+                    'ta-bind': 'ta-bind',
+                    'ng-model': 'html',
+                    'ng-model-options': element.attr('ng-model-options')
+                });
+                scope.displayElements.scrollWindow.attr({'ng-hide': 'showHtml'});
+                if(attrs.taDefaultWrap) {
+                    // taDefaultWrap is only applied to the text and not the html view
+                    scope.displayElements.text.attr('ta-default-wrap', attrs.taDefaultWrap);
+                }
+
+                if(attrs.taUnsafeSanitizer){
+                    scope.displayElements.text.attr('ta-unsafe-sanitizer', attrs.taUnsafeSanitizer);
+                    scope.displayElements.html.attr('ta-unsafe-sanitizer', attrs.taUnsafeSanitizer);
+                }
+
+                if(attrs.taKeepStyles){
+                    scope.displayElements.text.attr('ta-keep-styles', attrs.taKeepStyles);
+                    scope.displayElements.html.attr('ta-keep-styles', attrs.taKeepStyles);
+                }
+
+                // add the main elements to the origional element
+                scope.displayElements.scrollWindow.append(scope.displayElements.text);
+                element.append(scope.displayElements.scrollWindow);
+                element.append(scope.displayElements.html);
+
+                scope.displayElements.forminput.attr('name', scope._name);
+                element.append(scope.displayElements.forminput);
+
+                if(attrs.tabindex){
+                    element.removeAttr('tabindex');
+                    scope.displayElements.text.attr('tabindex', attrs.tabindex);
+                    scope.displayElements.html.attr('tabindex', attrs.tabindex);
+                }
+
+                if (attrs.placeholder) {
+                    scope.displayElements.text.attr('placeholder', attrs.placeholder);
+                    scope.displayElements.html.attr('placeholder', attrs.placeholder);
+                }
+
+                if(attrs.taDisabled){
+                    scope.displayElements.text.attr('ta-readonly', 'disabled');
+                    scope.displayElements.html.attr('ta-readonly', 'disabled');
+                    scope.disabled = scope.$parent.$eval(attrs.taDisabled);
+                    scope.$parent.$watch(attrs.taDisabled, function(newVal){
+                        scope.disabled = newVal;
+                        if(scope.disabled){
+                            element.addClass(scope.classes.disabled);
+                        }else{
+                            element.removeClass(scope.classes.disabled);
+                        }
+                    });
+                }
+
+                if(attrs.taPaste){
+                    scope._pasteHandler = function(_html){
+                        return $parse(attrs.taPaste)(scope.$parent, {$html: _html});
+                    };
+                    scope.displayElements.text.attr('ta-paste', '_pasteHandler($html)');
+                }
+
+                // compile the scope with the text and html elements only - if we do this with the main element it causes a compile loop
+                $compile(scope.displayElements.scrollWindow)(scope);
+                $compile(scope.displayElements.html)(scope);
+
+                scope.updateTaBindtaTextElement = scope['updateTaBindtaTextElement' + _serial];
+                scope.updateTaBindtaHtmlElement = scope['updateTaBindtaHtmlElement' + _serial];
+
+                // add the classes manually last
+                element.addClass("ta-root");
+                scope.displayElements.scrollWindow.addClass("ta-text ta-editor " + scope.classes.textEditor);
+                scope.displayElements.html.addClass("ta-html ta-editor " + scope.classes.htmlEditor);
+
+                var testAndSet = function(choice, beforeState) {
+                    /* istanbul ignore next: this is only here because of a bug in rangy where rangy.saveSelection() has cleared the state */
+                    if (beforeState !== $document[0].queryCommandState(choice)) {
+                        $document[0].execCommand(choice, false, null);
+                    }
+                };
+                // used in the toolbar actions
+                scope._actionRunning = false;
+                var _savedSelection = false;
+                scope.startAction = function(){
+                    var _beforeStateBold = false;
+                    var _beforeStateItalic = false;
+                    var _beforeStateUnderline = false;
+                    var _beforeStateStrikethough = false;
+                    scope._actionRunning = true;
+                    _beforeStateBold = $document[0].queryCommandState('bold');
+                    _beforeStateItalic = $document[0].queryCommandState('italic');
+                    _beforeStateUnderline = $document[0].queryCommandState('underline');
+                    _beforeStateStrikethough = $document[0].queryCommandState('strikeThrough');
+                    //console.log('B', _beforeStateBold, 'I', _beforeStateItalic, '_', _beforeStateUnderline, 'S', _beforeStateStrikethough);
+                    // if rangy library is loaded return a function to reload the current selection
+                    _savedSelection = rangy.saveSelection();
+                    // rangy.saveSelection() clear the state of bold, italic, underline, strikethrough
+                    // so we reset them here....!!!
+                    // this fixes bugs #423, #1129, #1105, #693 which are actually rangy bugs!
+                    testAndSet('bold', _beforeStateBold);
+                    testAndSet('italic', _beforeStateItalic);
+                    testAndSet('underline', _beforeStateUnderline);
+                    testAndSet('strikeThrough', _beforeStateStrikethough);
+                    //console.log('B', $document[0].queryCommandState('bold'), 'I', $document[0].queryCommandState('italic'), '_', $document[0].queryCommandState('underline'), 'S', $document[0].queryCommandState('strikeThrough') );
+                    return function(){
+                        if(_savedSelection) rangy.restoreSelection(_savedSelection);
+                        // perhaps if we restore the selections here, we would do better overall???
+                        // BUT what we do above does well in 90% of the cases...
+                    };
+                };
+                scope.endAction = function(){
+                    scope._actionRunning = false;
+                    if(_savedSelection){
+                        if(scope.showHtml){
+                            scope.displayElements.html[0].focus();
+                        }else{
+                            scope.displayElements.text[0].focus();
+                        }
+                        // rangy.restoreSelection(_savedSelection);
+                        rangy.removeMarkers(_savedSelection);
+                    }
+                    _savedSelection = false;
+                    scope.updateSelectedStyles();
+                    // only update if in text or WYSIWYG mode
+                    if(!scope.showHtml) scope['updateTaBindtaTextElement' + _serial]();
+                };
+
+                // note that focusout > focusin is called everytime we click a button - except bad support: http://www.quirksmode.org/dom/events/blurfocus.html
+                // cascades to displayElements.text and displayElements.html automatically.
+                _focusin = function(e){
+                    scope.focussed = true;
+                    element.addClass(scope.classes.focussed);
+/*******  NOT FUNCTIONAL YET
+                    if (e.target.id === 'taTextElement' + _serial) {
+                        console.log('_focusin taTextElement');
+                        // we only do this if NOT focussed
+                        textAngularManager.restoreFocusSelection(scope._name);
+                    }
+*******/
+                    _editorFunctions.focus();
+                    element.triggerHandler('focus');
+                    // we call editorScope.updateSelectedStyles() here because we want the toolbar to be focussed
+                    // as soon as we have focus.  Otherwise this only happens on mousedown or keydown etc...
+                    /* istanbul ignore else: don't run if already running */
+                    if(scope.updateSelectedStyles && !scope._bUpdateSelectedStyles){
+                        // we don't set editorScope._bUpdateSelectedStyles here, because we do not want the
+                        // updateSelectedStyles() to run twice which it will do after 200 msec if we have
+                        // set editorScope._bUpdateSelectedStyles
+                        //
+                        // WOW, normally I would do a scope.$apply here, but this causes ERRORs when doing tests!
+                        $timeout(function () {
+                            scope.updateSelectedStyles();
+                        }, 0);
+                    }
+                };
+                scope.displayElements.html.on('focus', _focusin);
+                scope.displayElements.text.on('focus', _focusin);
+                _focusout = function(e){
+                    /****************** NOT FUNCTIONAL YET
+                    try {
+                        var _s = rangy.getSelection();
+                        if (_s) {
+                            // we save the selection when we loose focus so that if do a wrapSelection, the
+                            // apropriate selection in the editor is restored before action.
+                            var _savedFocusRange = rangy.saveRange(_s.getRangeAt(0));
+                            textAngularManager.saveFocusSelection(scope._name, _savedFocusRange);
+                        }
+                    } catch(error) { }
+                    *****************/
+                    // if we are NOT runnig an action and have NOT focussed again on the text etc then fire the blur events
+                    if(!scope._actionRunning &&
+                        $document[0].activeElement !== scope.displayElements.html[0] &&
+                        $document[0].activeElement !== scope.displayElements.text[0])
+                    {
+                        element.removeClass(scope.classes.focussed);
+                        _editorFunctions.unfocus();
+                        // to prevent multiple apply error defer to next seems to work.
+                        $timeout(function(){
+                            scope._bUpdateSelectedStyles = false;
+                            element.triggerHandler('blur');
+                            scope.focussed = false;
+                        }, 0);
+                    }
+                    e.preventDefault();
+                    return false;
+                };
+                scope.displayElements.html.on('blur', _focusout);
+                scope.displayElements.text.on('blur', _focusout);
+
+                scope.displayElements.text.on('paste', function(event){
+                    element.triggerHandler('paste', event);
+                });
+
+                // Setup the default toolbar tools, this way allows the user to add new tools like plugins.
+                // This is on the editor for future proofing if we find a better way to do this.
+                scope.queryFormatBlockState = function(command){
+                    // $document[0].queryCommandValue('formatBlock') errors in Firefox if we call this when focussed on the textarea
+                    return !scope.showHtml && command.toLowerCase() === $document[0].queryCommandValue('formatBlock').toLowerCase();
+                };
+                scope.queryCommandState = function(command){
+                    // $document[0].queryCommandValue('formatBlock') errors in Firefox if we call this when focussed on the textarea
+                    return (!scope.showHtml) ? $document[0].queryCommandState(command) : '';
+                };
+                scope.switchView = function(){
+                    scope.showHtml = !scope.showHtml;
+                    $animate.enabled(false, scope.displayElements.html);
+                    $animate.enabled(false, scope.displayElements.text);
+                    //Show the HTML view
+                    /* istanbul ignore next: ngModel exists check */
+/* THIS is not the correct thing to do, here....
+   The ngModel is correct, but it is not formatted as the user as done it...
+                    var _model;
+                    if (ngModel) {
+                        _model = ngModel.$viewValue;
+                    } else {
+                        _model = scope.html;
+                    }
+                    var _html = scope.displayElements.html[0].value;
+                    if (getDomFromHtml(_html).childElementCount !== getDomFromHtml(_model).childElementCount) {
+                        // the model and the html do not agree
+                        // they can get out of sync and when they do, we correct that here...
+                        scope.displayElements.html.val(_model);
+                    }
+*/
+                    if(scope.showHtml){
+                        //defer until the element is visible
+                        $timeout(function(){
+                            $animate.enabled(true, scope.displayElements.html);
+                            $animate.enabled(true, scope.displayElements.text);
+                            // [0] dereferences the DOM object from the angular.element
+                            return scope.displayElements.html[0].focus();
+                        }, 100);
+                    }else{
+                        //Show the WYSIWYG view
+                        //defer until the element is visible
+                        $timeout(function(){
+                            $animate.enabled(true, scope.displayElements.html);
+                            $animate.enabled(true, scope.displayElements.text);
+                            // [0] dereferences the DOM object from the angular.element
+                            return scope.displayElements.text[0].focus();
+                        }, 100);
+                    }
+                };
+
+                // changes to the model variable from outside the html/text inputs
+                // if no ngModel, then the only input is from inside text-angular
+                if(attrs.ngModel){
+                    var _firstRun = true;
+                    ngModel.$render = function(){
+                        if(_firstRun){
+                            // we need this firstRun to set the originalContents otherwise it gets overrided by the setting of ngModel to undefined from NaN
+                            _firstRun = false;
+                            // if view value is null or undefined initially and there was original content, set to the original content
+                            var _initialValue = scope.$parent.$eval(attrs.ngModel);
+                            if((_initialValue === undefined || _initialValue === null) && (_originalContents && _originalContents !== '')){
+                                // on passing through to taBind it will be sanitised
+                                ngModel.$setViewValue(_originalContents);
+                            }
+                        }
+                        scope.displayElements.forminput.val(ngModel.$viewValue);
+                        // if the editors aren't focused they need to be updated, otherwise they are doing the updating
+                        scope.html = ngModel.$viewValue || '';
+                    };
+                    // trigger the validation calls
+                    if(element.attr('required')) ngModel.$validators.required = function(modelValue, viewValue) {
+                        var value = modelValue || viewValue;
+                        return !(!value || value.trim() === '');
+                    };
+                }else{
+                    // if no ngModel then update from the contents of the origional html.
+                    scope.displayElements.forminput.val(_originalContents);
+                    scope.html = _originalContents;
+                }
+
+                // changes from taBind back up to here
+                scope.$watch('html', function(newValue, oldValue){
+                    if(newValue !== oldValue){
+                        if(attrs.ngModel && ngModel.$viewValue !== newValue) {
+                            ngModel.$setViewValue(newValue);
+                        }
+                        scope.displayElements.forminput.val(newValue);
+                    }
+                });
+
+                if(attrs.taTargetToolbars) {
+                    _editorFunctions = textAngularManager.registerEditor(scope._name, scope, attrs.taTargetToolbars.split(','));
+                }
+                else{
+                    var _toolbar = angular.element('<div text-angular-toolbar name="textAngularToolbar' + _serial + '">');
+                    // passthrough init of toolbar options
+                    if(attrs.taToolbar)						_toolbar.attr('ta-toolbar', attrs.taToolbar);
+                    if(attrs.taToolbarClass)				_toolbar.attr('ta-toolbar-class', attrs.taToolbarClass);
+                    if(attrs.taToolbarGroupClass)			_toolbar.attr('ta-toolbar-group-class', attrs.taToolbarGroupClass);
+                    if(attrs.taToolbarButtonClass)			_toolbar.attr('ta-toolbar-button-class', attrs.taToolbarButtonClass);
+                    if(attrs.taToolbarActiveButtonClass)	_toolbar.attr('ta-toolbar-active-button-class', attrs.taToolbarActiveButtonClass);
+                    if(attrs.taFocussedClass)				_toolbar.attr('ta-focussed-class', attrs.taFocussedClass);
+
+                    element.prepend(_toolbar);
+                    $compile(_toolbar)(scope.$parent);
+                    _editorFunctions = textAngularManager.registerEditor(scope._name, scope, ['textAngularToolbar' + _serial]);
+                }
+
+                scope.$on('$destroy', function(){
+                    textAngularManager.unregisterEditor(scope._name);
+                    angular.element(window).off('blur');
+                    angular.element(window).off('resize', scope.handlePopoverEvents);
+                    angular.element(window).off('scroll', scope.handlePopoverEvents);
+                });
+
+                // catch element select event and pass to toolbar tools
+                scope.$on('ta-element-select', function(event, element){
+                    if(_editorFunctions.triggerElementSelect(event, element)){
+                        scope['reApplyOnSelectorHandlerstaTextElement' + _serial]();
+                    }
+                });
+
+/******************* no working fully
+                var distanceFromPoint = function (px, py, x, y) {
+                    return Math.sqrt((px-x)*(px-x)+(py-y)*(py-y));
+                };
+                // because each object is a rectangle and we have a single point,
+                // we need to give priority if the point is inside the rectangle
+                var getPositionDistance = function(el, x, y) {
+                    var range = document.createRange();
+                    range.selectNode(el);
+                    var rect = range.getBoundingClientRect();
+                    console.log(el, rect);
+                    range.detach();
+                    var bcr = rect;
+                    // top left
+                    var d1 = distanceFromPoint(bcr.left, bcr.top, x, y);
+                    // bottom left
+                    var d2 = distanceFromPoint(bcr.left, bcr.bottom, x, y);
+                    // top right
+                    var d3 = distanceFromPoint(bcr.right, bcr.top, x, y);
+                    // bottom right
+                    var d4 = distanceFromPoint(bcr.right, bcr.bottom, x, y);
+                    return Math.min(d1, d2, d3, d4);
+                };
+                var findClosest = function(el, minElement, maxDistance, x, y) {
+                    var _d=0;
+                    for (var i = 0; i < el.childNodes.length; i++) {
+                        var _n = el.childNodes[i];
+                        if (!_n.childNodes.length) {
+                            _d = getPositionDistance(_n, x, y);
+                            //console.log(_n, _n.childNodes, _d);
+                            if (_d < maxDistance) {
+                                maxDistance = _d;
+                                minElement = _n;
+                            }
+                        }
+                        var res = findClosest(_n, minElement, maxDistance, x, y);
+                        if (res.max < maxDistance) {
+                            maxDistance = res.max;
+                            minElement = res.min;
+                        }
+                    }
+                    return { max: maxDistance, min: minElement };
+                };
+                var getClosestElement = function (el, x, y) {
+                    return findClosest(el, null, 12341234124, x, y);
+                };
+****************/
+
+                scope.$on('ta-drop-event', function(event, element, dropEvent, dataTransfer){
+                    if(dataTransfer && dataTransfer.files && dataTransfer.files.length > 0){
+                        scope.displayElements.text[0].focus();
+                        // we must set the location of the drop!
+                        //console.log(dropEvent.clientX, dropEvent.clientY, dropEvent.target);
+                        taSelection.setSelectionToElementEnd(dropEvent.target);
+                        angular.forEach(dataTransfer.files, function(file){
+                            // taking advantage of boolean execution, if the fileDropHandler returns true, nothing else after it is executed
+                            // If it is false then execute the defaultFileDropHandler if the fileDropHandler is NOT the default one
+                            // Once one of these has been executed wrap the result as a promise, if undefined or variable update the taBind, else we should wait for the promise
+                            try{
+                                $q.when(scope.fileDropHandler(file, scope.wrapSelection) ||
+                                    (scope.fileDropHandler !== scope.defaultFileDropHandler &&
+                                    $q.when(scope.defaultFileDropHandler(file, scope.wrapSelection)))).then(function(){
+                                        scope['updateTaBindtaTextElement' + _serial]();
+                                    });
+                            }catch(error){
+                                $log.error(error);
+                            }
+                        });
+                        dropEvent.preventDefault();
+                        dropEvent.stopPropagation();
+                    /* istanbul ignore else, the updates if moved text */
+                    }else{
+                        $timeout(function(){
+                            scope['updateTaBindtaTextElement' + _serial]();
+                        }, 0);
+                    }
+                });
+
+                // the following is for applying the active states to the tools that support it
+                scope._bUpdateSelectedStyles = false;
+                /* istanbul ignore next: browser window/tab leave check */
+                angular.element(window).on('blur', function(){
+                    scope._bUpdateSelectedStyles = false;
+                    scope.focussed = false;
+                });
+                // loop through all the tools polling their activeState function if it exists
+                scope.updateSelectedStyles = function(){
+                    var _selection;
+                    /* istanbul ignore next: This check is to ensure multiple timeouts don't exist */
+                    if(_updateSelectedStylesTimeout) $timeout.cancel(_updateSelectedStylesTimeout);
+                    // test if the common element ISN'T the root ta-text node
+                    if((_selection = taSelection.getSelectionElement()) !== undefined && _selection.parentNode !== scope.displayElements.text[0]){
+                        _editorFunctions.updateSelectedStyles(angular.element(_selection));
+                    }else _editorFunctions.updateSelectedStyles();
+                    // used to update the active state when a key is held down, ie the left arrow
+                    /* istanbul ignore else: browser only check */
+                    if(scope._bUpdateSelectedStyles) _updateSelectedStylesTimeout = $timeout(scope.updateSelectedStyles, 200);
+                };
+                // start updating on keydown
+                _keydown = function(){
+                    /* istanbul ignore next: ie catch */
+                    if(!scope.focussed){
+                        scope._bUpdateSelectedStyles = false;
+                        return;
+                    }
+                    /* istanbul ignore else: don't run if already running */
+                    if(!scope._bUpdateSelectedStyles){
+                        scope._bUpdateSelectedStyles = true;
+                        scope.$apply(function(){
+                            scope.updateSelectedStyles();
+                        });
+                    }
+                };
+                scope.displayElements.html.on('keydown', _keydown);
+                scope.displayElements.text.on('keydown', _keydown);
+                // stop updating on key up and update the display/model
+                _keyup = function(){
+                    scope._bUpdateSelectedStyles = false;
+                };
+                scope.displayElements.html.on('keyup', _keyup);
+                scope.displayElements.text.on('keyup', _keyup);
+                // stop updating on key up and update the display/model
+                _keypress = function(event, eventData){
+                    // bug fix for Firefox.  If we are selecting a <a> already, any characters will
+                    // be added within the <a> which is bad!
+                    /* istanbul ignore next: don't see how to test this... */
+                    if (taSelection.getSelection) {
+                        var _selection = taSelection.getSelection();
+                        // in a weird case (can't reproduce) taSelection.getSelectionElement() can be undefined!!
+                        // this comes from range.commonAncestorContainer;
+                        // so I check for this here which fixes the error case
+                        if (taSelection.getSelectionElement() && taSelection.getSelectionElement().nodeName.toLowerCase() === 'a') {
+                            // check and see if we are at the edge of the <a>
+                            if (_selection.start.element.nodeType === 3 &&
+                                _selection.start.element.textContent.length === _selection.end.offset) {
+                                // we are at the end of the <a>!!!
+                                // so move the selection to after the <a>!!
+                                taSelection.setSelectionAfterElement(taSelection.getSelectionElement());
+                            }
+                            if (_selection.start.element.nodeType === 3 &&
+                                _selection.start.offset === 0) {
+                                // we are at the start of the <a>!!!
+                                // so move the selection before the <a>!!
+                                taSelection.setSelectionBeforeElement(taSelection.getSelectionElement());
+                            }
+                        }
+                    }
+                    /* istanbul ignore else: this is for catching the jqLite testing*/
+                    if(eventData) angular.extend(event, eventData);
+                    scope.$apply(function(){
+                        if(_editorFunctions.sendKeyCommand(event)){
+                            /* istanbul ignore else: don't run if already running */
+                            if(!scope._bUpdateSelectedStyles){
+                                scope.updateSelectedStyles();
+                            }
+                            event.preventDefault();
+                            return false;
+                        }
+                    });
+                };
+                scope.displayElements.html.on('keypress', _keypress);
+                scope.displayElements.text.on('keypress', _keypress);
+                // update the toolbar active states when we click somewhere in the text/html boxed
+                _mouseup = function(){
+                    // ensure only one execution of updateSelectedStyles()
+                    scope._bUpdateSelectedStyles = false;
+                    // for some reason, unless we do a $timeout here, after a _mouseup when the line is
+                    // highlighted, and instead use a scope.$apply(function(){ scope.updateSelectedStyles(); });
+                    // doesn't work properly, so we replaced this with:
+                    /* istanbul ignore next: not tested  */
+                    $timeout(function() { scope.updateSelectedStyles(); }, 0);
+                };
+                scope.displayElements.html.on('mouseup', _mouseup);
+                scope.displayElements.text.on('mouseup', _mouseup);
+            }
+        };
+    }
+]);
+textAngular.service('textAngularManager', ['taToolExecuteAction', 'taTools', 'taRegisterTool', '$interval', '$rootScope', '$log',
+    function(taToolExecuteAction, taTools, taRegisterTool, $interval, $rootScope, $log){
+    // this service is used to manage all textAngular editors and toolbars.
+    // All publicly published functions that modify/need to access the toolbar or editor scopes should be in here
+    // these contain references to all the editors and toolbars that have been initialised in this app
+    var toolbars = {}, editors = {};
+    // we touch the time any change occurs through register of an editor or tool so that we
+    // in the future will fire and event to trigger an updateSelection
+    var timeRecentModification = 0;
+    var updateStyles = function(selectedElement){
+        angular.forEach(editors, function(editor) {
+            editor.editorFunctions.updateSelectedStyles(selectedElement);
+        });
+    };
+    var triggerInterval = 50;
+    var triggerIntervalTimer;
+    var setupTriggerUpdateStyles = function() {
+        timeRecentModification = Date.now();
+        /* istanbul ignore next: setup a one time updateStyles() */
+        triggerIntervalTimer = $interval(function() {
+            updateStyles();
+            triggerIntervalTimer = undefined;
+        }, triggerInterval, 1); // only trigger once
+    };
+    /* istanbul ignore next: make sure clean up on destroy */
+    $rootScope.$on('destroy', function() {
+        if (triggerIntervalTimer) {
+            $interval.cancel(triggerIntervalTimer);
+            triggerIntervalTimer = undefined;
+        }
+    });
+    var touchModification = function() {
+        if (Math.abs(Date.now() - timeRecentModification) > triggerInterval) {
+            // we have already triggered the updateStyles a long time back... so setup it again...
+            setupTriggerUpdateStyles();
+        }
+    };
+    // when we focus into a toolbar, we need to set the TOOLBAR's $parent to be the toolbars it's linked to.
+    // We also need to set the tools to be updated to be the toolbars...
+    return {
+        // register an editor and the toolbars that it is affected by
+        registerEditor: function(editorName, editorScope, targetToolbars){
+            // NOTE: name === editorScope._name
+            // targetToolbars is an [] of 'toolbar name's
+            // targetToolbars are optional, we don't require a toolbar to function
+            if(!editorName || editorName === '') throw('textAngular Error: An editor requires a name');
+            if(!editorScope) throw('textAngular Error: An editor requires a scope');
+            if(editors[editorName]) throw('textAngular Error: An Editor with name "' + editorName + '" already exists');
+            editors[editorName] = {
+                scope: editorScope,
+                toolbars: targetToolbars,
+                // toolbarScopes used by this editor
+                toolbarScopes: [],
+                _registerToolbarScope: function(toolbarScope){
+                    // add to the list late
+                    if(this.toolbars.indexOf(toolbarScope.name) >= 0) {
+                        // if this toolbarScope is being used by this editor we add it as one of the scopes
+                        this.toolbarScopes.push(toolbarScope);
+                    }
+                },
+                // this is a suite of functions the editor should use to update all it's linked toolbars
+                editorFunctions: {
+                    disable: function(){
+                        // disable all linked toolbars
+                        angular.forEach(editors[editorName].toolbarScopes, function(toolbarScope){
+                            toolbarScope.disabled = true;
+                        });
+                    },
+                    enable: function(){
+                        // enable all linked toolbars
+                        angular.forEach(editors[editorName].toolbarScopes, function(toolbarScope){
+                            toolbarScope.disabled = false;
+                        });
+                    },
+                    focus: function(){
+                        // this should be called when the editor is focussed
+                        angular.forEach(editors[editorName].toolbarScopes, function(toolbarScope){
+                            toolbarScope._parent = editorScope;
+                            toolbarScope.disabled = false;
+                            toolbarScope.focussed = true;
+                        });
+                        editorScope.focussed = true;
+                    },
+                    unfocus: function(){
+                        // this should be called when the editor becomes unfocussed
+                        angular.forEach(editors[editorName].toolbarScopes, function(toolbarScope){
+                            toolbarScope.disabled = true;
+                            toolbarScope.focussed = false;
+                        });
+                        editorScope.focussed = false;
+                    },
+                    updateSelectedStyles: function(selectedElement){
+                        // update the active state of all buttons on liked toolbars
+                        angular.forEach(editors[editorName].toolbarScopes, function(toolbarScope){
+                            angular.forEach(toolbarScope.tools, function(toolScope){
+                                if(toolScope.activeState){
+                                    toolbarScope._parent = editorScope;
+                                    // selectedElement may be undefined if nothing selected
+                                    toolScope.active = toolScope.activeState(selectedElement);
+                                }
+                            });
+                        });
+                    },
+                    sendKeyCommand: function(event){
+                        // we return true if we applied an action, false otherwise
+                        var result = false;
+                        if(event.ctrlKey || event.metaKey || event.specialKey) angular.forEach(taTools, function(tool, name){
+                            if(tool.commandKeyCode && (tool.commandKeyCode === event.which || tool.commandKeyCode === event.specialKey)){
+                                for(var _t = 0; _t < editors[editorName].toolbarScopes.length; _t++){
+                                    if(editors[editorName].toolbarScopes[_t].tools[name] !== undefined){
+                                        taToolExecuteAction.call(editors[editorName].toolbarScopes[_t].tools[name], editorScope);
+                                        result = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                        return result;
+                    },
+                    triggerElementSelect: function(event, element){
+                        // search through the taTools to see if a match for the tag is made.
+                        // if there is, see if the tool is on a registered toolbar and not disabled.
+                        // NOTE: This can trigger on MULTIPLE tools simultaneously.
+                        var elementHasAttrs = function(_element, attrs){
+                            var result = true;
+                            for(var i = 0; i < attrs.length; i++) result = result && _element.attr(attrs[i]);
+                            return result;
+                        };
+                        var workerTools = [];
+                        var unfilteredTools = {};
+                        var result = false;
+                        element = angular.element(element);
+                        // get all valid tools by element name, keep track if one matches the
+                        var onlyWithAttrsFilter = false;
+                        angular.forEach(taTools, function(tool, name){
+                            if(
+                                tool.onElementSelect &&
+                                tool.onElementSelect.element &&
+                                tool.onElementSelect.element.toLowerCase() === element[0].tagName.toLowerCase() &&
+                                (!tool.onElementSelect.filter || tool.onElementSelect.filter(element))
+                            ){
+                                // this should only end up true if the element matches the only attributes
+                                onlyWithAttrsFilter = onlyWithAttrsFilter ||
+                                    (angular.isArray(tool.onElementSelect.onlyWithAttrs) && elementHasAttrs(element, tool.onElementSelect.onlyWithAttrs));
+                                if(!tool.onElementSelect.onlyWithAttrs || elementHasAttrs(element, tool.onElementSelect.onlyWithAttrs)) unfilteredTools[name] = tool;
+                            }
+                        });
+                        // if we matched attributes to filter on, then filter, else continue
+                        if(onlyWithAttrsFilter){
+                            angular.forEach(unfilteredTools, function(tool, name){
+                                if(tool.onElementSelect.onlyWithAttrs && elementHasAttrs(element, tool.onElementSelect.onlyWithAttrs)) workerTools.push({'name': name, 'tool': tool});
+                            });
+                            // sort most specific (most attrs to find) first
+                            workerTools.sort(function(a,b){
+                                return b.tool.onElementSelect.onlyWithAttrs.length - a.tool.onElementSelect.onlyWithAttrs.length;
+                            });
+                        }else{
+                            angular.forEach(unfilteredTools, function(tool, name){
+                                workerTools.push({'name': name, 'tool': tool});
+                            });
+                        }
+                        // Run the actions on the first visible filtered tool only
+                        if(workerTools.length > 0){
+                            for(var _i = 0; _i < workerTools.length; _i++){
+                                var tool = workerTools[_i].tool;
+                                var name = workerTools[_i].name;
+                                for(var _t = 0; _t < editors[editorName].toolbarScopes.length; _t++){
+                                    if(editors[editorName].toolbarScopes[_t].tools[name] !== undefined){
+                                        tool.onElementSelect.action.call(editors[editorName].toolbarScopes[_t].tools[name], event, element, editorScope);
+                                        result = true;
+                                        break;
+                                    }
+                                }
+                                if(result) break;
+                            }
+                        }
+                        return result;
+                    }
+                }
+            };
+            angular.forEach(targetToolbars, function(_name){
+                if(toolbars[_name]) {
+                    editors[editorName].toolbarScopes.push(toolbars[_name]);
+                }
+                // if it doesn't exist it may not have been compiled yet and it will be added later
+            });
+            touchModification();
+            return editors[editorName].editorFunctions;
+        },
+        // retrieve editor by name, largely used by testing suites only
+        retrieveEditor: function(name){
+            return editors[name];
+        },
+        unregisterEditor: function(name){
+            delete editors[name];
+            touchModification();
+        },
+        // registers a toolbar such that it can be linked to editors
+        registerToolbar: function(toolbarScope){
+            if(!toolbarScope) throw('textAngular Error: A toolbar requires a scope');
+            if(!toolbarScope.name || toolbarScope.name === '') throw('textAngular Error: A toolbar requires a name');
+            if(toolbars[toolbarScope.name]) throw('textAngular Error: A toolbar with name "' + toolbarScope.name + '" already exists');
+            toolbars[toolbarScope.name] = toolbarScope;
+            // walk all the editors and connect this toolbarScope to the editors.... if we need to.  This way, it does
+            // not matter if we register the editors after the toolbars or not
+            // Note the editor will ignore this toolbarScope if it is not connected to it...
+            angular.forEach(editors, function(_editor){
+                _editor._registerToolbarScope(toolbarScope);
+            });
+            touchModification();
+        },
+        // retrieve toolbar by name, largely used by testing suites only
+        retrieveToolbar: function(name){
+            return toolbars[name];
+        },
+        // retrieve toolbars by editor name, largely used by testing suites only
+        retrieveToolbarsViaEditor: function(name){
+            var result = [], _this = this;
+            angular.forEach(this.retrieveEditor(name).toolbars, function(name){
+                result.push(_this.retrieveToolbar(name));
+            });
+            return result;
+        },
+        unregisterToolbar: function(name){
+            delete toolbars[name];
+            touchModification();
+        },
+        // functions for updating the toolbar buttons display
+        updateToolsDisplay: function(newTaTools){
+            // pass a partial struct of the taTools, this allows us to update the tools on the fly, will not change the defaults.
+            var _this = this;
+            angular.forEach(newTaTools, function(_newTool, key){
+                _this.updateToolDisplay(key, _newTool);
+            });
+        },
+        // this function resets all toolbars to their default tool definitions
+        resetToolsDisplay: function(){
+            var _this = this;
+            angular.forEach(taTools, function(_newTool, key){
+                _this.resetToolDisplay(key);
+            });
+            touchModification();
+        },
+        // update a tool on all toolbars
+        updateToolDisplay: function(toolKey, _newTool){
+            var _this = this;
+            angular.forEach(toolbars, function(toolbarScope, toolbarKey){
+                _this.updateToolbarToolDisplay(toolbarKey, toolKey, _newTool);
+            });
+            touchModification();
+        },
+        // resets a tool to the default/starting state on all toolbars
+        resetToolDisplay: function(toolKey){
+            var _this = this;
+            angular.forEach(toolbars, function(toolbarScope, toolbarKey){
+                _this.resetToolbarToolDisplay(toolbarKey, toolKey);
+            });
+            touchModification();
+        },
+        // update a tool on a specific toolbar
+        updateToolbarToolDisplay: function(toolbarKey, toolKey, _newTool){
+            if(toolbars[toolbarKey]) toolbars[toolbarKey].updateToolDisplay(toolKey, _newTool);
+            else throw('textAngular Error: No Toolbar with name "' + toolbarKey + '" exists');
+        },
+        // reset a tool on a specific toolbar to it's default starting value
+        resetToolbarToolDisplay: function(toolbarKey, toolKey){
+            if(toolbars[toolbarKey]) toolbars[toolbarKey].updateToolDisplay(toolKey, taTools[toolKey], true);
+            else throw('textAngular Error: No Toolbar with name "' + toolbarKey + '" exists');
+        },
+        // removes a tool from all toolbars and it's definition
+        removeTool: function(toolKey){
+            delete taTools[toolKey];
+            angular.forEach(toolbars, function(toolbarScope){
+                delete toolbarScope.tools[toolKey];
+                for(var i = 0; i < toolbarScope.toolbar.length; i++){
+                    var toolbarIndex;
+                    for(var j = 0; j < toolbarScope.toolbar[i].length; j++){
+                        if(toolbarScope.toolbar[i][j] === toolKey){
+                            toolbarIndex = {
+                                group: i,
+                                index: j
+                            };
+                            break;
+                        }
+                        if(toolbarIndex !== undefined) break;
+                    }
+                    if(toolbarIndex !== undefined){
+                        toolbarScope.toolbar[toolbarIndex.group].slice(toolbarIndex.index, 1);
+                        toolbarScope._$element.children().eq(toolbarIndex.group).children().eq(toolbarIndex.index).remove();
+                    }
+                }
+            });
+            touchModification();
+        },
+        // toolkey, toolDefinition are required. If group is not specified will pick the last group, if index isnt defined will append to group
+        addTool: function(toolKey, toolDefinition, group, index){
+            taRegisterTool(toolKey, toolDefinition);
+            angular.forEach(toolbars, function(toolbarScope){
+                toolbarScope.addTool(toolKey, toolDefinition, group, index);
+            });
+            touchModification();
+        },
+        // adds a Tool but only to one toolbar not all
+        addToolToToolbar: function(toolKey, toolDefinition, toolbarKey, group, index){
+            taRegisterTool(toolKey, toolDefinition);
+            toolbars[toolbarKey].addTool(toolKey, toolDefinition, group, index);
+            touchModification();
+        },
+        // this is used when externally the html of an editor has been changed and textAngular needs to be notified to update the model.
+        // this will call a $digest if not already happening
+        refreshEditor: function(name){
+            if(editors[name]){
+                editors[name].scope.updateTaBindtaTextElement();
+                /* istanbul ignore else: phase catch */
+                if(!editors[name].scope.$$phase) editors[name].scope.$digest();
+            }else throw('textAngular Error: No Editor with name "' + name + '" exists');
+            touchModification();
+        },
+        // this is used by taBind to send a key command in response to a special key event
+        sendKeyCommand: function(scope, event){
+            var _editor = editors[scope._name];
+            /* istanbul ignore else: if nothing to do, do nothing */
+            if (_editor && _editor.editorFunctions.sendKeyCommand(event)) {
+                /* istanbul ignore else: don't run if already running */
+                if(!scope._bUpdateSelectedStyles){
+                    scope.updateSelectedStyles();
+                }
+                event.preventDefault();
+                return false;
+            }
+        },
+        //
+        // When a toolbar and tools are created, it isn't until there is a key event or mouse event
+        // that the updateSelectedStyles() is called behind the scenes.
+        // This function forces an update through the existing editors to help the application make sure
+        // the inital state is correct.
+        //
+        updateStyles: updateStyles,
+        // return the current version of textAngular in use to the user
+        getVersion: function () { return textAngularVersion; },
+        // for testing
+        getToolbarScopes: function () {
+            var tmp=[];
+            angular.forEach(editors, function (_editor) {
+                tmp = tmp.concat(_editor.toolbarScopes);
+            });
+            return tmp;
+        }
+/********************** not functional yet
+        // save the selection ('range') for the given editor
+        saveFocusSelection: function (name, range) {
+            editors[name].savedFocusRange = range;
+        },
+        // restore the saved selection from when the focus was lost
+        restoreFocusSelection: function(name, scope) {
+            // we only do this if NOT focussed and saved...
+            if (editors[name].savedFocusRange && !scope.focussed) {
+                try {
+                    var _r = rangy.restoreRange(editors[name].savedFocusRange);
+                    var _sel = rangy.getSelection();
+                    _sel.addRange(_r);
+                } catch(e) {}
+            }
+        }
+*************/
+    };
+}]);
+textAngular.directive('textAngularToolbar', [
+    '$compile', 'textAngularManager', 'taOptions', 'taTools', 'taToolExecuteAction', '$window',
+    function($compile, textAngularManager, taOptions, taTools, taToolExecuteAction, $window){
+        return {
+            scope: {
+                name: '@' // a name IS required
+            },
+            restrict: "EA",
+            link: function(scope, element, attrs){
+                if(!scope.name || scope.name === '') throw('textAngular Error: A toolbar requires a name');
+                angular.extend(scope, angular.copy(taOptions));
+                if(attrs.taToolbar)						scope.toolbar = scope.$parent.$eval(attrs.taToolbar);
+                if(attrs.taToolbarClass)				scope.classes.toolbar = attrs.taToolbarClass;
+                if(attrs.taToolbarGroupClass)			scope.classes.toolbarGroup = attrs.taToolbarGroupClass;
+                if(attrs.taToolbarButtonClass)			scope.classes.toolbarButton = attrs.taToolbarButtonClass;
+                if(attrs.taToolbarActiveButtonClass)	scope.classes.toolbarButtonActive = attrs.taToolbarActiveButtonClass;
+                if(attrs.taFocussedClass)				scope.classes.focussed = attrs.taFocussedClass;
+
+                scope.disabled = true;
+                scope.focussed = false;
+                scope._$element = element;
+                element[0].innerHTML = '';
+                element.addClass("ta-toolbar " + scope.classes.toolbar);
+
+                scope.$watch('focussed', function(){
+                    if(scope.focussed) element.addClass(scope.classes.focussed);
+                    else element.removeClass(scope.classes.focussed);
+                });
+
+                var setupToolElement = function(toolDefinition, toolScope){
+                    var toolElement;
+                    if(toolDefinition && toolDefinition.display){
+                        toolElement = angular.element(toolDefinition.display);
+                    }
+                    else toolElement = angular.element("<button type='button'>");
+
+                    if(toolDefinition && toolDefinition["class"]) toolElement.addClass(toolDefinition["class"]);
+                    else toolElement.addClass(scope.classes.toolbarButton);
+
+                    toolElement.attr('name', toolScope.name);
+                    // important to not take focus from the main text/html entry
+                    toolElement.attr('ta-button', 'ta-button');
+                    toolElement.attr('ng-disabled', 'isDisabled()');
+                    toolElement.attr('tabindex', '-1');
+                    toolElement.attr('ng-click', 'executeAction()');
+                    toolElement.attr('ng-class', 'displayActiveToolClass(active)');
+
+                    if (toolDefinition && toolDefinition.tooltiptext) {
+                        toolElement.attr('title', toolDefinition.tooltiptext);
+                    }
+                    if(toolDefinition && !toolDefinition.display && !toolScope._display){
+                        // first clear out the current contents if any
+                        toolElement[0].innerHTML = '';
+                        // add the buttonText
+                        if(toolDefinition.buttontext) toolElement[0].innerHTML = toolDefinition.buttontext;
+                        // add the icon to the front of the button if there is content
+                        if(toolDefinition.iconclass){
+                            var icon = angular.element('<i>'), content = toolElement[0].innerHTML;
+                            icon.addClass(toolDefinition.iconclass);
+                            toolElement[0].innerHTML = '';
+                            toolElement.append(icon);
+                            if(content && content !== '') toolElement.append('&nbsp;' + content);
+                        }
+                    }
+
+                    toolScope._lastToolDefinition = angular.copy(toolDefinition);
+
+                    return $compile(toolElement)(toolScope);
+                };
+
+                // Keep a reference for updating the active states later
+                scope.tools = {};
+                // create the tools in the toolbar
+                // default functions and values to prevent errors in testing and on init
+                scope._parent = {
+                    disabled: true,
+                    showHtml: false,
+                    queryFormatBlockState: function(){ return false; },
+                    queryCommandState: function(){ return false; }
+                };
+                var defaultChildScope = {
+                    $window: $window,
+                    $editor: function(){
+                        // dynamically gets the editor as it is set
+                        return scope._parent;
+                    },
+                    isDisabled: function(){
+                        // view selection button is always enabled since it doesn not depend on a selction!
+                        if (this.name === 'html' && scope._parent.startAction) {
+                            return false;
+                        }
+                        // to set your own disabled logic set a function or boolean on the tool called 'disabled'
+                        return ( // this bracket is important as without it it just returns the first bracket and ignores the rest
+                            // when the button's disabled function/value evaluates to true
+                            (typeof this.$eval('disabled') !== 'function' && this.$eval('disabled')) || this.$eval('disabled()') ||
+                            // all buttons except the HTML Switch button should be disabled in the showHtml (RAW html) mode
+                            (this.name !== 'html' && this.$editor().showHtml) ||
+                            // if the toolbar is disabled
+                            this.$parent.disabled ||
+                            // if the current editor is disabled
+                            this.$editor().disabled
+                        );
+                    },
+                    displayActiveToolClass: function(active){
+                        return (active)? scope.classes.toolbarButtonActive : '';
+                    },
+                    executeAction: taToolExecuteAction
+                };
+
+                angular.forEach(scope.toolbar, function(group){
+                    // setup the toolbar group
+                    var groupElement = angular.element("<div>");
+                    groupElement.addClass(scope.classes.toolbarGroup);
+                    angular.forEach(group, function(tool){
+                        // init and add the tools to the group
+                        // a tool name (key name from taTools struct)
+                        //creates a child scope of the main angularText scope and then extends the childScope with the functions of this particular tool
+                        // reference to the scope and element kept
+                        scope.tools[tool] = angular.extend(scope.$new(true), taTools[tool], defaultChildScope, {name: tool});
+                        scope.tools[tool].$element = setupToolElement(taTools[tool], scope.tools[tool]);
+                        // append the tool compiled with the childScope to the group element
+                        groupElement.append(scope.tools[tool].$element);
+                    });
+                    // append the group to the toolbar
+                    element.append(groupElement);
+                });
+
+                // update a tool
+                // if a value is set to null, remove from the display
+                // when forceNew is set to true it will ignore all previous settings, used to reset to taTools definition
+                // to reset to defaults pass in taTools[key] as _newTool and forceNew as true, ie `updateToolDisplay(key, taTools[key], true);`
+                scope.updateToolDisplay = function(key, _newTool, forceNew){
+                    var toolInstance = scope.tools[key];
+                    if(toolInstance){
+                        // get the last toolDefinition, then override with the new definition
+                        if(toolInstance._lastToolDefinition && !forceNew) _newTool = angular.extend({}, toolInstance._lastToolDefinition, _newTool);
+                        if(_newTool.buttontext === null && _newTool.iconclass === null && _newTool.display === null)
+                            throw('textAngular Error: Tool Definition for updating "' + key + '" does not have a valid display/iconclass/buttontext value');
+
+                        // if tool is defined on this toolbar, update/redo the tool
+                        if(_newTool.buttontext === null){
+                            delete _newTool.buttontext;
+                        }
+                        if(_newTool.iconclass === null){
+                            delete _newTool.iconclass;
+                        }
+                        if(_newTool.display === null){
+                            delete _newTool.display;
+                        }
+
+                        var toolElement = setupToolElement(_newTool, toolInstance);
+                        toolInstance.$element.replaceWith(toolElement);
+                        toolInstance.$element = toolElement;
+                    }
+                };
+
+                // we assume here that all values passed are valid and correct
+                scope.addTool = function(key, _newTool, groupIndex, index){
+                    scope.tools[key] = angular.extend(scope.$new(true), taTools[key], defaultChildScope, {name: key});
+                    scope.tools[key].$element = setupToolElement(taTools[key], scope.tools[key]);
+                    var group;
+                    if(groupIndex === undefined) groupIndex = scope.toolbar.length - 1;
+                    group = angular.element(element.children()[groupIndex]);
+
+                    if(index === undefined){
+                        group.append(scope.tools[key].$element);
+                        scope.toolbar[groupIndex][scope.toolbar[groupIndex].length - 1] = key;
+                    }else{
+                        group.children().eq(index).after(scope.tools[key].$element);
+                        scope.toolbar[groupIndex][index] = key;
+                    }
+                };
+
+                textAngularManager.registerToolbar(scope);
+
+                scope.$on('$destroy', function(){
+                    textAngularManager.unregisterToolbar(scope.name);
+                });
+            }
+        };
+    }
+]);
+textAngular.directive('textAngularVersion', ['textAngularManager',
+    function(textAngularManager) {
+        var version = textAngularManager.getVersion();
+        return {
+            restrict: "EA",
+            link: function (scope, element, attrs) {
+                element.html(version);
+            }
+        };
+    }
+]);
+
+return textAngular.name;
+
+}));
+
+},{"rangy":94,"rangy/lib/rangy-selectionsaverestore":95}],97:[function(require,module,exports){
 require('angular')
+require('angular-sanitize') 
 require('angular-aria')
 require('angular-ui-router')
 require('ngstorage')
+require('textAngular')
 
-},{"angular":90,"angular-aria":2,"angular-ui-router":6,"ngstorage":91}]},{},[92]);
+},{"angular":92,"angular-aria":74,"angular-sanitize":76,"angular-ui-router":80,"ngstorage":93,"textAngular":96}]},{},[97]);

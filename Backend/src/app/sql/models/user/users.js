@@ -8,7 +8,7 @@ export default class Model extends Database.Model {
   }
 
   rank () {
-    return this.hasOne(Rank, 'id', 'rank').query('columns', ['id', 'rank_name'])
+    return this.hasOne(Rank, 'id', 'rank').query('columns', ['id', 'rank_name', 'cms_admin'])
   }
 
   notifications () {

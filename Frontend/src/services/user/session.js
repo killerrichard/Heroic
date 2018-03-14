@@ -34,10 +34,14 @@ export default class Session
       if (Session.$localStorage.token && Session.$localStorage.session) {
         Session.$http.get(`/api/auth/users/session/${Session.$localStorage.session.username}`)
           .then (session => {
-            Session.$localStorage.session = session.data
-            Session.$rootScope.session    = session.data
-            resolve(session.data) 
-          })
+            if (!session.data.error) {
+              Session.$localStorage.session = session.data
+              Session.$rootScope.session    = session.data
+              resolve(session.data) 
+            } else { 
+              reject('Session not found')
+            }
+          }) 
           .catch (error => {
             Session.$localStorage.$reset()
             Session.$rootScope.session = undefined

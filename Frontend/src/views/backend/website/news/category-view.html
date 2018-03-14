@@ -1,0 +1,20 @@
+<div ng-show="message.type" click-off="message={}" class="Alert--{{ message.type}} u-mb-4">
+    <div class="Alert-content">
+        <p>{{ message.text }} </p>
+    </div>
+</div>
+<form ng-submit="update()">
+    <div class="columns small-6">
+        <div>
+            <label>Title</label>
+            <input ng-model="category.title" type="text">
+        </div>
+
+        <div class="columns small-6">
+            <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+        </div>
+</form>
+<div class="columns small-6">
+    <button ng-click="delete(category.id)" class="Button Button--red Button--large Button--fullWidth ">Delete</button>
+</div>
+ 

@@ -1,6 +1,6 @@
 <div class="user-menu">
-	<div class="user-menu__header">
-		<a ng-click="toggle()" class="user-menu__toggle">
+	<div class="user-menu__header"> 
+		<a ng-click="toggle()" click-off="status=false" class="user-menu__toggle">
   		<div class="user-menu__name__wrapper">
   			<div class="user-menu__name" ng-class="{ 'user-menu__name--open': status }">
   				{{ $root.session.username }}
@@ -17,5 +17,5 @@
 			<a ui-sref="user.logout" class="user-menu__link">Logout</a>
 		</li>
 	</ul>
-</div>
- 
+</div> 
+  

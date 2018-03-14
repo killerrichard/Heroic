@@ -1,5 +1,5 @@
 import Error from '../../../lib/error'
-import Database from '../../../sql/interactors/store/packages'
+import Database from '../../../sql/interactors/store/products'
 export default class Controller {
 
     static async create(request, reply) {
@@ -23,8 +23,8 @@ export default class Controller {
 
     static async read(request, reply) {
         try {
-            let packages = await Database.read(request.params.id)
-            reply.code(200).send(packages)
+            let products = await Database.read(request.params.id)
+            reply.code(200).send(products)
         } catch (error) {
             new Error(error, request, reply)
         }

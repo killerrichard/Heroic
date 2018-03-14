@@ -1,6 +1,6 @@
 import Rank from './ranks'
 import Database from  '../../server'
-import Notifications from './notifications'
+import Purchases from '../store/purchases'
 export default class Model extends Database.Model {
 
   get tableName () {
@@ -11,8 +11,8 @@ export default class Model extends Database.Model {
     return this.hasOne(Rank, 'id', 'rank').query('columns', ['id', 'rank_name', 'cms_admin'])
   }
 
-  notifications () {
-    return this.hasMany(Notifications).query('columns', ['user_id', 'reference_id', 'reference_type', 'title', 'content', 'timestamp'])
+  purchases () {
+    return this.hasMany(Purchases).query('columns', ['id', 'user_id', 'product_id', 'status', 'created_at'])
   }
 
 }

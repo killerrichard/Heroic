@@ -1,4 +1,4 @@
-import Model from '../../models/store/packages'
+import Model from '../../models/store/products'
 export default class Interactor {
 
     static async create(data) {
@@ -11,16 +11,16 @@ export default class Interactor {
 
     static async read(id) {
         try {
-            console.log(id)
             if (id) {
                 await Interactor.exists(id)
 
                 return await Model.where('id', id).fetch({
-                    columns: ['id', 'title', 'description', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points']
-                })
+                    columns: ['id', 'title', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points'],
+                    withRelated: ['rank']
+                }) 
             } else {
                 return Model.query('orderBy', 'price', 'ASC').fetchAll({
-                    columns: ['id', 'title', 'description', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points']
+                    columns: ['id', 'title', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points']
                 })
             }
         } catch (error) {

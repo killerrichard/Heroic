@@ -1,76 +1,25 @@
-<div id="container">
-    <div id="content">
-        <div class="contents">
-            <div class="cloud-container nav-has-loaded" id="main">
-                <div class="row">
-                    <div class="small-12 columns">
-                        <header class="u-clearfix"></header>
-                    </div> 
-                </div>
-                <div class="ember-application owns-css" id="aurora-container">
-                    <nav class="nav-bar">
-                        <div class="nav_controls">
-                            <div class="row">
-                                <div class="columns small-9">
-                                    <div class="logo-wrapper"> 
-                                        <a ui-sref="admin.home.dashboard" class="navLink">
-                                            <i class="fa fa-cloud"></i> Heroic 
-                                            <sup>Two</sup>
-                                        </a>
-                                    </div>
-
-                                    <a class="navLink">Dashboard</a>
-                                    <a class="navLink">Website</a>
-                                    <a class="navLink">Emulator</a>
-                                </div>
-                                <div class="columns small-3 stackRight">
-                                    <div class="aurora-dropdown-menu navigation-dropdown-menu account-dropdown teams-dropdown">
-                                        <div class="dropdown-title">
-                                            <a class="navLink">
-                                                Chris
-                                                <i class="fa fa-chevron-down"></i>
-                                            </a>
-                                        </div>
-                                        <div class="menu-dropdown menu-dropdown-teams">
-                                            <div class="menu-dropdownItems" style="margin-left: 2em">
-                                                <div class="context-list" style="max-height: 310px;">
-                                                    <section>
-                                                        <ul>
-                                                            <li class="nav-li">
-                                                                <a class="nav-item">
-                                                                    <div class="avatar avatar-overlay"></div>
-                                                                    <img alt="" class="avatar" src="https://secure.gravatar.com/avatar/cc78ee33b980f6c0c6cf1e98070a50f1?default=https%3A%2F%2Fcloud.digitalocean.com%2Favatars%2Fdefault29.png&amp;secure=true">
-                                                                    <span class="user-info">
-                                                                        <span class="action-item user-name ellipsis-text">why</span>
-                                                                        <span class="action-item user-email ellipsis-text">why@lololol.com</span>
-                                                                    </span>
-                                                                </a>
-                                                            </li>
-                                                        </ul>
-                                                    </section>
-                                                </div>
-                                                <section class="dropdown-last-section">
-                                                    <ul>
-                                                        <li class="nav-item">
-                                                            <a class="action-item active">Settings</a>
-                                                        </li>
-                                                    </ul>
-                                                </section>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </nav>
-                    <div class="aurora-body">
-                        <div class="row">
-                            <div class="columns small-12" ui-view></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="cloud-container nav-has-loaded" id="main">
+    <div class="row">
+        <div class="small-12 columns">
+            <header class="u-clearfix"></header>
         </div>
     </div>
-</div>
-</div>
+    <nav class="nav-bar">
+        <div class="nav_controls">
+            <div class="logo-wrapper">
+                <a ui-sref="admin.home.dashboard" class="navLink">
+                    <i class="fa fa-cloud"></i> Heroic
+                    <sup>Two</sup>
+                </a>
+            </div>
+            <a ui-sref="admin.home.dashboard" ng-class="{'active': page.name.indexOf('admin.home') > -1}" class="navLink">Dashboard</a>
+            <a ui-sref="admin.website.settings" ng-class="{'active': page.name.indexOf('admin.website') > -1}" class="navLink">Website</a>
+            <a ui-sref="admin.emulator.users" ng-class="{'active': page.name.indexOf('admin.emulator') > -1}" class="navLink">Emulator</a>
+        </div>
+    </nav>
+    <div class="aurora-body">
+        <div class="row">
+            <div class="columns small-12" ui-view></div>
+        </div>
+    </div>
+</div>   

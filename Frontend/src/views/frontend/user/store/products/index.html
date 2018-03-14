@@ -1,0 +1,44 @@
+<main class="wrapper wrapper--content">
+    <section>
+        <div class="main" ui-view></div>
+        <habbo-purse class="aside aside--box">
+            <aside>
+                <h3>My Purse</h3>
+                <div class="purse">
+                    <div class="purse__columns">
+                        <div class="purse__column">
+                            <div class="purse__item purse__item--credits">{{ session.credits | number }} credits</div>
+                            <div class="purse__item purse__item--diamonds">{{ session.points | number }} diamonds</div>
+                        </div>
+                        <div class="purse__column">
+                            <div class="purse__item purse__item--habbo-club">
+                                <span>{{ session.rank.rank_name }} </span>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+            </aside>
+        </habbo-purse>
+        <aside class="aside aside--box">
+            <h3>Got a voucher code?</h3>
+            <habbo-voucher-redeem>
+                <form class="form">
+                    <button type="submit" class="form__submit form__submit--inline">Redeem</button>
+                    <fieldset class="form__fieldset form__fieldset--inline">
+                        <div class="form__field">
+                            <input placeholder="Type your code here" class="form__input">
+                        </div>
+                    </fieldset>
+                </form>
+            </habbo-voucher-redeem>
+        </aside>
+    </section> 
+    <habbo-shop-footer class="wrapper wrapper--content">
+        <footer class="shop-footer">
+            <section class="main shop-footer__main">
+                <h3 class="shop-footer__title">Please remember</h3>
+                <p class="shop-footer__text">If your payment is declined or chargebacked at a later time - your account will automatically be banned from our services.</p>
+            </section> 
+        </footer>
+    </habbo-shop-footer>
+</main>

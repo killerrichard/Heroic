@@ -3,7 +3,7 @@
 		<header class="news-header news-header--single">
 			<div class="news-header__banner">
 				<figure class="news-header__viewport">
-					<img ng-src="https://images.habbo.com/web_images/habbo-web-articles/{{ article.image }}.png" class="news-header__image news-header__image--featured">
+					<img ng-src="/assets/img/articles/{{ article.image }}.png" class="news-header__image news-header__image--featured">
 				</figure>
 			</div>
 			<h1 ng-bind="article.title" class="news-header__wrapper news-header__title"></h1>
@@ -19,4 +19,4 @@
 		</header>
 		<div ng-bind-html="article.content" class="news-article"></div>
 	</article>
-</section>
+</section> 

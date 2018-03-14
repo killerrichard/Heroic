@@ -1,4 +1,4 @@
-import Navigation from '../../config/navigation.json'
+import Navigation from '../../../config/navigation.json'
 class Controller
 {
     constructor ($scope, $rootScope, $localStorage)
@@ -23,7 +23,7 @@ class Controller
 
 const Component = {
   controller  : Controller,
-  templateUrl: 'views/frontend/components/navigation.html'
+  templateUrl: 'views/frontend/components/header/navigation/parent.html'
 }
 
 export default Component

@@ -1,15 +1,15 @@
 import knex from 'knex'
 import bookshelf from 'bookshelf'
 import Delete from 'bookshelf-cascade-delete'
-import Configuration from '../config/options'
+import Configuration from '../config/database'
 
 const data = {
   client :"mysql",
   connection:{
-    host: Configuration.database.host,
-    user: Configuration.database.user,
-    password: Configuration.database.password,
-    database: Configuration.database.database
+    host: Configuration.host,
+    user: Configuration.user,
+    password: Configuration.password,
+    database: Configuration.database
   }
 }
 const Database = bookshelf(knex(data))

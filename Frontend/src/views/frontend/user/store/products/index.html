@@ -19,18 +19,9 @@
                 </div> 
             </aside>
         </habbo-purse>
-        <aside class="aside aside--box">
-            <h3>Got a voucher code?</h3>
-            <habbo-voucher-redeem>
-                <form class="form">
-                    <button type="submit" class="form__submit form__submit--inline">Redeem</button>
-                    <fieldset class="form__fieldset form__fieldset--inline">
-                        <div class="form__field">
-                            <input placeholder="Type your code here" class="form__input">
-                        </div>
-                    </fieldset>
-                </form>
-            </habbo-voucher-redeem>
+        <aside class="aside aside--box" ng-if="session.online==1">
+            <h3>Warning</h3>
+            <p>You will not be able to make any purchases until you exit the client.</p>
         </aside>
     </section> 
     <habbo-shop-footer class="wrapper wrapper--content">

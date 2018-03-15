@@ -13,17 +13,11 @@
                     <h6 ng-bind="room.owner.username" class="avatar__title"></h6>
                 </a>
             </habbo-avatar>
+
             <habbo-room-info>
-                <ul class="room-info">
-                    <li class="room-info__row">
-                        <h3 class="room-info__header">Description</h3>
-                        <span ng-bind="rom.description" class="room-info__value room-info--description"></span>
-                    </li>
-                </ul>
+                <h3 class="room-info__header">Description</h3>
+                <p ng-bind="room.description"></p>
             </habbo-room-info>
-            <a class="room__enter-button">
-                <span class="room__enter-button__text">Enter room</span>
-            </a>
         </div>
     </div>
-</section>
+</section> 

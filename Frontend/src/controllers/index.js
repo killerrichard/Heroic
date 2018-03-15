@@ -20,12 +20,18 @@ app.controller('Frontend.User.Store.Purchase.Success', Frontend.User.Store.Purch
 
 // Backend
 app.controller('Backend.Website.Settings', Backend.Website.Settings)
-app.controller('Backend.Website.News.Article.List', Backend.Website.News.Article.List) 
-app.controller('Backend.Website.News.Article.View', Backend.Website.News.Article.View) 
-app.controller('Backend.Website.News.Article.Create', Backend.Website.News.Article.Create) 
+// News
+app.controller('Backend.Website.News.Article.List', Backend.Website.News.Article.List)
+app.controller('Backend.Website.News.Article.View', Backend.Website.News.Article.View)
+app.controller('Backend.Website.News.Article.Create', Backend.Website.News.Article.Create)
 app.controller('Backend.Website.News.Category.List', Backend.Website.News.Category.List)
 app.controller('Backend.Website.News.Category.View', Backend.Website.News.Category.View)
 app.controller('Backend.Website.News.Category.Create', Backend.Website.News.Category.Create)
-export default app   
-  
- 
+// Web Store
+app.controller('Backend.Website.Store.Product', Backend.Website.Store.Product.Index) 
+app.controller('Backend.Website.Store.Product.Create', Backend.Website.Store.Product.Create)
+app.controller('Backend.Website.Store.Product.List', Backend.Website.Store.Product.List)
+app.controller('Backend.Website.Store.Product.View', Backend.Website.Store.Product.View)
+app.controller('Backend.Website.Store.Product.Update', Backend.Website.Store.Product.Update)
+app.controller('Backend.Website.Store.Product.Delete', Backend.Website.Store.Product.Delete)
+export default app

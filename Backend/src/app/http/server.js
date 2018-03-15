@@ -7,7 +7,6 @@ import Static from 'fastify-static'
 import Helmet from 'fastify-helmet'
 import Body from 'fastify-formbody'
 import Session from './middleware/session'
-import Configuration from '../config/options'
 export default class Server {
 
   constructor (time) {

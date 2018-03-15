@@ -1,7 +1,9 @@
 class Success {
 
-    constructor($state, $localStorage, $http) {
+    constructor($state, $scope, $localStorage, $http) {
         'ngInject'
+
+        $scope.process = true
 
         let data = {
             user: $localStorage.session,
@@ -11,7 +13,7 @@ class Success {
 
         $http.post('/api/auth/store/purchases', data)
             .then(msg => {
-                //
+                $scope.process = false
             }) 
             .catch(error => {
                 $state.go('errors.500')

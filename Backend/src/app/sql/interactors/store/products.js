@@ -20,7 +20,8 @@ export default class Interactor {
                 }) 
             } else {
                 return Model.query('orderBy', 'price', 'ASC').fetchAll({
-                    columns: ['id', 'title', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points']
+                    columns: ['id', 'title', 'content', 'price', 'rank_id', 'boost_credits', 'boost_pixels', 'boost_points'],
+                    withRelated: ['rank']
                 })
             }
         } catch (error) {

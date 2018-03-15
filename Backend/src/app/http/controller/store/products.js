@@ -6,7 +6,6 @@ export default class Controller {
         try {
             const data = {
                 title: request.body.title,
-                description: request.body.description,
                 content: request.body.content,
                 price: request.body.price,
                 rank_id: request.body.rank_id,
@@ -35,7 +34,6 @@ export default class Controller {
             const data = {
                 id: request.params.id,
                 title: request.body.title,
-                description: request.body.description,
                 content: request.body.content,
                 price: request.body.price,
                 rank_id: request.body.rank_id,

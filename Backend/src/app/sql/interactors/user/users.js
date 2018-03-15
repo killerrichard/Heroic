@@ -142,13 +142,13 @@ export default class Interactor {
     }
   }
 
-  static async exists(id) {
+  static async exists(data, type) {
     try {
-      let user = await Model.where('id', id).fetch({
-        columns: ['id']
-      })
-      if (user.toJSON().id) {
-        return true
+      let user = await Model.where(type, data).fetch({
+        columns: ['id', type]
+      }) 
+      if (user) {
+        return user.toJSON().id
       } else {
         throw new Error('RETURN: User does not exist')
       }
@@ -161,7 +161,7 @@ export default class Interactor {
   static async subscription(data) {
     try {
       // Check For Existence 
-      await Interactor.exists(data.id)
+      await Interactor.exists(data.id, 'id')
       // Fetch user
       let user = await Interactor.read(data.id, 'id', true)
       // Format 
@@ -189,7 +189,7 @@ export default class Interactor {
 
       const generated = `heroic_two_${Random.generate(7)}`
 
-      await Interactor.exists(id)
+      await Interactor.exists(id, 'id')
 
       await Model.where('id', id).save({
         id: id,

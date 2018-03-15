@@ -41,4 +41,7 @@ app.controller('Backend.Website.Store.Product.List', Backend.Website.Store.Produ
 app.controller('Backend.Website.Store.Product.View', Backend.Website.Store.Product.View)
 app.controller('Backend.Website.Store.Product.Update', Backend.Website.Store.Product.Update)
 app.controller('Backend.Website.Store.Product.Delete', Backend.Website.Store.Product.Delete)
-export default app
+//Users
+app.controller('Backend.Emulator.Users.Search', Backend.Emulator.Users.Search)
+app.controller('Backend.Emulator.Users.View', Backend.Emulator.Users.View)
+export default app 

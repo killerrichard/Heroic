@@ -17,11 +17,6 @@
 <div class="columns small-12 networkingPage">
     <div class="u-mb-5">
         <div class="small-6 columns">
-            <div ng-show="message.type" click-off="message={}" class="Alert--{{ message.type}} u-mb-4">
-                <div class="Alert-content">
-                    <p>{{ message.text }} </p>
-                </div>
-            </div>
             <form ng-submit="update()">
 
                 <div ng-show="isActive('general')">

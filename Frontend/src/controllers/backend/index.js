@@ -1,2 +1,5 @@
-exports.Website = require('./website/index')
-exports.Controller = require('./controller').default
+module.exports = {
+    Website: require('./website/index'),
+    Emulator: require('./emulator/index'),
+    Controller: require('./controller').default
+} 

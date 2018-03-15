@@ -65,7 +65,7 @@
 
 	"user.home.client": {
 		"name": "user.home.client",
-		"url": "/client", 
+		"url": "/client",
 		"title": "Client",
 		"controller": "Frontend.User.Home.Client",
 		"templateUrl": "views/frontend/user/home/client.html"
@@ -295,6 +295,14 @@
 		"templateUrl": "views/backend/website/index.html"
 	},
 
+	"admin.website.landing": {
+		"name": "admin.website.landing",
+		"url": "",
+		"title": "Website",
+		"template": "<div ui-view></div>"
+	},
+
+
 	"admin.website.settings": {
 		"name": "admin.website.settings",
 		"url": "/settings",
@@ -427,6 +435,43 @@
 		"url": "/delete/:id",
 		"title": "Web Store",
 		"controller": "Backend.Website.Store.Product.Delete"
+	},
+
+	"admin.emulator": {
+		"name": "admin.emulator",
+		"url": "/emulator",
+		"abstract": true,
+		"templateUrl": "views/backend/emulator/index.html"
+	},
+
+	"admin.emulator.landing": {
+		"name": "admin.emulator.landing",
+		"url": "",
+		"title": "Emulator",
+		"template": "<div ui-view></div>"
+	},
+
+	"admin.emulator.users": {
+		"name": "admin.emulator.users",
+		"url": "/users",
+		"abstract": true,
+		"templateUrl": "views/backend/emulator/users/index.html"
+	}, 
+
+	"admin.emulator.users.search": {
+		"name": "admin.emulator.users.search",
+		"url": "/search",
+		"title": "User Lookup",
+		"controller": "Backend.Emulator.Users.Search",
+		"templateUrl": "views/backend/emulator/users/search.html"
+	},
+
+	"admin.emulator.users.view": {
+		"name": "admin.emulator.users.view",
+		"url": "/view/:username", 
+		"title": "Viewing User", 
+		"controller": "Backend.Emulator.Users.View",
+		"templateUrl": "views/backend/emulator/users/view.html"
 	}
 
 }

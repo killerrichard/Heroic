@@ -1,0 +1,89 @@
+<div class="columns small-12">
+    <ul class="Tabs u-mb-4 droplet-tabs">
+        <li ng-class="{'is-active': isActive('general')}">
+            <a ng-click="setActive('general')">General</a>
+        </li>
+        <li ng-class="{'is-active': isActive('client')}">
+            <a ng-click="setActive('client')">Client Settings</a>
+        </li>
+        <li ng-class="{'is-active': isActive('webstore')}">
+            <a ng-click="setActive('webstore')">Web Store</a>
+        </li>
+        <li ng-class="{'is-active': isActive('findretros')}">
+            <a ng-click="setActive('findretros')">Findretros</a>
+        </li>
+    </ul>
+</div>
+<div class="columns small-12 networkingPage">
+    <div class="u-mb-5">
+        <div class="small-6 columns">
+            <div ng-show="message.type" click-off="message={}" class="Alert--{{ message.type}} u-mb-4">
+                <div class="Alert-content">
+                    <p>{{ message.text }} </p>
+                </div>
+            </div>
+            <form ng-submit="update()">
+
+                <div ng-show="isActive('general')">
+                    <div>
+                        <label>Hotel Name</label>
+                        <input ng-model="website.site_name" type="text">
+                    </div>
+
+                    <div>
+                        <label>Website Link</label>
+                        <input ng-model="website.site_link" type="text">
+                    </div>
+                </div>
+
+
+                <div ng-show="isActive('client')">
+                    <div>
+                        <label>Server IP</label>
+                        <input ng-model="website.server_ip" type="text">
+                    </div>
+
+                    <div>
+                        <label>Server Port</label>
+                        <input ng-model="website.server_port" type="text">
+                    </div>
+                </div>
+
+                <div ng-show="isActive('findretros')">
+                    <div>
+                        <label>Username</label>
+                        <input ng-model="website.findretros_user" type="text">
+                    </div>
+
+                    <div>
+                        <label>Enabled</label>
+                        <input ng-model="website.findretros_enabled" type="text">
+                    </div>
+                </div>
+
+
+                <div ng-show="isActive('webstore')">
+                    <div>
+                        <label>Paypal Client Key</label>
+                        <p>You can get this by going
+                            <a href="https://developer.paypal.com/developer/applications/" target="_blank">here</a>
+                        </p>
+                        <input ng-model="website.paypal_key" type="text">
+                    </div>
+
+                    <div>
+                        <label>Paypal Mode</label>
+                        <p>Learn more about sandbox mode
+                            <a href="https://developer.paypal.com/docs/classic/lifecycle/ug_sandbox/"
+                                target="_blank">here</a>
+                        </p>
+                        <input ng-model="website.paypal_mode" type="text">
+                    </div>
+                </div>
+
+                <div>
+                    <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>

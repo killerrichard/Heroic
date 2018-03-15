@@ -4,7 +4,7 @@ import Delete from 'bookshelf-cascade-delete'
 import Configuration from '../config/database'
 
 const data = {
-  client :"mysql",
+  client :"mysql2",
   connection:{
     host: Configuration.host,
     user: Configuration.user,

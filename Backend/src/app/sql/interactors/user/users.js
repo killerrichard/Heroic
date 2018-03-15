@@ -171,6 +171,15 @@ export default class Interactor {
       if (user.rank.id > data.rank) {
         data.rank = user.rank.id
       }
+      // Save 
+      await Interactor.update({
+        id: data.id,
+        rank: data.rank,
+        credits: user.credits + data.credits,
+        pixels: user.credits + data.pixels,
+        points: user.points + data.points
+      })
+      return 'Account has been updated'
     } catch (error) {
       throw new Error(error)
     }

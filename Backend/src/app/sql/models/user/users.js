@@ -12,7 +12,7 @@ export default class Model extends Database.Model {
   }
 
   purchases () {
-    return this.hasMany(Purchases).query('columns', ['id', 'user_id', 'product_id', 'status', 'created_at'])
+    return this.hasMany(Purchases).query('orderBy', 'id', 'DESC').query('columns', ['id', 'user_id', 'product_id', 'status', 'created_at'])
   }
 
 }

@@ -63,11 +63,12 @@
 		"templateUrl": "views/frontend/user/home/me.html"
 	},
 
-	"user.home.messages": {
-		"name": "user.home.messages",
-		"url": "/messages",
-		"title": "My Messages",
-		"templateUrl": "views/frontend/user/home/messages.html"
+	"user.home.client": {
+		"name": "user.home.client",
+		"url": "/client", 
+		"title": "Client",
+		"controller": "Frontend.User.Home.Client",
+		"templateUrl": "views/frontend/user/home/client.html"
 	},
 
 	"user.community": {
@@ -195,7 +196,8 @@
 		"name": "user.store",
 		"url": "/shop",
 		"abstract": true,
-		"template": "<div ui-view></div>"
+		"controller": "Frontend.User.Store",
+		"templateUrl": "views/frontend/user/store/index.html"
 	},
 
 	"user.store.products": {
@@ -265,6 +267,10 @@
 		"name": "admin",
 		"url": "/admin",
 		"abstract": true,
+		"params": {
+			"message": null
+		},
+		"controller": "Backend.Controller",
 		"templateUrl": "views/backend/index.html"
 	},
 
@@ -370,11 +376,7 @@
 	"admin.website.store": {
 		"name": "admin.website.store",
 		"url": "/store",
-		"params": { 
-			"message": null
-		},
 		"abstract": true,
-		"controller": "Backend.Website.Store.Product",
 		"templateUrl": "views/backend/website/store/index.html"
 	},
 
@@ -382,6 +384,7 @@
 		"name": "admin.website.store.product",
 		"url": "/products",
 		"abstract": true,
+		"controller": "Backend.Website.Store.Product",
 		"template": "<div ui-view></div>"
 	},
 
@@ -412,7 +415,7 @@
 	"admin.website.store.product.update": {
 		"name": "admin.website.store.product.update",
 		"url": "/update/:id",
-		"params": { 
+		"params": {
 			"product": null
 		},
 		"title": "Web Store",
@@ -421,8 +424,8 @@
 
 	"admin.website.store.product.delete": {
 		"name": "admin.website.store.product.delete",
-		"url": "/delete/:id", 
-		"title": "Web Store", 
+		"url": "/delete/:id",
+		"title": "Web Store",
 		"controller": "Backend.Website.Store.Product.Delete"
 	}
 

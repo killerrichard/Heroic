@@ -25,4 +25,14 @@ export default class Controller {
     }
   }
 
+  static async client (request, reply) {
+    try {
+      let sso = await Database.client(request.raw.session.id)
+      reply.code(200).send(sso)
+    }
+    catch (error) {
+      new Error(error, request, reply)
+    }
+  }
+
 }

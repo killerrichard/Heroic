@@ -1,7 +1,7 @@
 class Controller {
     constructor($scope, $http, $state, $localStorage) {
         'ngInject'
-
+ 
         if ($localStorage.session.online==0) {
             this.$onChanges = (changes) => {
                 if (changes.product.currentValue !== undefined) {

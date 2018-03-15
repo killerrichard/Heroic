@@ -1,21 +1,19 @@
 import Hash from 'bcrypt'
+import Random from 'randomstring'
 import Model from '../../models/user/users'
 export default class Interactor {
 
   // CRUD
   static async create(data) {
     try {
-
-      data.password = Hash.hashSync(data.password, 10)
-
       // Validate
-      let step = await Interactor.validate(data.username, 'username', true)
-      step = await Interactor.validate(data.mail, 'email', true)
-
-      // Create
-      step = await new Model(data).save()
-      step = await Interactor.read(data.username, 'username')
-      return step
+      await Interactor.validate(data.username, 'username', true)
+      await Interactor.validate(data.mail, 'email', true)
+      await Interactor.validate(data.password, 'password')
+      data.password = Hash.hashSync(data.password, 10)
+      await new Model(data).save()
+      let user = await Interactor.read(data.username, 'username')
+      return user
 
     } catch (error) {
       throw new Error(error)
@@ -94,6 +92,7 @@ export default class Interactor {
             throw new Error('RETURN: Password is not strong enough')
           }
           break;
+
 
       }
     } else {
@@ -180,6 +179,27 @@ export default class Interactor {
         points: user.points + data.points
       })
       return 'Account has been updated'
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  static async client(id) {
+    try {
+
+      const generated = `heroic_two_${Random.generate(7)}`
+
+      await Interactor.exists(id)
+
+      await Model.where('id', id).save({
+        id: id,
+        auth_ticket: generated
+      }, {
+        method: 'update'
+      }) 
+
+      return generated
+
     } catch (error) {
       throw new Error(error)
     }

@@ -9,9 +9,12 @@ export default class Controller {
         site_desc: request.body.site_desc,
         site_link: request.body.site_link,
         server_ip: request.body.server_ip,
-        server_port: request.body.server_port,
+        server_port: request.body.server_port, 
+        swf_base: request.body.swf_base,
+        swf_gamedata: request.body.swf_gamedata,
         findretros_user: request.body.findretros_user,
         findretros_enabled: request.body.findretros_enabled,
+        store_enabled: request.body.store_enabled,
         paypal_key: request.body.paypal_key,
         paypal_mode: request.body.paypal_mode
       }

@@ -1,1 +1,3 @@
-exports.Messages = require('./messages').default
+module.exports = {
+    Client : require('./client').default
+}

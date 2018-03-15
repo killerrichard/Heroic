@@ -1,10 +1,16 @@
 class Index {
-    constructor($scope, $state) {
+
+    constructor($http, $scope, $state) {
         'ngInject'
-        $scope.message = $state.params.message
+        $http.get('/api/ranks')
+            .then(ranks => {
+                $scope.ranks = ranks.data
+            })
+            .catch(error => {
+                $state.go('errors.500')
+            })
     }
 }
-
 class Create {
 
     constructor($http, $scope, $state) {
@@ -50,6 +56,7 @@ class View {
         $http.get(`/api/store/products/${$state.params.id || 0}`)
             .then(product => {
                 $scope.product = product.data
+                console.log($scope.product)
             })
             .catch(error => {
                 console.log(error)

@@ -166,8 +166,6 @@ export default class Interactor {
       await Interactor.exists(data.id, 'id')
       // Fetch user
       let user = await Interactor.read(data.id, 'id', true)
-      // Format 
-      user = user.toJSON()
       // Check Rank 
       if (user.rank.id > data.rank) {
         data.rank = user.rank.id

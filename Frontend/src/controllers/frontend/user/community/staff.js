@@ -3,6 +3,7 @@ class List {
         'ngInject'
         $http.get('/api/ranks')
             .then(ranks => {
+                $scope.ranks = []
                 ranks.data.forEach(r => {
                     if (r.cms_display_staff == 1) {
                         $scope.ranks.push(r)
@@ -16,6 +17,7 @@ class List {
                 }
             })
             .catch(error => {
+                console.log(error)
                 $state.go('errors.500')
             })
         $scope.$watchCollection(() => {

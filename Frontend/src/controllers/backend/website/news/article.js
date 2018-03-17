@@ -1,28 +1,23 @@
 class Index {
-    constructor($http, $scope, $state) {
+    constructor($http, $scope) {
         'ngInject'
         // Fetch Categories
+        $scope.categories = []
         $http.get('/api/news/categories')
             .then(categories => {
-                let i = 0
                 categories.data.forEach(category => {
                     $scope.categories.push({
                         id: category.id,
                         title: category.title
                     })
-
-                    if ($scope.article.category_id == category.id) {
-                        $scope.article.category = $scope.categories[i]
-                    }
-                    i++
                 })
             })
         // Fetch Images 
         $http.get('/api/news/images')
             .then(images => {
                 $scope.images = images.data
-            })
-
+            }) 
+ 
     }
 }
 class Create {

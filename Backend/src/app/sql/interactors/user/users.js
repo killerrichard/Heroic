@@ -107,11 +107,11 @@ export default class Interactor {
       try {
         let user = await Interactor.validate(username, 'username', false)
         user = await Model.where('username', username).fetch({
-          columns: ['password']
+          columns: ['id', 'password']
         })
         if (user) {
           if (Hash.compareSync(password, user.toJSON().password)) {
-            return true;
+            return user.toJSON().id
           } else {
             throw new Error(`RETURN: That's not the right password`)
           }

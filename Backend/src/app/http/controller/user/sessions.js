@@ -6,7 +6,7 @@ export default class Controller {
   static async create(request, reply) {
     try {
       let session = await Database.login(request.body.username, request.body.password)
-      session = await Database.read(request.body.username, 'username')
+      session = await Database.read(session, 'id', true)
       session = await Authentication.sign(session)
       reply.code(200).send(session)
     } catch (error) {

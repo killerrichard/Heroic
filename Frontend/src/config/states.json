@@ -186,7 +186,7 @@
 
 	"user.community.staff.list": {
 		"name": "user.community.staff.list",
-		"url": "/",
+		"url": "",
 		"title": "Staff Team",
 		"templateUrl": "views/frontend/user/community/staff/list.html"
 	},
@@ -339,15 +339,15 @@
 		"name": "admin.website.news",
 		"url": "/news",
 		"abstract": true,
-		"template": "<div ui-view></div>"
+		"templateUrl": "views/backend/website/news/index.html"
 	},
 
 	"admin.website.news.article": {
 		"name": "admin.website.news.article",
 		"url": "/articles",
 		"abstract": true,
-		"category": "Backend.Website.News.Article",
-		"templateUrl": "views/backend/website/news/index.html"
+		"controller": "Backend.Website.News.Article",
+		"template": "<div ui-view></div>"
 	},
 
 	"admin.website.news.article.create": {
@@ -360,7 +360,7 @@
 
 	"admin.website.news.article.list": {
 		"name": "admin.website.news.article.list",
-		"url": "/",
+		"url": "/list",
 		"title": "Hotel News",
 		"controller": "Backend.Website.News.Article.List",
 		"templateUrl": "views/backend/website/news/article/list.html"
@@ -376,7 +376,6 @@
 
 	"admin.website.news.article.update": {
 		"name": "admin.website.news.article.update",
-		"url": "",
 		"params": {
 			"article": {}
 		},
@@ -396,7 +395,7 @@
 		"url": "/category",
 		"abstract": true,
 		"category": "Backend.Website.News.Category",
-		"templateUrl": "views/backend/website/news/index.html"
+		"template": "<div ui-view></div>"
 	},
 
 	"admin.website.news.category.create": {

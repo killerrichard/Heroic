@@ -59,7 +59,7 @@ export default class Server {
 
   static routes (http, callback) {
     Fetch.sync(`${__dirname}/routes/**/*.js`).forEach (file => {
-      const route = require(file).default
+      const route = require(Path.resolve(file)).default
       new route (http)
     })
     callback(null, http)

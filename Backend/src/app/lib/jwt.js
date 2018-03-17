@@ -5,7 +5,7 @@ export default class Library {
 
   static async sign (session) {
     try {
-      return Token.sign(session.toJSON(), File.readFileSync(Path.resolve(__dirname, '..', 'config', 'https', 'key.pem')), {
+      return Token.sign(session, File.readFileSync(Path.resolve(__dirname, '..', 'config', 'https', 'key.pem')), {
           expiresIn: '24h',
           algorithm: 'HS256'
         })

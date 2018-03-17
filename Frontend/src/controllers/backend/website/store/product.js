@@ -4,8 +4,15 @@ class Index {
         'ngInject'
         $http.get('/api/ranks')
             .then(ranks => {
-                $scope.ranks = ranks.data
-            })
+                $scope.ranks = []
+                ranks.data.forEach(rank => {
+                    $scope.ranks.push({
+                        id: rank.id,
+                        rank_name: rank.rank_name,
+                        badge : rank.badge
+                    })
+                })
+            }) 
             .catch(error => {
                 $state.go('errors.500')
             })
@@ -58,6 +65,7 @@ class View {
         $http.get(`/api/store/products/${$state.params.id || 0}`)
             .then(product => {
                 $scope.product = product.data
+                console.log(product.data)
             })
             .catch(error => {
                 $state.go('admin.website.store.product.list')

@@ -11,7 +11,7 @@ class Index {
             })
     }
 }
-class Create { 
+class Create {
 
     constructor($http, $scope, $state) {
         'ngInject'
@@ -26,6 +26,8 @@ class Create {
                             type: 'neutral',
                             text: 'Your changes have been saved'
                         }
+                    }, {
+                        reload: true
                     })
                 })
                 .catch(error => {
@@ -74,6 +76,8 @@ class Update {
                         type: 'neutral',
                         text: 'Your changes have been saved'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {
@@ -92,6 +96,8 @@ class Delete {
                         type: 'neutral',
                         text: 'The subscription has been removed'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {

@@ -9,6 +9,8 @@ class Create {
                             type: 'neutral',
                             text: 'Your changes have been saved'
                         }
+                    }, {
+                        reload: true
                     })
                 } else {
                     $scope.go('admin.website.news.category.list', {
@@ -16,6 +18,8 @@ class Create {
                             type: 'failure',
                             text: 'Your changes could not be saved'
                         }
+                    }, {
+                        reload: true
                     })
                 }
             })
@@ -68,6 +72,8 @@ class Update {
                             type: 'neutral',
                             text: 'Your changes have been saved'
                         }
+                    }, {
+                        reload: true
                     })
                 } else {
                     $scope.go('admin.website.news.category.view', {
@@ -76,6 +82,8 @@ class Update {
                             type: 'failure',
                             text: 'Your changes could not be saved'
                         }
+                    }, {
+                        reload: true
                     })
                 }
             })
@@ -94,6 +102,8 @@ class Delete {
                         type: 'failure',
                         text: 'Your changes could not be saved'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {

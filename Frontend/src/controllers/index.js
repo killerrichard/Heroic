@@ -30,7 +30,8 @@ app.controller('Frontend.User.Store.Purchase.Success', Frontend.User.Store.Purch
 // Backend
 app.controller('Backend.Controller', Backend.Controller)
 // Settings
-app.controller('Backend.Website.Settings', Backend.Website.Settings)
+app.controller('Backend.Website.Settings.View', Backend.Website.Settings.View)
+app.controller('Backend.Website.Settings.Update', Backend.Website.Settings.Update)
 // News Article
 app.controller('Backend.Website.News.Article', Backend.Website.News.Article.Index)
 app.controller('Backend.Website.News.Article.Create', Backend.Website.News.Article.Create)

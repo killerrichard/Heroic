@@ -37,6 +37,8 @@ class Create {
                                 type: 'neutral',
                                 text: 'Your changed have been saved'
                             }
+                        }, {
+                            reload: true
                         })
                     } else {
                         $state.go('admin.website.news.article.list', {
@@ -44,6 +46,8 @@ class Create {
                                 type: 'failure',
                                 text: 'Your changes could not be saved'
                             }
+                        }, {
+                            reload: true
                         })
                     }
                 })
@@ -96,6 +100,8 @@ class Update {
                             type: 'neutral',
                             text: 'Your changes have been saved'
                         }
+                    }, {
+                        reload: true
                     })
                 } else {
                     $state.go('admin.website.news.article.view', {
@@ -104,6 +110,8 @@ class Update {
                             type: 'failure',
                             text: 'Your changes could not be saved'
                         }
+                    }, {
+                        reload: true
                     })
                 }
             })
@@ -124,6 +132,8 @@ class Delete {
                         type: 'neutral',
                         text: 'That article has been deleted'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {
@@ -132,6 +142,8 @@ class Delete {
                         type: 'failure',
                         text: 'Your changes could not be saved'
                     }
+                }, {
+                    reload: true
                 })
             })
     }

@@ -23,27 +23,27 @@ class View {
 class Update {
   constructor($http, $scope, $state) {
     'ngInject'
-    $scope.update = () => {
-      $http.patch('/api/auth/admin/config/website', $state.params.website)
-        .then(msg => {
-          if (!msg.data.error) {
-            $state.go('admin.website.settings.view', {
-              message: {
-                type: 'neutral',
-                text: 'Your changes have been saved!'
-              }
-            })
-          } else {
-            $state.go('admin.website.settings.view', {
-              message: {
-                type: 'neutral',
-                text: 'Your changes have been saved!'
-              }
-            })
-          }
-        })
-    }
-
+    $http.patch('/api/auth/admin/config/website', $state.params.website)
+      .then(msg => {
+        if (!msg.data.error) {
+          $state.go('admin.website.settings.view', {
+            message: {
+              type: 'neutral',
+              text: 'Your changes have been saved!'
+            }
+          }, {
+            reload: true
+          })
+        } else {
+          $state.go('admin.website.settings.view', {
+            message: {
+              type: 'neutral',
+            }
+          }, {
+            reload: true
+          })
+        }
+      })
   }
 }
 module.exports = {

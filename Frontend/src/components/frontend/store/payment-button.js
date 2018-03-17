@@ -1,17 +1,17 @@
 class Controller {
     constructor($scope, $http, $state, $localStorage) {
         'ngInject'
- 
-        if ($localStorage.session.online==0) {
+
+        if ($localStorage.session.online == 0) {
             this.$onChanges = (changes) => {
                 if (changes.product.currentValue !== undefined) {
-    
+
                     $scope.product = changes.product.currentValue
-    
+
                     paypal.Button.render({
-    
-                        env: 'sandbox',
-    
+
+                        env: $localStorage.website.paypal_mode,
+
                         style: {
                             size: 'small',
                             color: 'blue',
@@ -19,25 +19,25 @@ class Controller {
                             label: 'pay',
                             tagline: false
                         },
-    
+
                         client: {
-                            sandbox: 'ARoTPsvd9CyaqvU1fihP_VdWpQvWwblXVrQs_xymqEIJinf88fD5wA20SQtYWRvjT5yUgkpcWQRtNirf',
-                            production: 'AX1KfmFeygWAKjg72h6hExurJR5XCXKuoVlWgMgcfgSKAB9eDtZdK28akfeqbCEKMeA0BnLK0r9zYZmD'
+                            sandbox: $localStorage.website.paypal_key,
+                            production: $localStorage.website.paypal_key
                         },
-    
+
                         payment: function (data, actions) {
                             return actions.payment.create({
                                 transactions: [{
                                     amount: {
-                                        total:  $scope.product.price,
+                                        total: $scope.product.price,
                                         currency: 'USD'
                                     }
                                 }]
-                            }) 
-                        }, 
-    
+                            })
+                        },
+
                         commit: true,
-    
+
                         onAuthorize: function (data, actions) {
                             return actions.payment.execute().then(function (response) {
                                 $state.go('user.store.history.purchase.success', {
@@ -49,11 +49,11 @@ class Controller {
                                 })
                             })
                         },
-    
+
                         onCancel: function (data) {
                             $state.go('user.store.purchase.failed')
                         }
-    
+
                     }, '#paypalButton')
                 }
             }

@@ -27,13 +27,20 @@ app.controller('Frontend.User.Store.Purchase.Success', Frontend.User.Store.Purch
 app.controller('Backend.Controller', Backend.Controller)
 // Settings
 app.controller('Backend.Website.Settings', Backend.Website.Settings)
-// News
+// News Article
+app.controller('Backend.Website.News.Article', Backend.Website.News.Article.Index)
+app.controller('Backend.Website.News.Article.Create', Backend.Website.News.Article.Create)
 app.controller('Backend.Website.News.Article.List', Backend.Website.News.Article.List)
 app.controller('Backend.Website.News.Article.View', Backend.Website.News.Article.View)
-app.controller('Backend.Website.News.Article.Create', Backend.Website.News.Article.Create)
+app.controller('Backend.Website.News.Article.Update', Backend.Website.News.Article.Update)
+app.controller('Backend.Website.News.Article.Delete', Backend.Website.News.Article.Delete)
+// News Category
+app.controller('Backend.Website.News.Category', Backend.Website.News.Category)
+app.controller('Backend.Website.News.Category.Create', Backend.Website.News.Category.Create)
 app.controller('Backend.Website.News.Category.List', Backend.Website.News.Category.List)
 app.controller('Backend.Website.News.Category.View', Backend.Website.News.Category.View)
-app.controller('Backend.Website.News.Category.Create', Backend.Website.News.Category.Create)
+app.controller('Backend.Website.News.Category.Update', Backend.Website.News.Category.Update)
+app.controller('Backend.Website.News.Category.Delete', Backend.Website.News.Category.Delete)
 // Web Store
 app.controller('Backend.Website.Store.Product', Backend.Website.Store.Product.Index)
 app.controller('Backend.Website.Store.Product.Create', Backend.Website.Store.Product.Create)

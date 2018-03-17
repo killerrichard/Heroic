@@ -302,13 +302,30 @@
 		"template": "<div ui-view></div>"
 	},
 
-
 	"admin.website.settings": {
-		"name": "admin.website.settings",
+		"name": "admin.website.settings.view",
 		"url": "/settings",
+		"abstract": true,
+		"template": "<div ui-view></div>"
+	},
+
+
+	"admin.website.settings.view": {
+		"name": "admin.website.settings.view",
+		"url": "",
 		"title": "Manage Website",
-		"controller": "Backend.Website.Settings",
+		"controller": "Backend.Website.Settings.View",
 		"templateUrl": "views/backend/website/settings.html"
+	},
+
+	"admin.website.settings.update": {
+		"name": "admin.website.settings.update",
+		"url": "",
+		"params": {
+			"website": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.Settings.Update"
 	},
 
 	"admin.website.news": {
@@ -322,6 +339,7 @@
 		"name": "admin.website.news.article",
 		"url": "/articles",
 		"abstract": true,
+		"category": "Backend.Website.News.Article",
 		"templateUrl": "views/backend/website/news/index.html"
 	},
 
@@ -349,10 +367,28 @@
 		"templateUrl": "views/backend/website/news/article/view.html"
 	},
 
+	"admin.website.news.article.update": {
+		"name": "admin.website.news.article.update",
+		"url": "",
+		"params": {
+			"article": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Article.Update"
+	},
+
+	"admin.website.news.article.delete": {
+		"name": "admin.website.news.article.delete",
+		"url": "/delete/:id",
+		"title": "Manage News",
+		"controller": "Backend.Website.News.Article.Delete"
+	},
+
 	"admin.website.news.category": {
 		"name": "admin.website.news.category",
 		"url": "/category",
 		"abstract": true,
+		"category": "Backend.Website.News.Category",
 		"templateUrl": "views/backend/website/news/index.html"
 	},
 
@@ -363,7 +399,6 @@
 		"controller": "Backend.Website.News.Category.Create",
 		"templateUrl": "views/backend/website/news/category/create.html"
 	},
-
 
 	"admin.website.news.category.list": {
 		"name": "admin.website.news.category.list",
@@ -380,6 +415,23 @@
 		"controller": "Backend.Website.News.Category.View",
 		"templateUrl": "views/backend/website/news/category/view.html"
 	},
+
+	"admin.website.News.Category.update": {
+		"name": "admin.website.news.category.update",
+		"url": "",
+		"params": {
+			"category": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Category.Update"
+	},
+
+	"admin.website.News.Category.delete": {
+		"name": "admin.website.settings.update",
+		"url": "/delete/:id",
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Category.Delete"
+	}, 
 
 	"admin.website.store": {
 		"name": "admin.website.store",
@@ -456,7 +508,7 @@
 		"url": "/users",
 		"abstract": true,
 		"templateUrl": "views/backend/emulator/users/index.html"
-	}, 
+	},
 
 	"admin.emulator.users.search": {
 		"name": "admin.emulator.users.search",
@@ -468,8 +520,8 @@
 
 	"admin.emulator.users.view": {
 		"name": "admin.emulator.users.view",
-		"url": "/view/:username", 
-		"title": "Viewing User", 
+		"url": "/view/:username",
+		"title": "Viewing User",
 		"controller": "Backend.Emulator.Users.View",
 		"templateUrl": "views/backend/emulator/users/view.html"
 	}

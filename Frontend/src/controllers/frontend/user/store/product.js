@@ -2,7 +2,6 @@ class List {
 
     constructor($scope, $http, $state) {
         'ngInject'
-
         $http.get('/api/store/products')
             .then(products => {
                 $scope.products = products.data
@@ -18,7 +17,6 @@ class View {
 
     constructor($scope, $http, $state) {
         'ngInject'
-
         $http.get(`/api/store/products/${$state.params.id || 0}`)
             .then(product => {
                 if (!product.data.error) {
@@ -30,7 +28,7 @@ class View {
             .catch(error => {
                 $state.go('errors.500')
             })
-    } 
+    }
 
 }
 

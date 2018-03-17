@@ -9,7 +9,7 @@
         </div>
     </div>
 </header>
-<section class="wrapper wrapper--content">
+<section class="wrapper wrapper--content" ng-show="photos.length > 0">
     <habbo-columns-channel>
         <div>
             <div class="columns">
@@ -38,4 +38,8 @@
             </div>
         </div>
     </habbo-columns-channel>
+</section>
+<section class="wrapper wrapper--content" ng-show="photos.length==0">
+    <h3>Nothing posted</h3>
+    <p>Our users haven't shared any pictures yet!</p>
 </section>

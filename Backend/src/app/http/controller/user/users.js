@@ -21,7 +21,7 @@ export default class Controller {
 
   static async read (request, reply) {
     try {
-      let user = await Database.read('username', request.params.username)
+      let user = await Database.read(request.params.username ,'username')
       if (user) {
         reply.code(200).send(user)
       } else {
@@ -45,10 +45,6 @@ export default class Controller {
     catch (error) {
       new Error(error, request, reply)
     }
-  }
-
-  static delete (request, reply) {
-
   }
 
   static async validate (request, reply) {
@@ -89,7 +85,6 @@ export default class Controller {
     }
 
   }
-
 
   static async online (request, reply) {
     try {

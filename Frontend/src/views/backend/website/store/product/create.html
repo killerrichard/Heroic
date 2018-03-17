@@ -1,4 +1,4 @@
-<form ng-submit="create()">
+<form>
     <div class="columns small-6">
         <div>
             <label>Title</label>
@@ -35,7 +35,7 @@
             <input ng-model="product.boost_points" type="text">
         </div>
         <div>
-            <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+            <a ui-sref="admin.website.store.product.create({ product : product })" class="Button Button--blue Button--large Button--fullWidth ">Save</a>
         </div>
     </div>
 </form>

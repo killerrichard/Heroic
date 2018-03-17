@@ -1,5 +1,5 @@
 module.exports = {
-    Settings:  require('./settings').default,
+    Settings:  require('./settings'),
     News: {
         Article: require('./news/article'),
         Category: require('./news/category')

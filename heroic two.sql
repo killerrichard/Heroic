@@ -11,11 +11,29 @@
  Target Server Version : 100305
  File Encoding         : 65001
 
- Date: 15/03/2018 07:12:55
+ Date: 17/03/2018 18:12:33
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for bans
+-- ----------------------------
+DROP TABLE IF EXISTS `bans`;
+CREATE TABLE `bans`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `ip` varchar(50) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT '',
+  `machine_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `user_staff_id` int(11) NOT NULL,
+  `timestamp` int(11) NOT NULL,
+  `ban_expire` int(32) NOT NULL DEFAULT 0,
+  `ban_reason` varchar(200) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT '',
+  `type` enum('account','ip','machine','super') CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT 'account' COMMENT 'Account is the entry in the users table banned.\nIP is any client that connects with that IP.\nMachine is the computer that logged in.\nSuper is all of the above.',
+  `cfh_topic` int(4) NOT NULL DEFAULT -1,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for camera_web
@@ -30,12 +48,7 @@ CREATE TABLE `camera_web`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `id`(`id`) USING BTREE,
   INDEX `user_id`(`user_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of camera_web
--- ----------------------------
-INSERT INTO `camera_web` VALUES (1, 1, 0, 1, '1');
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cms_hangouts_posts
@@ -150,15 +163,18 @@ CREATE TABLE `cms_settings`  (
   `server_port` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `findretros_user` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `findretros_enabled` enum('true','false') CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'false',
+  `store_enabled` enum('true','false') CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'false',
   `paypal_key` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `paypal_mode` enum('sandbox','client') CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'sandbox',
+  `swf_base` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `swf_gamedata` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of cms_settings
 -- ----------------------------
-INSERT INTO `cms_settings` VALUES (1, 'Habbo', 'Welcome to hell', 'http://hell.com', '127.0.0.1', '3000', NULL, NULL, NULL, 'sandbox');
+INSERT INTO `cms_settings` VALUES (1, 'Habbo', 'Welcome to hell', 'http://hell.com', '127.0.0.1', '3000', 'chris', 'true', 'true', 'ARoTPsvd9CyaqvU1fihP_VdWpQvWwblXVrQs_xymqEIJinf88fD5wA20SQtYWRvjT5yUgkpcWQRtNirf', 'sandbox', 'http://localhost/assets/swfs/other/game', 'http://localhost/assets/swfs/gamedata');
 
 -- ----------------------------
 -- Table structure for cms_store_products
@@ -174,7 +190,15 @@ CREATE TABLE `cms_store_products`  (
   `boost_pixels` int(255) NULL DEFAULT NULL,
   `boost_points` int(255) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of cms_store_products
+-- ----------------------------
+INSERT INTO `cms_store_products` VALUES (5, 'Bronze VIP', 'Show off your love for Heroic by joining the #1 supporter group!', 10.00, 2, 5000, 5000, 5);
+INSERT INTO `cms_store_products` VALUES (6, 'Silver VIP', 'Oh come on...you wanna be bronze!', 15.00, 3, 25000, 25000, 10);
+INSERT INTO `cms_store_products` VALUES (7, 'Platinum VIP', 'Show off your love for Heroic by joining the #1 supporter group!', 30.00, 4, 75000, 75000, 30);
+INSERT INTO `cms_store_products` VALUES (8, 'User Moderator', 'Buy your way into the ranks.  We don\'t mind!', 100.00, 5, 80000, 80000, 30);
 
 -- ----------------------------
 -- Table structure for cms_store_purchases
@@ -184,16 +208,24 @@ CREATE TABLE `cms_store_purchases`  (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NULL DEFAULT NULL,
   `product_id` int(11) NULL DEFAULT NULL,
+  `payment_id` text CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `status` enum('pending','accepted','rejected','chargeback','refunded') CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'pending',
   `created_at` timestamp(0) NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP(0),
   `verified_at` timestamp(0) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of cms_store_purchases
 -- ----------------------------
-INSERT INTO `cms_store_purchases` VALUES (1, 1, 1, 'pending', '2018-03-06 04:40:25', NULL);
+INSERT INTO `cms_store_purchases` VALUES (2, 1, 8, 'PAY-38W436966G512733LLKVG7HY', 'accepted', '2018-03-15 08:05:46', '2018-03-15 08:05:46');
+INSERT INTO `cms_store_purchases` VALUES (3, 1, 8, 'PAY-5TH50023B08708802LKVHAII', 'accepted', '2018-03-15 08:09:42', '2018-03-15 08:09:42');
+INSERT INTO `cms_store_purchases` VALUES (4, 1, 5, 'PAY-2AT30630P7258121XLKVHBOI', 'accepted', '2018-03-15 08:10:56', '2018-03-15 08:10:56');
+INSERT INTO `cms_store_purchases` VALUES (5, 1, 5, 'PAY-8WV026685P496760VLKVHCDI', 'accepted', '2018-03-15 08:11:53', '2018-03-15 08:11:53');
+INSERT INTO `cms_store_purchases` VALUES (6, 1, 5, 'PAY-3UN60833WA350190YLKVHCOI', 'accepted', '2018-03-15 08:12:35', '2018-03-15 08:12:35');
+INSERT INTO `cms_store_purchases` VALUES (7, 1, 6, 'PAY-1CV77733YH012614LLKVHD6Y', 'accepted', '2018-03-15 08:15:48', '2018-03-15 08:15:48');
+INSERT INTO `cms_store_purchases` VALUES (8, 1, 8, 'PAY-3CJ52072684841505LKVHENI', 'accepted', '2018-03-15 08:16:48', '2018-03-15 08:16:48');
+INSERT INTO `cms_store_purchases` VALUES (9, 1, 8, 'PAY-1FL04866FR1894932LKWJMWY', 'accepted', '2018-03-16 23:15:33', '2018-03-16 23:15:33');
 
 -- ----------------------------
 -- Table structure for permissions
@@ -373,10 +405,10 @@ CREATE TABLE `permissions`  (
 -- Records of permissions
 -- ----------------------------
 INSERT INTO `permissions` VALUES (1, 'Member', NULL, 1, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '1', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
-INSERT INTO `permissions` VALUES (2, 'VIP', NULL, 2, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
-INSERT INTO `permissions` VALUES (3, 'X', NULL, 3, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
-INSERT INTO `permissions` VALUES (4, 'Support', NULL, 4, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
-INSERT INTO `permissions` VALUES (5, 'Support Moderator', NULL, 5, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1');
+INSERT INTO `permissions` VALUES (2, 'Bronze VIP', 'VipParties3', 2, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `permissions` VALUES (3, 'Silver VIP', 'VipParties3_Top100', 3, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `permissions` VALUES (4, 'Platinum VIP', 'VipParties3_Top10', 4, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `permissions` VALUES (5, 'Support Moderator', 'UK354', 5, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1');
 INSERT INTO `permissions` VALUES (6, 'User Management', NULL, 6, 0, '0', '', '', '1', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1');
 INSERT INTO `permissions` VALUES (7, 'Development Crew', NULL, 7, 0, '0', '', '', '1', '1', '0', '1', '1', '1', '1', '1', '0', '0', '1', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '0', '1', '0', '0', '0', '0', '0', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '0', '0', '1', '0', '1', '0', '0', '0', '1', '1', '0', '0', '1', '1', '1', '1', '1', '1', '0', '1', '1', '1', '0', '1', '1', '0', '1', '1', '1', '0', '1', '1', '0', '0', '1', '1', '1', '0', '1', '0', '1', '1', '1', '0', '1', '1', '1', '0', '1', '1', '1', '0', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1', '1', '1');
 
@@ -469,15 +501,20 @@ CREATE TABLE `users`  (
   UNIQUE INDEX `id`(`id`) USING BTREE,
   UNIQUE INDEX `id_2`(`id`) USING BTREE,
   UNIQUE INDEX `id_3`(`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (1, 'Chris', '', '$2a$10$7fCzyYpMCkGAcKhQYLuw3uYT2qwvv9HCsdkZCSzIK4JrhZdSKvoQi', 'chrismpettyjohn@gmail.com', '0', '2018-03-15 05:38:24', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 7, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (1, 'Chris', '', '$2a$10$7fCzyYpMCkGAcKhQYLuw3uYT2qwvv9HCsdkZCSzIK4JrhZdSKvoQi', 'chrismpettyjohn@gmail.com', '0', '2018-03-16 23:15:33', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 7, 187500, 187500, 80, '0', 'heroic_two_4L8Reu3', '127.0.0.1', '127.0.0.1', '', 0);
 INSERT INTO `users` VALUES (2, 'Peep', '', '$2a$10$5qZ/zz6kkS/GNFhH87VfAe084.ykO3qxnY6P2S5KejupoxBapf9Du', 'lil@peep.com', '0', '2018-03-05 21:36:30', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
 INSERT INTO `users` VALUES (3, 'daddy', '', '$2a$10$NBN3DKY7DfIrzQw4mErRGeeyYNyonHrwVigk4xer0Ju5je5yFWZze', 'w@w.com', '0', '2018-03-06 05:37:54', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '109.151.201.83', '109.151.201.83', '', 0);
 INSERT INTO `users` VALUES (4, 'testflaw', '', '$2a$10$W8caCQCALixEQq6gO/mSs.T0rueeu.bc1mU3DWnSIYYIo7sE.OrbW', 'editingxbl1337@gmail.com', '0', '2018-03-07 04:46:22', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
 INSERT INTO `users` VALUES (5, 'Dev', '', '$2a$10$N3cRaWWD9krBkmAiyLWvSew2QiV25bQ0uAjSsGRhQOU/.PKiEzzVO', 'TedBoon92@gmail.com', '0', '2018-03-07 14:38:25', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (6, 'Oliver', '', '$2a$10$JheFe.4fxqRe37aSVsHM2.28oFaNn5rf00Hm7GohHnm7U5QrltJdq', 'asdls@asd.com', '0', '2018-03-15 11:28:53', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (7, 'Testing', '', '$2a$10$tsOAGm.TVlFBG36o8LKhVukB4MGtichaois/cO5ZtFJYXHqJbzb5.', 'wow@loll.com', '0', '2018-03-15 11:35:59', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (8, 'Fun', '', '$2a$10$PTFJDApJZvI72pDt/fObyeF0YWgaccloVPzgdnOqA5Enff6kqNXzO', '123@gg.com', '0', '2018-03-17 11:33:59', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (9, 'mdma', '', '$2a$10$UEl452HhU1RGQnV1PF.sPObcErkBOdy3FSciknTYNv1ivLyLkjmw.', 'sdaifjnsdgfsd@hotmail.com', '0', '2018-03-17 13:04:43', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
+INSERT INTO `users` VALUES (10, 'lol', '', '$2a$10$vjvIn37PV5GqIpyXHAC5KeAsnOx6BPoXK07sUR.mGK/jBcj5oI9wy', 'lol@lol.com', '0', '2018-03-17 18:01:01', 0, 0, 0, '', 'hr-115-42.hd-195-19.ch-3030-82.lg-275-1408.fa-1201.ca-1804-64', 'M', 1, 2500, 500, 10, '0', '', '127.0.0.1', '127.0.0.1', '', 0);
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -2,19 +2,26 @@
 	"errors": {
 		"name": "errors",
 		"abstract": true,
-		"templateUrl": "views/frontend/errors/index.html"
-	},
-
-	"errors.400": {
-		"name": "errors.400",
-		"title": "Not Found",
-		"templateUrl": "views/frontend/errors/400.html"
+		"template": "<div ui-view></div>"
 	},
 
 	"errors.500": {
 		"name": "errors.500",
 		"title": "Server Error",
-		"templateUrl": "views/frontend/errors/500.html"
+		"templateUrl": "views/system/500.html"
+	},
+
+	"errors.message": {
+		"name": "errors.message",
+		"title": "Heroic Two",
+		"params": {
+			"message": {
+				"title": "Server Error",
+				"content": "What happened?"
+			}
+		},
+		"controller": "System.Message",
+		"templateUrl": "views/system/message.html"
 	},
 
 	"guest": {
@@ -63,11 +70,12 @@
 		"templateUrl": "views/frontend/user/home/me.html"
 	},
 
-	"user.home.messages": {
-		"name": "user.home.messages",
-		"url": "/messages",
-		"title": "My Messages",
-		"templateUrl": "views/frontend/user/home/messages.html"
+	"user.home.client": {
+		"name": "user.home.client",
+		"url": "/client",
+		"title": "Client",
+		"controller": "Frontend.User.Home.Client",
+		"templateUrl": "views/frontend/user/home/client.html"
 	},
 
 	"user.community": {
@@ -178,7 +186,7 @@
 
 	"user.community.staff.list": {
 		"name": "user.community.staff.list",
-		"url": "/",
+		"url": "",
 		"title": "Staff Team",
 		"templateUrl": "views/frontend/user/community/staff/list.html"
 	},
@@ -195,7 +203,8 @@
 		"name": "user.store",
 		"url": "/shop",
 		"abstract": true,
-		"template": "<div ui-view></div>"
+		"controller": "Frontend.User.Store",
+		"templateUrl": "views/frontend/user/store/index.html"
 	},
 
 	"user.store.products": {
@@ -265,6 +274,10 @@
 		"name": "admin",
 		"url": "/admin",
 		"abstract": true,
+		"params": {
+			"message": null
+		},
+		"controller": "Backend.Controller",
 		"templateUrl": "views/backend/index.html"
 	},
 
@@ -289,26 +302,52 @@
 		"templateUrl": "views/backend/website/index.html"
 	},
 
+	"admin.website.landing": {
+		"name": "admin.website.landing",
+		"url": "",
+		"title": "Website",
+		"template": "<div ui-view></div>"
+	},
+
 	"admin.website.settings": {
 		"name": "admin.website.settings",
 		"url": "/settings",
+		"abstract": true,
+		"template": "<div ui-view></div>"
+	}, 
+
+
+	"admin.website.settings.view": {
+		"name": "admin.website.settings.view",
+		"url": "",
 		"title": "Manage Website",
-		"controller": "Backend.Website.Settings",
+		"controller": "Backend.Website.Settings.View",
 		"templateUrl": "views/backend/website/settings.html"
+	},
+
+	"admin.website.settings.update": {
+		"name": "admin.website.settings.update",
+		"url": "",
+		"params": {
+			"website": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.Settings.Update"
 	},
 
 	"admin.website.news": {
 		"name": "admin.website.news",
 		"url": "/news",
 		"abstract": true,
-		"template": "<div ui-view></div>"
+		"templateUrl": "views/backend/website/news/index.html"
 	},
 
 	"admin.website.news.article": {
 		"name": "admin.website.news.article",
 		"url": "/articles",
 		"abstract": true,
-		"templateUrl": "views/backend/website/news/index.html"
+		"controller": "Backend.Website.News.Article",
+		"template": "<div ui-view></div>"
 	},
 
 	"admin.website.news.article.create": {
@@ -321,7 +360,7 @@
 
 	"admin.website.news.article.list": {
 		"name": "admin.website.news.article.list",
-		"url": "/",
+		"url": "/list",
 		"title": "Hotel News",
 		"controller": "Backend.Website.News.Article.List",
 		"templateUrl": "views/backend/website/news/article/list.html"
@@ -335,11 +374,28 @@
 		"templateUrl": "views/backend/website/news/article/view.html"
 	},
 
+	"admin.website.news.article.update": {
+		"name": "admin.website.news.article.update",
+		"params": {
+			"article": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Article.Update"
+	},
+
+	"admin.website.news.article.delete": {
+		"name": "admin.website.news.article.delete",
+		"url": "/delete/:id",
+		"title": "Manage News",
+		"controller": "Backend.Website.News.Article.Delete"
+	},
+
 	"admin.website.news.category": {
 		"name": "admin.website.news.category",
 		"url": "/category",
 		"abstract": true,
-		"templateUrl": "views/backend/website/news/index.html"
+		"category": "Backend.Website.News.Category",
+		"template": "<div ui-view></div>"
 	},
 
 	"admin.website.news.category.create": {
@@ -349,7 +405,6 @@
 		"controller": "Backend.Website.News.Category.Create",
 		"templateUrl": "views/backend/website/news/category/create.html"
 	},
-
 
 	"admin.website.news.category.list": {
 		"name": "admin.website.news.category.list",
@@ -367,14 +422,27 @@
 		"templateUrl": "views/backend/website/news/category/view.html"
 	},
 
+	"admin.website.News.Category.update": {
+		"name": "admin.website.news.category.update",
+		"url": "",
+		"params": {
+			"category": {}
+		},
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Category.Update"
+	},
+
+	"admin.website.News.Category.delete": {
+		"name": "admin.website.news.category.delete",
+		"url": "/delete/:id",
+		"title": "Manage Website",
+		"controller": "Backend.Website.News.Category.Delete"
+	}, 
+
 	"admin.website.store": {
 		"name": "admin.website.store",
 		"url": "/store",
-		"params": { 
-			"message": null
-		},
 		"abstract": true,
-		"controller": "Backend.Website.Store.Product",
 		"templateUrl": "views/backend/website/store/index.html"
 	},
 
@@ -382,6 +450,7 @@
 		"name": "admin.website.store.product",
 		"url": "/products",
 		"abstract": true,
+		"controller": "Backend.Website.Store.Product",
 		"template": "<div ui-view></div>"
 	},
 
@@ -412,7 +481,7 @@
 	"admin.website.store.product.update": {
 		"name": "admin.website.store.product.update",
 		"url": "/update/:id",
-		"params": { 
+		"params": {
 			"product": null
 		},
 		"title": "Web Store",
@@ -421,9 +490,46 @@
 
 	"admin.website.store.product.delete": {
 		"name": "admin.website.store.product.delete",
-		"url": "/delete/:id", 
-		"title": "Web Store", 
+		"url": "/delete/:id",
+		"title": "Web Store",
 		"controller": "Backend.Website.Store.Product.Delete"
+	},
+
+	"admin.emulator": {
+		"name": "admin.emulator",
+		"url": "/emulator",
+		"abstract": true,
+		"templateUrl": "views/backend/emulator/index.html"
+	},
+
+	"admin.emulator.landing": {
+		"name": "admin.emulator.landing",
+		"url": "",
+		"title": "Emulator",
+		"template": "<div ui-view></div>"
+	},
+
+	"admin.emulator.users": {
+		"name": "admin.emulator.users",
+		"url": "/users",
+		"abstract": true,
+		"templateUrl": "views/backend/emulator/users/index.html"
+	},
+
+	"admin.emulator.users.search": {
+		"name": "admin.emulator.users.search",
+		"url": "/search",
+		"title": "User Lookup",
+		"controller": "Backend.Emulator.Users.Search",
+		"templateUrl": "views/backend/emulator/users/search.html"
+	},
+
+	"admin.emulator.users.view": {
+		"name": "admin.emulator.users.view",
+		"url": "/view/:username",
+		"title": "Viewing User",
+		"controller": "Backend.Emulator.Users.View",
+		"templateUrl": "views/backend/emulator/users/view.html"
 	}
 
 }

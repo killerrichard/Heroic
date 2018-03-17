@@ -1,33 +1,24 @@
-<div ng-show="message.type" click-off="message={}" class="Alert--{{ message.type}} u-mb-4">
-    <div class="Alert-content">
-        <p>{{ message.text }} </p>
-    </div>
-</div>
-<form ng-submit="update()">
+<form>
     <div class="columns small-6">
         <div>
             <label>Title</label>
             <input ng-model="article.title" type="text">
         </div>
-
         <div>
             <label>Category</label>
             <select ng-model="article.category" ng-options="c as c.title for c in categories"></select>
         </div>
-
         <div>
             <label>Image</label>
             <select ng-model="article.image">
                 <option ng-repeat="image in images" value="{{ image }}">{{ image }}</option>
             </select>
         </div>
-
         <div>
             <label>Description</label>
             <textarea ng-model="article.description"></textarea>
         </div>
     </div>
-
     <div class="columns small-6">
         <h1>Preview</h1>
         <img ng-src="/assets/img/articles/{{ article.image.replace('_thumb.png', '') }}_thumb.png" class="columns small-6">
@@ -36,19 +27,14 @@
             <p ng-bind="article.description"></p>
         </div>
     </div>
-
     <div class="columns small-12">
         <label>Content</label>
         <text-angular ng-model="article.content"></text-angular>
     </div>
-
     <div class="columns small-6">
-        <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
+        <a ui-sref="admin.website.news.article.update({ article : article })" class="Button Button--blue Button--large Button--fullWidth ">Save</a>
     </div>
-
     <div class="columns small-6">
-        <button ng-click="delete(article.id)" class="Button Button--red Button--large Button--fullWidth ">Delete</button>
+        <a ui-sref="admin.website.news.article.delete({ id : article.id })" class="Button Button--red Button--large Button--fullWidth ">Delete</a>
     </div>
-
 </form>
-</div>

@@ -11,7 +11,7 @@ export default class Interactor {
           throw new Error('RETURN: Rank does not exist')
         }
       } else {
-        return Model.fetchAll({ columns : ['id', 'rank_name', 'cms_display_staff'] })
+        return Model.fetchAll({ columns : ['id', 'rank_name', 'badge', 'cms_display_staff'] })
       }
     }
     catch (error) {

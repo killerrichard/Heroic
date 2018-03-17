@@ -7,10 +7,6 @@
 			"children": [{
 					"name": "Home",
 					"state": "user.home.me"
-				},
-				{
-					"name": "Messages",
-					"state": "user.home.messages"
 				}
 			]
 		},

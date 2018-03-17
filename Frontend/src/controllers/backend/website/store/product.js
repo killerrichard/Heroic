@@ -1,10 +1,23 @@
 class Index {
-    constructor($scope, $state) {
+
+    constructor($http, $scope, $state) {
         'ngInject'
-        $scope.message = $state.params.message
+        $http.get('/api/ranks')
+            .then(ranks => {
+                $scope.ranks = []
+                ranks.data.forEach(rank => {
+                    $scope.ranks.push({
+                        id: rank.id,
+                        rank_name: rank.rank_name,
+                        badge : rank.badge
+                    })
+                })
+            }) 
+            .catch(error => {
+                $state.go('errors.500')
+            })
     }
 }
-
 class Create {
 
     constructor($http, $scope, $state) {
@@ -20,6 +33,8 @@ class Create {
                             type: 'neutral',
                             text: 'Your changes have been saved'
                         }
+                    }, {
+                        reload: true
                     })
                 })
                 .catch(error => {
@@ -50,9 +65,9 @@ class View {
         $http.get(`/api/store/products/${$state.params.id || 0}`)
             .then(product => {
                 $scope.product = product.data
+                console.log(product.data)
             })
             .catch(error => {
-                console.log(error)
                 $state.go('admin.website.store.product.list')
             })
     }
@@ -61,7 +76,6 @@ class View {
 class Update {
     constructor($http, $scope, $state) {
         'ngInject'
-        console.log($state.params.product)
         $http.patch(`/api/auth/admin/store/products/${$state.params.id}`, $state.params.product)
             .then(msg => {
                 $state.go('admin.website.store.product.view', {
@@ -70,6 +84,8 @@ class Update {
                         type: 'neutral',
                         text: 'Your changes have been saved'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {
@@ -88,6 +104,8 @@ class Delete {
                         type: 'neutral',
                         text: 'The subscription has been removed'
                     }
+                }, {
+                    reload: true
                 })
             })
             .catch(error => {

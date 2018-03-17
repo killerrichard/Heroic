@@ -32,7 +32,7 @@
                 <a ui-sref="admin.website.news.category.view({ id : category.id })">
                     <i class="fa fa-pencil"></i>
                 </a>
-                <a href="/cms/news/delete/<%= a.id %>" style="margin-left:15%;">
+                <a ui-sref="admin.website.news.category.delete({ id : category.id })" style="margin-left:15%;">
                     <i class="fa fa-trash"></i>
                 </a>
             </td>

@@ -1,37 +1,37 @@
 import Hash from 'bcrypt'
+import Random from 'randomstring'
 import Model from '../../models/user/users'
 export default class Interactor {
 
   // CRUD
   static async create(data) {
     try {
-
-      data.password = Hash.hashSync(data.password, 10)
-
       // Validate
-      let step = await Interactor.validate(data.username, 'username', true)
-      step = await Interactor.validate(data.mail, 'email', true)
-
-      // Create
-      step = await new Model(data).save()
-      step = await Interactor.read(data.username, 'username')
-      return step
+      await Interactor.validate(data.username, 'username', true)
+      await Interactor.validate(data.mail, 'email', true)
+      await Interactor.validate(data.password, 'password')
+      data.password = Hash.hashSync(data.password, 10)
+      await new Model(data).save()
+      let user = await Interactor.read(data.username, 'username')
+      return user
 
     } catch (error) {
       throw new Error(error)
     }
   }
 
-  static read(data, type, self) {
+  static async read(data, type, self) {
     if (self) {
-      return Model.where(type, data).fetch({
+      const user = await Model.where(type, data).fetch({
         columns: ['id', 'username', 'mail', 'look', 'rank', 'credits', 'pixels', 'points', 'online'],
-        withRelated: ['rank', 'purchases', 'purchases.product', 'purchases.product.rank']
+        withRelated: ['bans', 'rank', 'purchases', 'purchases.product', 'purchases.product.rank']
       })
+      return user.toJSON()
     } else {
-      return Model.where(type, data).fetch({
+      const user = await Model.where(type, data).fetch({
         columns: ['id', 'username', 'mail', 'look', 'rank', 'credits', 'pixels', 'points', 'online']
       })
+      return user.toJSON()
     }
   }
 
@@ -95,6 +95,7 @@ export default class Interactor {
           }
           break;
 
+
       }
     } else {
       throw new Error(`RETURN: ${type} is empty`)
@@ -106,11 +107,11 @@ export default class Interactor {
       try {
         let user = await Interactor.validate(username, 'username', false)
         user = await Model.where('username', username).fetch({
-          columns: ['password']
+          columns: ['id', 'password']
         })
         if (user) {
           if (Hash.compareSync(password, user.toJSON().password)) {
-            return true;
+            return user.toJSON().id
           } else {
             throw new Error(`RETURN: That's not the right password`)
           }
@@ -143,13 +144,13 @@ export default class Interactor {
     }
   }
 
-  static async exists(id) {
+  static async exists(data, type) {
     try {
-      let user = await Model.where('id', id).fetch({
-        columns: ['id']
+      let user = await Model.where(type, data).fetch({
+        columns: ['id', type]
       })
-      if (user.toJSON().id) {
-        return true
+      if (user) {
+        return user.toJSON().id
       } else {
         throw new Error('RETURN: User does not exist')
       }
@@ -162,7 +163,7 @@ export default class Interactor {
   static async subscription(data) {
     try {
       // Check For Existence 
-      await Interactor.exists(data.id)
+      await Interactor.exists(data.id, 'id')
       // Fetch user
       let user = await Interactor.read(data.id, 'id', true)
       // Format 
@@ -180,6 +181,27 @@ export default class Interactor {
         points: user.points + data.points
       })
       return 'Account has been updated'
+    } catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  static async client(id) {
+    try {
+
+      const generated = `heroic_two_${Random.generate(7)}`
+
+      await Interactor.exists(id, 'id')
+
+      await Model.where('id', id).save({
+        id: id,
+        auth_ticket: generated
+      }, {
+        method: 'update'
+      })
+
+      return generated
+
     } catch (error) {
       throw new Error(error)
     }

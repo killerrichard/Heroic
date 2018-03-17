@@ -38,7 +38,16 @@ export default class Session {
               Session.$rootScope.session = session.data
               resolve(session.data)
             } else {
-              reject('Session not found')
+              if (session.data.error == 'banned') {
+                Session.$state.go('errors.message', {
+                  message: {
+                    title: 'Account Banned',
+                    content: 'You have been banned from our services for not following the rules.'
+                  }
+                })
+              } else {
+                reject('Session not found')
+              }
             }
           })
           .catch(error => {

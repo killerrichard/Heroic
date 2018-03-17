@@ -20,16 +20,18 @@ export default class Interactor {
     }
   }
 
-  static read(data, type, self) {
+  static async read(data, type, self) {
     if (self) {
-      return Model.where(type, data).fetch({
+      const user = await Model.where(type, data).fetch({
         columns: ['id', 'username', 'mail', 'look', 'rank', 'credits', 'pixels', 'points', 'online'],
-        withRelated: ['rank', 'purchases', 'purchases.product', 'purchases.product.rank']
+        withRelated: ['bans', 'rank', 'purchases', 'purchases.product', 'purchases.product.rank']
       })
+      return user.toJSON()
     } else {
-      return Model.where(type, data).fetch({
+      const user = await Model.where(type, data).fetch({
         columns: ['id', 'username', 'mail', 'look', 'rank', 'credits', 'pixels', 'points', 'online']
       })
+      return user.toJSON()
     }
   }
 
@@ -146,7 +148,7 @@ export default class Interactor {
     try {
       let user = await Model.where(type, data).fetch({
         columns: ['id', type]
-      }) 
+      })
       if (user) {
         return user.toJSON().id
       } else {
@@ -196,7 +198,7 @@ export default class Interactor {
         auth_ticket: generated
       }, {
         method: 'update'
-      }) 
+      })
 
       return generated
 

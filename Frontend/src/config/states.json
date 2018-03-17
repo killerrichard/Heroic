@@ -20,6 +20,7 @@
 				"content": "What happened?"
 			}
 		},
+		"controller": "System.Message",
 		"templateUrl": "views/system/message.html"
 	},
 

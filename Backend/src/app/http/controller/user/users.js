@@ -47,10 +47,6 @@ export default class Controller {
     }
   }
 
-  static delete (request, reply) {
-
-  }
-
   static async validate (request, reply) {
 
     switch (request.body.type) {

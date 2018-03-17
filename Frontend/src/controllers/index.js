@@ -1,6 +1,10 @@
+import System from './system/index'
 import Frontend from './frontend/index'
 import Backend from './backend/index'
 let app = angular.module('heroic.controllers', [])
+
+// System 
+app.controller('System.Message', System.Message)
 
 // Frontend
 app.controller('Frontend.Guest.Login', Frontend.Guest.Login)

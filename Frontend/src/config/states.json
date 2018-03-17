@@ -2,19 +2,25 @@
 	"errors": {
 		"name": "errors",
 		"abstract": true,
-		"templateUrl": "views/frontend/errors/index.html"
-	},
-
-	"errors.400": {
-		"name": "errors.400",
-		"title": "Not Found",
-		"templateUrl": "views/frontend/errors/400.html"
+		"template": "<div ui-view></div>"
 	},
 
 	"errors.500": {
 		"name": "errors.500",
 		"title": "Server Error",
-		"templateUrl": "views/frontend/errors/500.html"
+		"templateUrl": "views/system/500.html"
+	},
+
+	"errors.message": {
+		"name": "errors.message",
+		"title": "Heroic Two",
+		"params": {
+			"message": {
+				"title": "Server Error",
+				"content": "What happened?"
+			}
+		},
+		"templateUrl": "views/system/message.html"
 	},
 
 	"guest": {
@@ -303,11 +309,11 @@
 	},
 
 	"admin.website.settings": {
-		"name": "admin.website.settings.view",
+		"name": "admin.website.settings",
 		"url": "/settings",
 		"abstract": true,
 		"template": "<div ui-view></div>"
-	},
+	}, 
 
 
 	"admin.website.settings.view": {
@@ -427,7 +433,7 @@
 	},
 
 	"admin.website.News.Category.delete": {
-		"name": "admin.website.settings.update",
+		"name": "admin.website.news.category.delete",
 		"url": "/delete/:id",
 		"title": "Manage Website",
 		"controller": "Backend.Website.News.Category.Delete"

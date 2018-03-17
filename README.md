@@ -40,7 +40,7 @@
  <br><br>
  <h2>Mentions</h2>
  <ul>
-  <li>Bill Gillson -Angular Base For 1.0 -  <a href="https://github.com/billsonnn/">View Github</a></li>
+  <li>Bill Gilson -Angular Base For 1.0 -  <a href="https://github.com/billsonnn/">View Github</a></li>
   <li>Claudio Santoro - Inspiration - <a href="https://github.com/ovflowd">View Github</a></li>
  </ul>
  

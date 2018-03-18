@@ -1,31 +1,22 @@
 class Create {
-    constructor($http, $state) {
+    constructor($scope, $http, $state) {
         'ngInject'
-        $http.post('/api/auth/mod/categories', $state.params.category)
-            .then(msg => {
-                if (!msg.data.error) {
-                    $scope.go('admin.website.news.category.list', {
+        $scope.create = () => {
+            $http.post('/api/auth/mod/categories', $scope.category)
+                .then(msg => {
+                    $state.go('admin.website.news.category.list', {
                         message: {
-                            type: 'neutral',
+                            type: 'success',
                             text: 'Your changes have been saved'
                         }
                     }, {
                         reload: true
                     })
-                } else {
-                    $scope.go('admin.website.news.category.list', {
-                        message: {
-                            type: 'failure',
-                            text: 'Your changes could not be saved'
-                        }
-                    }, {
-                        reload: true
-                    })
-                }
-            })
-            .catch(error => {
-                $state.go('errors.500')
-            })
+                })
+                .catch(error => {
+                    $state.go('errors.500')
+                })
+        }  
     }
 }
 
@@ -62,30 +53,19 @@ class View {
 }
 
 class Update {
-    constructor($http, $scope, $state) {
-        $http.patch(`/api/auth/mod/categories/${$scope.category.id}`, $scope.category)
+    constructor($http, $state) {
+        'ngInject'
+        $http.patch(`/api/auth/mod/categories/${$state.params.category.id}`, $state.params.category)
             .then(msg => {
-                if (!msg.data.error) {
-                    $scope.go('admin.website.news.category.view', {
-                        id: $state.params.category.id,
-                        message: {
-                            type: 'neutral',
-                            text: 'Your changes have been saved'
-                        }
-                    }, {
-                        reload: true
-                    })
-                } else {
-                    $scope.go('admin.website.news.category.view', {
-                        id: $state.params.category.id,
-                        message: {
-                            type: 'failure',
-                            text: 'Your changes could not be saved'
-                        }
-                    }, {
-                        reload: true
-                    })
-                }
+                $state.go('admin.website.news.category.view', {
+                    id: $state.params.category.id,
+                    message: {
+                        type: 'success',
+                        text: 'Your changes have been saved'
+                    }
+                }, {
+                    reload: true
+                })
             })
             .catch(error => {
                 $state.go('errors.500')
@@ -94,13 +74,14 @@ class Update {
 }
 
 class Delete {
-    constructor($http, $scope, $state) {
-        $http.delete(`/api/auth/mod/categories/${state.params.id}`)
+    constructor($http, $state) {
+        'ngInject'
+        $http.delete(`/api/auth/mod/categories/${$state.params.id}`)
             .then(success => {
-                $scope.go('admin.website.news.category.list', {
+                $state.go('admin.website.news.category.list', {
                     message: {
-                        type: 'failure',
-                        text: 'Your changes could not be saved'
+                        type: 'success',
+                        text: 'Category has been deleted'
                     }
                 }, {
                     reload: true

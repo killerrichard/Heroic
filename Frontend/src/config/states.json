@@ -314,7 +314,7 @@
 		"url": "/settings",
 		"abstract": true,
 		"template": "<div ui-view></div>"
-	}, 
+	},
 
 
 	"admin.website.settings.view": {
@@ -368,7 +368,7 @@
 
 	"admin.website.news.article.view": {
 		"name": "admin.website.news.article.view",
-		"url": "/:id",
+		"url": "/view/:id",
 		"title": "Hotel News",
 		"controller": "Backend.Website.News.Article.View",
 		"templateUrl": "views/backend/website/news/article/view.html"
@@ -376,6 +376,7 @@
 
 	"admin.website.news.article.update": {
 		"name": "admin.website.news.article.update",
+		"url": "/update/:id",
 		"params": {
 			"article": {}
 		},
@@ -401,14 +402,14 @@
 	"admin.website.news.category.create": {
 		"name": "admin.website.news.category.create",
 		"url": "/create",
-		"title": "Hotel News",
+		"title": "Hotel News", 
 		"controller": "Backend.Website.News.Category.Create",
 		"templateUrl": "views/backend/website/news/category/create.html"
 	},
 
 	"admin.website.news.category.list": {
 		"name": "admin.website.news.category.list",
-		"url": "/",
+		"url": "/list",
 		"title": "Hotel News",
 		"controller": "Backend.Website.News.Category.List",
 		"templateUrl": "views/backend/website/news/category/list.html"
@@ -416,15 +417,15 @@
 
 	"admin.website.news.category.view": {
 		"name": "admin.website.news.category.view",
-		"url": "/:id",
+		"url": "/view/:id",
 		"title": "Hotel News",
 		"controller": "Backend.Website.News.Category.View",
 		"templateUrl": "views/backend/website/news/category/view.html"
 	},
 
-	"admin.website.News.Category.update": {
+	"admin.website.news.category.update": {
 		"name": "admin.website.news.category.update",
-		"url": "",
+		"url": "/update/:id",
 		"params": {
 			"category": {}
 		},
@@ -432,12 +433,12 @@
 		"controller": "Backend.Website.News.Category.Update"
 	},
 
-	"admin.website.News.Category.delete": {
+	"admin.website.news.category.delete": {
 		"name": "admin.website.news.category.delete",
 		"url": "/delete/:id",
 		"title": "Manage Website",
 		"controller": "Backend.Website.News.Category.Delete"
-	}, 
+	},
 
 	"admin.website.store": {
 		"name": "admin.website.store",

@@ -9,10 +9,10 @@ class Index {
                     $scope.ranks.push({
                         id: rank.id,
                         rank_name: rank.rank_name,
-                        badge : rank.badge
+                        badge: rank.badge
                     })
                 })
-            }) 
+            })
             .catch(error => {
                 $state.go('errors.500')
             })
@@ -30,7 +30,7 @@ class Create {
                 .then(msg => {
                     $state.go('admin.website.store.product.list', {
                         message: {
-                            type: 'neutral',
+                            type: 'success',
                             text: 'Your changes have been saved'
                         }
                     }, {
@@ -59,13 +59,11 @@ class List {
 }
 
 class View {
-
     constructor($http, $scope, $state) {
         'ngInject'
         $http.get(`/api/store/products/${$state.params.id || 0}`)
             .then(product => {
                 $scope.product = product.data
-                console.log(product.data)
             })
             .catch(error => {
                 $state.go('admin.website.store.product.list')
@@ -81,7 +79,7 @@ class Update {
                 $state.go('admin.website.store.product.view', {
                     id: $state.params.product.id,
                     message: {
-                        type: 'neutral',
+                        type: 'success',
                         text: 'Your changes have been saved'
                     }
                 }, {
@@ -101,7 +99,7 @@ class Delete {
             .then(msg => {
                 $state.go('admin.website.store.product.list', {
                     message: {
-                        type: 'neutral',
+                        type: 'success',
                         text: 'The subscription has been removed'
                     }
                 }, {

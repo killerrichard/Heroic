@@ -1,4 +1,4 @@
-<form>
+<form ng-submit="create()">
     <div class="columns small-6">
         <div>
             <label>Title</label>
@@ -23,8 +23,8 @@
     </div>
     <div class="columns small-6">
         <h1>Preview</h1>
-        <img ng-src="/assets/img/articles/{{ article.image.replace('_thumb.png', '') }}_thumb.png" class="columns small-6">
-        <div class="columns small-6">
+        <img ng-src="/assets/img/articles/{{ article.image.replace('_thumb.png', '') }}_thumb.png" class="columns small-4">
+        <div class="columns small-8"> 
             <h2 ng-bind="article.title"></h2>
             <p ng-bind="article.description"></p>
         </div>
@@ -34,6 +34,6 @@
         <text-angular ng-model="article.content"></text-angular>
     </div>
     <div>
-        <a ui-sref="admin.website.news.article.create({ article : article })" class="Button Button--blue Button--large Button--fullWidth ">Save</a>
+        <button class="Button Button--blue Button--large Button--fullWidth ">Save</button>
     </div>
 </form>

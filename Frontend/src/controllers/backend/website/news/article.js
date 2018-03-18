@@ -16,8 +16,8 @@ class Index {
         $http.get('/api/news/images')
             .then(images => {
                 $scope.images = images.data
-            }) 
- 
+            })
+
     }
 }
 class Create {
@@ -29,7 +29,7 @@ class Create {
                     if (!msg.data.error) {
                         $state.go('admin.website.news.article.list', {
                             message: {
-                                type: 'neutral',
+                                type: 'success',
                                 text: 'Your changed have been saved'
                             }
                         }, {
@@ -75,9 +75,16 @@ class View {
         $http.get(`/api/news/articles/${$state.params.id || 0}`)
             .then(article => {
                 $scope.article = article.data
+                $scope.categories.forEach(category => {
+                    if (category.id == $scope.article.category_id) {
+                        $scope.article.category = category
+                    }
+                })
+
             })
             .catch(error => {
-                $state.go('errors.500')
+                console.log(error)
+                //$state.go('errors.500')
             })
     }
 }
@@ -85,14 +92,14 @@ class View {
 class Update {
     constructor($http, $state) {
         'ngInject'
-        $state.article.category_id = $state.article.category.id
-        $http.patch(`/api/auth/mod/articles/${$state.article.id}`, $state.article)
+        $state.params.article.category_id = $state.params.article.category.id
+        $http.patch(`/api/auth/mod/articles/${$state.params.article.id}`, $state.params.article)
             .then(msg => {
                 if (!msg.data.error) {
                     $state.go('admin.website.news.article.view', {
-                        id: $state.article.id,
+                        id: $state.params.article.id,
                         message: {
-                            type: 'neutral',
+                            type: 'success',
                             text: 'Your changes have been saved'
                         }
                     }, {
@@ -100,7 +107,7 @@ class Update {
                     })
                 } else {
                     $state.go('admin.website.news.article.view', {
-                        id: $state.article.id,
+                        id: $state.params.article.id,
                         message: {
                             type: 'failure',
                             text: 'Your changes could not be saved'
@@ -120,16 +127,16 @@ class Update {
 class Delete {
     constructor($http, $state) {
         'ngInject'
-        $http.delete(`/api/auth/mod/articles/${state.params.id}`)
+        $http.delete(`/api/auth/mod/articles/${$state.params.id}`)
             .then(success => {
                 $state.go('admin.website.news.article.list', {
                     message: {
-                        type: 'neutral',
+                        type: 'success',
                         text: 'That article has been deleted'
                     }
                 }, {
                     reload: true
-                })
+                }) 
             })
             .catch(error => {
                 $state.go('admin.website.news.article.list', {

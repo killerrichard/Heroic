@@ -14,8 +14,8 @@ export default class Middleware {
   }
 
   static async checkMod (request, reply, next) {
-    try {
-      let validate = await Ranks.hasRank(request.session.rank, 'mod')
+    try { 
+      let validate = await Ranks.hasRank(request.session.rank.id, 'mod')
       next()
     }
     catch (error) {
@@ -25,7 +25,7 @@ export default class Middleware {
 
   static async checkAdmin (request, reply, next) {
     try {
-      let validate = await Ranks.hasRank(request.session.rank, 'admin')
+      let validate = await Ranks.hasRank(request.session.rank.id, 'admin')
       next()
     }
     catch (error) {
